@@ -42,6 +42,7 @@ import {
 } from 'lucide-react'
 import { getTopicBadgeClass, formatTopicLabel } from './lib/topics'
 import { DIMENSION_LABELS, HUMANIZE_TONES, DISTRIBUTION_FORMATS, CORE_VOICE_INVARIANTS } from './lib/constants'
+import { getHealth } from './api/health'
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('oracle')
@@ -51,8 +52,7 @@ export default function App() {
   useEffect(() => {
     const checkHealth = async () => {
       try {
-        const res = await fetch('/api/health')
-        const data = await res.json()
+        const data = await getHealth()
         setServerOnline(data.status === 'ok')
       } catch {
         setServerOnline(false)
