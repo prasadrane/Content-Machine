@@ -139,6 +139,97 @@ class TestHumanizeSanitizer(unittest.TestCase):
             self.assertTrue(any(company in msg for msg in v))
 
 
+class FakeRouter:
+    def __init__(self, response_text: str = ""):
+        self.response_text = response_text
+        self.calls = []
+
+    def complete(self, models, prompt="", system="", **kwargs):
+        self.calls.append({"models": models, "prompt": prompt, "system": system})
+        if self.response_text == "RAISE":
+            raise RuntimeError("LLM Failure")
+        return self.response_text
+
+
+class TestHumanizeTransformer(unittest.TestCase):
+    def test_transform_comment_enforces_max_sentences(self):
+        from content_machine.humanize.transformer import HumanizeTransformer
+
+        fake_reply = (
+            "Here is point one. Here is point two. Here is point three. "
+            "Here is point four that should be dropped."
+        )
+        router = FakeRouter(response_text=fake_reply)
+        transformer = HumanizeTransformer(router=router, voice_guide="Author voice guide")
+
+        res = transformer.humanize_comment("Raw comment text", max_sentences=3)
+        self.assertEqual(res.channel, HumanizeChannel.LINKEDIN_COMMENT)
+        self.assertEqual(res.tone, HumanizeTone.PUNCHY_DIRECT)
+        self.assertEqual(res.sentence_count, 3)
+        self.assertNotIn("point four", res.humanized_text)
+
+    def test_transform_tones_and_channels(self):
+        from content_machine.humanize.transformer import HumanizeTransformer
+
+        fake_reply = "A pragmatic take on distributed event logs. You need backpressure."
+        router = FakeRouter(response_text=fake_reply)
+        transformer = HumanizeTransformer(router=router)
+
+        res = transformer.humanize_post(
+            "Draft post text about distributed event logs",
+            tone=HumanizeTone.PRAGMATIC_ARCHITECT,
+        )
+        self.assertEqual(res.channel, HumanizeChannel.LINKEDIN_POST)
+        self.assertEqual(res.tone, HumanizeTone.PRAGMATIC_ARCHITECT)
+        self.assertIn("backpressure", res.humanized_text)
+
+        # Verify prompt contained tone system instructions
+        last_call = router.calls[-1]
+        self.assertIn("PRAGMATIC ARCHITECT", last_call["system"])
+
+    def test_transform_fallback_on_router_failure(self):
+        from content_machine.humanize.transformer import HumanizeTransformer
+
+        router = FakeRouter(response_text="RAISE")
+        transformer = HumanizeTransformer(router=router)
+
+        raw = "We must delve into this — it is a pivotal moment."
+        res = transformer.transform(raw, channel=HumanizeChannel.GENERAL)
+        # Should gracefully fall back to sanitizer output
+        self.assertNotIn("delve", res.humanized_text)
+        self.assertNotIn("—", res.humanized_text)
+        self.assertIn("delve", res.banned_words_purged)
+
+    def test_transform_empty_input(self):
+        from content_machine.humanize.transformer import HumanizeTransformer
+
+        router = FakeRouter(response_text="Ignored")
+        transformer = HumanizeTransformer(router=router)
+
+        res = transformer.transform("", channel=HumanizeChannel.GENERAL)
+        self.assertEqual(res.humanized_text, "")
+        self.assertEqual(res.sentence_count, 0)
+        self.assertFalse(res.was_modified)
+        self.assertEqual(len(router.calls), 0)
+
+    def test_transform_scrubs_llm_banned_words(self):
+        from content_machine.humanize.transformer import HumanizeTransformer
+
+        fake_reply = "We should delve into the tapestry — it is pivotal."
+        router = FakeRouter(response_text=fake_reply)
+        transformer = HumanizeTransformer(router=router)
+
+        res = transformer.transform("Clean input", channel=HumanizeChannel.GENERAL)
+        self.assertNotIn("delve", res.humanized_text.lower())
+        self.assertNotIn("tapestry", res.humanized_text.lower())
+        self.assertNotIn("—", res.humanized_text)
+        self.assertIn("delve", res.banned_words_purged)
+
+    def test_humanize_transformer_export_in_init(self):
+        from content_machine.humanize import HumanizeTransformer
+        self.assertIsNotNone(HumanizeTransformer)
+
+
 if __name__ == "__main__":
     unittest.main()
 
