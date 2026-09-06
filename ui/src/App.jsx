@@ -1,0 +1,4454 @@
+import React, { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
+import { 
+  Compass, 
+  Users, 
+  BookOpen, 
+  Mic, 
+  ArrowRight, 
+  CheckCircle2, 
+  AlertCircle, 
+  XCircle, 
+  ExternalLink, 
+  RotateCw, 
+  Sparkles,
+  Layers,
+  ChevronRight,
+  ShieldAlert,
+  ShieldCheck,
+  Zap,
+  FileText,
+  Share2,
+  Copy,
+  Check,
+  History,
+  Trophy,
+  Clock,
+  Sliders,
+  Settings,
+  X,
+  Search,
+  Filter,
+  Tag,
+  Database,
+  Globe,
+  Flame,
+  MessageSquare,
+  ChevronDown,
+  ChevronUp
+} from 'lucide-react'
+
+export default function App() {
+  const [activeTab, setActiveTab] = useState('oracle')
+  const [serverOnline, setServerOnline] = useState(false)
+
+  // Health polling
+  useEffect(() => {
+    const checkHealth = async () => {
+      try {
+        const res = await fetch('/api/health')
+        const data = await res.json()
+        setServerOnline(data.status === 'ok')
+      } catch {
+        setServerOnline(false)
+      }
+    }
+    checkHealth()
+    const timer = setInterval(checkHealth, 10000)
+    return () => clearInterval(timer)
+  }, [])
+
+  // Shared state between Oracle, Council, and Distribute
+  const [councilDraft, setCouncilDraft] = useState('')
+  const [councilSpikeId, setCouncilSpikeId] = useState('spike-1')
+  const [distributeText, setDistributeText] = useState('')
+  const [distributeSlug, setDistributeSlug] = useState('post-1')
+
+  const handleSendToCouncil = (item) => {
+    setCouncilSpikeId(item.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 30))
+    const snippetBlock = item.body_snippet ? `> ${item.body_snippet}\n\n` : ''
+    setCouncilDraft(`# ${item.title}\n\n${item.url ? `Source: ${item.url}\n\n` : ''}${snippetBlock}Draft content goes here...`)
+    setActiveTab('council')
+  }
+
+  const handleSendToCouncilWithDraft = (draftText, slug) => {
+    setCouncilSpikeId(slug || 'spike-1')
+    setCouncilDraft(draftText)
+    setActiveTab('council')
+  }
+
+  const handleSendToDistribute = (text, slug) => {
+    setDistributeText(text)
+    setDistributeSlug(slug || 'published-post')
+    setActiveTab('distribute')
+  }
+
+  return (
+    <div className="min-h-screen w-full bg-[#faf9f5] text-[#141413] flex flex-col font-sans selection:bg-[#c6613f]/20 selection:text-[#c6613f]">
+      {/* Anthropic-style Sticky Navigation Header */}
+      <header className="border-b border-[#e3dacc]/70 bg-[#faf9f5]/85 backdrop-blur-md sticky top-0 z-40 transition-colors w-full">
+        <div className="max-w-7xl w-full mx-auto px-6 h-16 flex items-center justify-between">
+          {/* Brand Logo & Title */}
+          <div className="flex items-center gap-3">
+            {/* Anthropic Iconic Dual-Square Mark */}
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
+              <svg width="28" height="28" viewBox="0 0 48 48" fill="none" className="shrink-0" aria-hidden="true">
+                <g>
+                  <rect x="6" y="16" width="24" height="24" rx="6" stroke="#141413" strokeWidth="2.5" />
+                </g>
+                <g>
+                  <rect x="18" y="8" width="24" height="24" rx="6" fill="#141413" />
+                </g>
+              </svg>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-serif font-semibold tracking-tight text-base text-[#141413]">Content Machine</span>
+                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-[#f0eee6] text-[#87867f] border border-[#e3dacc]">
+                  v2 &bull; Anthropic Edition
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Grouped Pill Navigation Tabs */}
+          <nav className="flex items-center gap-3" aria-label="Main Navigation">
+            {/* Workflow Pipeline Group */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-[#87867f] font-semibold select-none">
+                Pipeline
+              </span>
+              <div className="flex items-center gap-1 bg-[#f0eee6] p-1 rounded-full border border-[#e3dacc]/80 shadow-anthropic">
+                <TabBtn 
+                  active={activeTab === 'oracle'} 
+                  onClick={() => setActiveTab('oracle')}
+                  icon={<Compass className="w-3.5 h-3.5" />}
+                  label="Oracle" 
+                />
+                <TabBtn 
+                  active={activeTab === 'council'} 
+                  onClick={() => setActiveTab('council')}
+                  icon={<Users className="w-3.5 h-3.5" />}
+                  label="Council" 
+                />
+                <TabBtn 
+                  active={activeTab === 'distribute'} 
+                  onClick={() => setActiveTab('distribute')}
+                  icon={<Share2 className="w-3.5 h-3.5" />}
+                  label="Distribute" 
+                />
+              </div>
+            </div>
+
+            {/* Subtle Divider between groups */}
+            <div className="h-4 w-px bg-[#e3dacc]" aria-hidden="true" />
+
+            {/* Auxiliary Tools Group */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-[#87867f] font-semibold select-none">
+                Tools
+              </span>
+              <div className="flex items-center gap-1 bg-[#f0eee6] p-1 rounded-full border border-[#e3dacc]/80 shadow-anthropic">
+                <TabBtn 
+                  active={activeTab === 'commenting'} 
+                  onClick={() => setActiveTab('commenting')}
+                  icon={<MessageSquare className="w-3.5 h-3.5" />}
+                  label="Commenting" 
+                />
+                <TabBtn 
+                  active={activeTab === 'lessons'} 
+                  onClick={() => setActiveTab('lessons')}
+                  icon={<BookOpen className="w-3.5 h-3.5" />}
+                  label="Lessons" 
+                />
+                <TabBtn 
+                  active={activeTab === 'audio'} 
+                  onClick={() => setActiveTab('audio')}
+                  icon={<Mic className="w-3.5 h-3.5" />}
+                  label="Audio" 
+                />
+              </div>
+            </div>
+          </nav>
+
+          {/* Server Status Pill */}
+          <div className="flex items-center gap-2 text-xs text-[#87867f] font-mono px-3 py-1 rounded-full bg-[#f0eee6] border border-[#e3dacc]">
+            <span className={`w-2 h-2 rounded-full ${serverOnline ? 'bg-emerald-600 shadow-[0_0_6px_rgba(5,150,105,0.4)]' : 'bg-[#c6613f]'}`} />
+            <span className="text-[11px] font-medium">{serverOnline ? 'Operational' : 'Offline'}</span>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-10">
+        {activeTab === 'oracle' && (
+          <OracleTab 
+            onSendToCouncil={handleSendToCouncil} 
+            onSendToCouncilWithDraft={handleSendToCouncilWithDraft} 
+          />
+        )}
+        {activeTab === 'council' && (
+          <CouncilTab 
+            draft={councilDraft} 
+            setDraft={setCouncilDraft} 
+            spikeId={councilSpikeId} 
+            setSpikeId={setCouncilSpikeId}
+            onSendToDistribute={handleSendToDistribute}
+          />
+        )}
+        {activeTab === 'distribute' && (
+          <DistributeTab 
+            initialText={distributeText} 
+            initialSlug={distributeSlug} 
+          />
+        )}
+        {activeTab === 'commenting' && <CommentingTab />}
+        {activeTab === 'lessons' && <LessonsTab />}
+        {activeTab === 'audio' && <AudioTab />}
+      </main>
+
+      {/* Editorial Footer */}
+      <footer className="border-t border-[#e3dacc] py-8 text-center text-xs text-[#87867f] font-serif w-full bg-[#faf9f5]">
+        <p className="italic">
+          Content Machine &bull; Anchor in lived human experience &bull; Zero text generator slop
+        </p>
+      </footer>
+    </div>
+  )
+}
+
+function TabBtn({ active, onClick, icon, label }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
+        active 
+          ? 'bg-[#141413] text-[#faf9f5] shadow-sm' 
+          : 'text-[#87867f] hover:text-[#141413] hover:bg-[#e3dacc]/50'
+      }`}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
+  )
+}
+
+// ==========================================
+// 1. ORACLE TAB (Ingestion & Idea Scoring)
+// ==========================================
+function getTopicBadgeClass(topic) {
+  if (!topic) return 'bg-[#f0eee6] text-[#87867f] border-[#e3dacc]'
+  if (topic.includes('Systems')) return 'bg-[#e3dacc]/80 text-[#87867f] border-[#b0aea5]'
+  if (topic.includes('Leadership')) return 'bg-[#f0eee6] text-[#141413] border-[#e3dacc]'
+  if (topic.includes('AI') || topic.includes('Machine Learning')) return 'bg-[#c6613f]/10 text-[#c6613f] border-[#c6613f]/30'
+  if (topic.includes('Cloud') || topic.includes('Infra')) return 'bg-[#d97757]/10 text-[#d97757] border-[#d97757]/30'
+  if (topic.includes('Security')) return 'bg-rose-500/10 text-rose-800 border-rose-200'
+  if (topic.includes('Productivity') || topic.includes('Tools')) return 'bg-emerald-500/10 text-emerald-800 border-emerald-200'
+  return 'bg-[#f0eee6] text-[#87867f] border-[#e3dacc]'
+}
+
+function formatTopicLabel(topic) {
+  if (!topic || topic === 'All') return 'All'
+  if (topic.includes('⚡') || topic.includes('🤖') || topic.includes('📈') || topic.includes('☁️') || topic.includes('🔒') || topic.includes('🛠️') || topic.includes('💻')) {
+    return topic
+  }
+  if (topic.includes('Systems')) return `⚡ ${topic}`
+  if (topic.includes('AI') || topic.includes('Machine Learning')) return `🤖 ${topic}`
+  if (topic.includes('Leadership')) return `📈 ${topic}`
+  if (topic.includes('Cloud') || topic.includes('Infra')) return `☁️ ${topic}`
+  if (topic.includes('Security')) return `🔒 ${topic}`
+  if (topic.includes('Productivity') || topic.includes('Tools')) return `🛠️ ${topic}`
+  return topic
+}
+
+function InterviewModal({ item, onClose, onSynthesizeComplete, onSkipToCouncil }) {
+  const [briefing, setBriefing] = useState(null)
+  const [loadingBriefing, setLoadingBriefing] = useState(true)
+  const [briefingError, setBriefingError] = useState('')
+  const [answers, setAnswers] = useState({})
+  const [rawNotes, setRawNotes] = useState('')
+  const [synthesizing, setSynthesizing] = useState(false)
+  const [synthError, setSynthError] = useState('')
+
+  // Voice Input State (Web Speech API + MediaRecorder Fallback)
+  const [recordingTarget, setRecordingTarget] = useState(null)
+  const [recordingError, setRecordingError] = useState('')
+  const [isTranscribingAudio, setIsTranscribingAudio] = useState(false)
+  const recognitionRef = useRef(null)
+  const mediaRecorderRef = useRef(null)
+  const audioChunksRef = useRef([])
+
+  const stopVoiceRecording = () => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop()
+      } catch (e) {}
+      recognitionRef.current = null
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      try {
+        mediaRecorderRef.current.stop()
+      } catch (e) {}
+    }
+    setRecordingTarget(null)
+  }
+
+  const startVoiceRecording = async (target) => {
+    setRecordingError('')
+    if (recordingTarget === target) {
+      stopVoiceRecording()
+      return
+    }
+
+    if (recordingTarget !== null) {
+      stopVoiceRecording()
+    }
+
+    const SpeechRecognition = typeof window !== 'undefined' ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null
+    if (SpeechRecognition) {
+      try {
+        const recog = new SpeechRecognition()
+        recog.continuous = true
+        recog.interimResults = true
+        recog.lang = 'en-US'
+
+        recog.onstart = () => {
+          setRecordingTarget(target)
+        }
+
+        recog.onresult = (event) => {
+          let sessionFinal = ''
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              sessionFinal += event.results[i][0].transcript + ' '
+            }
+          }
+          if (sessionFinal.trim()) {
+            const textToAdd = sessionFinal.trim()
+            if (target === 'raw') {
+              setRawNotes((prev) => (prev ? prev.trim() + ' ' + textToAdd : textToAdd))
+            } else {
+              setAnswers((prev) => {
+                const current = prev[target] || ''
+                return {
+                  ...prev,
+                  [target]: current ? current.trim() + ' ' + textToAdd : textToAdd,
+                }
+              })
+            }
+          }
+        }
+
+        recog.onerror = (event) => {
+          if (event.error !== 'no-speech') {
+            setRecordingError(`Voice input error: ${event.error}`)
+          }
+          setRecordingTarget(null)
+        }
+
+        recog.onend = () => {
+          setRecordingTarget((prev) => (prev === target ? null : prev))
+        }
+
+        recognitionRef.current = recog
+        recog.start()
+        return
+      } catch (err) {
+        console.warn('SpeechRecognition failed, falling back to MediaRecorder:', err)
+      }
+    }
+
+    // Fallback: MediaRecorder + backend /api/interview/transcribe
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mediaRecorder = new MediaRecorder(stream)
+      mediaRecorderRef.current = mediaRecorder
+      audioChunksRef.current = []
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          audioChunksRef.current.push(e.data)
+        }
+      }
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop())
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        if (audioBlob.size === 0) return
+
+        setIsTranscribingAudio(true)
+        try {
+          const formData = new FormData()
+          formData.append('audio', audioBlob, 'recording.webm')
+          const res = await fetch('/api/interview/transcribe', {
+            method: 'POST',
+            body: formData,
+          })
+          if (!res.ok) throw new Error(`Transcription failed (${res.status})`)
+          const data = await res.json()
+          if (data.text) {
+            const textToAdd = data.text.trim()
+            if (target === 'raw') {
+              setRawNotes((prev) => (prev ? prev.trim() + ' ' + textToAdd : textToAdd))
+            } else {
+              setAnswers((prev) => {
+                const current = prev[target] || ''
+                return {
+                  ...prev,
+                  [target]: current ? current.trim() + ' ' + textToAdd : textToAdd,
+                }
+              })
+            }
+          }
+        } catch (err) {
+          setRecordingError(err.message || 'Failed to transcribe audio.')
+        } finally {
+          setIsTranscribingAudio(false)
+          setRecordingTarget(null)
+        }
+      }
+
+      mediaRecorder.start()
+      setRecordingTarget(target)
+    } catch (err) {
+      setRecordingError('Microphone access denied or audio recording unavailable.')
+      setRecordingTarget(null)
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      stopVoiceRecording()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!item) return
+    let isMounted = true
+    setLoadingBriefing(true)
+    setBriefingError('')
+
+    fetch('/api/interview/brief', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: item.title,
+        url: item.url || null,
+        body: item.body || item.title,
+        topic_tag: item.topic_tag || 'General Engineering',
+      }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`Status ${res.status}`)
+        return res.json()
+      })
+      .then((data) => {
+        if (isMounted) {
+          setBriefing(data)
+          setLoadingBriefing(false)
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          setBriefingError('Could not load automated briefing. You can still input your perspective.')
+          setLoadingBriefing(false)
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [item])
+
+  const handleSynthesize = async () => {
+    setSynthesizing(true)
+    setSynthError('')
+
+    const responses = (briefing?.questions || []).map((q, idx) => ({
+      persona: q.persona,
+      question: q.question,
+      answer: answers[idx] || '',
+    })).filter((r) => r.answer.trim().length > 0)
+
+    const spikeId = item.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 30)
+
+    try {
+      const res = await fetch('/api/interview/synthesize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic_title: item.title,
+          topic_summary: briefing?.summary || item.title,
+          responses,
+          raw_notes: rawNotes,
+          spike_id: spikeId,
+        }),
+      })
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.detail || `Synthesis failed (${res.status})`)
+      }
+
+      const data = await res.json()
+      onSynthesizeComplete(data.draft, data.spike_id)
+    } catch (err) {
+      setSynthError(err.message || 'Draft synthesis failed.')
+      setSynthesizing(false)
+    }
+  }
+
+  return createPortal(
+    <div 
+      className="fixed inset-0 z-[100] w-screen h-screen bg-[#141413]/70 backdrop-blur-sm flex items-center justify-center p-6 sm:p-8 md:p-10 overflow-y-auto"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div 
+        className="bg-[#faf9f5] border border-[#e3dacc] rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl animate-fadeIn max-h-[calc(100vh-5rem)] flex flex-col justify-between my-auto shrink-0"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 border-b border-[#e3dacc] pb-4 shrink-0">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-[#c6613f]/10 text-[#c6613f] border border-[#c6613f]/30">
+                Subsystem 2 &bull; Topic Briefing & Perspective Intake
+              </span>
+            </div>
+            <h2 className="text-xl font-serif font-medium text-[#141413] leading-snug">
+              {item.title}
+            </h2>
+            {item.url && (
+              <a
+                href={item.url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[11px] font-mono text-[#87867f] hover:text-[#141413] flex items-center gap-1 inline-flex"
+              >
+                <span>{item.source || 'Source Article'}</span>
+                <ExternalLink className="w-2.5 h-2.5" />
+              </a>
+            )}
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-full text-[#87867f] hover:text-[#141413] hover:bg-[#e3dacc]/50 transition shrink-0"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Scrollable Content */}
+        <div className="space-y-6 overflow-y-auto pr-3 sm:pr-4 flex-1 py-1 -mr-1">
+          {/* Section 1: Executive Briefing */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-[11px] uppercase font-mono tracking-wider text-[#87867f] flex items-center gap-1.5">
+                <Sparkles className="w-3 h-3 text-[#d97757]" />
+                <span>Executive Topic Briefing</span>
+              </h3>
+              {loadingBriefing && (
+                <span className="text-[10px] font-mono text-[#87867f] flex items-center gap-1">
+                  <RotateCw className="w-2.5 h-2.5 animate-spin text-[#c6613f]" />
+                  <span>synthesizing briefing...</span>
+                </span>
+              )}
+            </div>
+
+            {loadingBriefing ? (
+              <div className="bg-[#f0eee6]/60 border border-[#e3dacc] rounded-2xl p-6 space-y-3 animate-pulse">
+                <div className="h-3 bg-[#e3dacc] rounded w-3/4"></div>
+                <div className="h-3 bg-[#e3dacc] rounded w-5/6"></div>
+                <div className="h-3 bg-[#e3dacc] rounded w-1/2"></div>
+              </div>
+            ) : briefing ? (
+              <div className="bg-[#f0eee6]/60 border border-[#e3dacc] rounded-2xl p-5 sm:p-6 space-y-3 shadow-anthropic">
+                <p className="text-xs sm:text-sm font-serif text-[#141413] leading-relaxed">
+                  {briefing.summary}
+                </p>
+                {briefing.core_conflict && (
+                  <div className="pt-3 border-t border-[#e3dacc]/70 flex items-start gap-2 text-[11px] sm:text-xs text-[#87867f]">
+                    <span className="font-mono text-[#c6613f] uppercase text-[10px] tracking-wider shrink-0 font-medium">Core Tension:</span>
+                    <span className="italic leading-relaxed">{briefing.core_conflict}</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+                {briefingError || 'Could not load briefing.'}
+              </div>
+            )}
+          </div>
+
+          {/* Section 2: Guided Persona Questions */}
+          <div className="space-y-3">
+            <div>
+              <h3 className="text-[11px] uppercase font-mono tracking-wider text-[#87867f] flex items-center gap-1.5">
+                <Users className="w-3 h-3 text-[#c6613f]" />
+                <span>Interrogator Personas &bull; Your Perspective</span>
+              </h3>
+              <p className="text-[11px] text-[#87867f] mt-0.5">
+                Ground the draft in your authentic operational reality. Answer one or more questions below using text or voice dictation:
+              </p>
+            </div>
+
+            {recordingError && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
+                  <span>{recordingError}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setRecordingError('')}
+                  className="p-1 text-amber-600 hover:text-amber-800 rounded-full"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
+            {loadingBriefing ? (
+              <div className="space-y-2">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-20 bg-[#f0eee6]/40 border border-[#e3dacc] rounded-xl animate-pulse"></div>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {(briefing?.questions || []).map((q, idx) => (
+                  <div key={idx} className="bg-[#faf9f5] border border-[#e3dacc] rounded-2xl p-5 space-y-3 shadow-sm">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-[#f0eee6] text-[#141413] font-medium border border-[#e3dacc]">
+                          {q.persona}
+                        </span>
+                        <span className="text-[10px] font-mono text-[#87867f]">
+                          {q.focus}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => startVoiceRecording(idx)}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono transition shadow-sm ${
+                          recordingTarget === idx
+                            ? 'bg-rose-600 text-white animate-pulse shadow-rose-200'
+                            : isTranscribingAudio && recordingTarget === idx
+                            ? 'bg-[#e3dacc] text-[#87867f] cursor-wait'
+                            : 'bg-[#f0eee6] hover:bg-[#e3dacc] text-[#141413] border border-[#e3dacc]'
+                        }`}
+                        title={recordingTarget === idx ? 'Click to stop recording' : 'Dictate your answer using voice'}
+                      >
+                        {recordingTarget === idx ? (
+                          <>
+                            <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                            <span className="font-medium">Listening... Stop</span>
+                          </>
+                        ) : isTranscribingAudio && recordingTarget === idx ? (
+                          <>
+                            <RotateCw className="w-3 h-3 animate-spin text-[#c6613f]" />
+                            <span>Transcribing...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Mic className="w-3 h-3 text-[#c6613f]" />
+                            <span>Voice Input</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    <p className="text-xs sm:text-sm font-medium text-[#141413] leading-snug">
+                      {q.question}
+                    </p>
+                    <textarea
+                      rows={3}
+                      value={answers[idx] || ''}
+                      onChange={(e) => setAnswers({ ...answers, [idx]: e.target.value })}
+                      placeholder="Your concrete experience, numbers, tools, or observations..."
+                      className={`w-full text-xs sm:text-sm font-sans bg-[#f0eee6]/40 border rounded-xl p-3 sm:p-3.5 text-[#141413] focus:outline-none focus:border-[#141413] focus:bg-[#faf9f5] transition placeholder-[#b0aea5] ${
+                        recordingTarget === idx
+                          ? 'border-[#c6613f] ring-2 ring-[#c6613f]/20 bg-[#faf9f5]'
+                          : 'border-[#e3dacc]'
+                      }`}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Section 3: Freeform Notes or Dictation */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="block text-[11px] font-mono uppercase tracking-wider text-[#87867f] flex items-center gap-1.5">
+                <Mic className="w-3 h-3 text-[#d97757]" />
+                <span>Additional Notes / Raw Dictation</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => startVoiceRecording('raw')}
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono transition shadow-sm ${
+                  recordingTarget === 'raw'
+                    ? 'bg-rose-600 text-white animate-pulse shadow-rose-200'
+                    : isTranscribingAudio && recordingTarget === 'raw'
+                    ? 'bg-[#e3dacc] text-[#87867f] cursor-wait'
+                    : 'bg-[#f0eee6] hover:bg-[#e3dacc] text-[#141413] border border-[#e3dacc]'
+                }`}
+                title={recordingTarget === 'raw' ? 'Click to stop recording' : 'Dictate notes using voice'}
+              >
+                {recordingTarget === 'raw' ? (
+                  <>
+                    <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                    <span className="font-medium">Listening... Stop</span>
+                  </>
+                ) : isTranscribingAudio && recordingTarget === 'raw' ? (
+                  <>
+                    <RotateCw className="w-3 h-3 animate-spin text-[#c6613f]" />
+                    <span>Transcribing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Mic className="w-3 h-3 text-[#c6613f]" />
+                    <span>Voice Input</span>
+                  </>
+                )}
+              </button>
+            </div>
+            <textarea
+              rows={3}
+              value={rawNotes}
+              onChange={(e) => setRawNotes(e.target.value)}
+              placeholder="Paste voice dictation or any unstructured thoughts, counter-intuitive arguments, or specific dialogue..."
+              className={`w-full text-xs sm:text-sm font-sans bg-[#f0eee6]/40 border rounded-xl p-3 sm:p-3.5 text-[#141413] focus:outline-none focus:border-[#141413] focus:bg-[#faf9f5] transition placeholder-[#b0aea5] ${
+                recordingTarget === 'raw'
+                  ? 'border-[#c6613f] ring-2 ring-[#c6613f]/20 bg-[#faf9f5]'
+                  : 'border-[#e3dacc]'
+              }`}
+            />
+          </div>
+
+          {synthError && (
+            <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+              <span>{synthError}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Modal Actions */}
+        <div className="flex items-center justify-between pt-5 mt-2 border-t border-[#e3dacc] shrink-0 gap-3">
+          <button
+            onClick={() => onSkipToCouncil(item)}
+            className="text-xs font-mono text-[#87867f] hover:text-[#141413] px-3.5 py-2 rounded-full hover:bg-[#e3dacc]/50 transition"
+          >
+            Skip to Manual Drafting &rarr;
+          </button>
+
+          <button
+            onClick={handleSynthesize}
+            disabled={synthesizing || loadingBriefing}
+            className="py-2.5 px-5 bg-[#c6613f] hover:bg-[#a54c2d] disabled:opacity-50 text-[#faf9f5] rounded-full text-xs font-medium transition flex items-center gap-2 shadow-sm"
+          >
+            {synthesizing ? (
+              <>
+                <RotateCw className="w-3.5 h-3.5 animate-spin" />
+                <span>Synthesizing Grounded Draft...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Synthesize Grounded Draft &rarr;</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
+function ScanProgressHUD({ progress, loading, onDismiss }) {
+  if (!progress) return null
+
+  const {
+    phase = 'fetching',
+    message = '',
+    sourcesFetched = 0,
+    sourcesTotal = 0,
+    cachedSkipped = 0,
+    newSignals = 0,
+    current = 0,
+    total = 0,
+    currentItemTitle = '',
+    passed = 0,
+    elapsedSec = 0,
+  } = progress
+
+  const isFetchingDone = ['deduplicating', 'scoring', 'complete'].includes(phase)
+  const isFetchingActive = phase === 'fetching'
+
+  const isDedupDone = ['scoring', 'complete'].includes(phase)
+  const isDedupActive = phase === 'deduplicating'
+
+  const isScoringDone = phase === 'complete'
+  const isScoringActive = phase === 'scoring'
+
+  const isComplete = phase === 'complete'
+  const isError = phase === 'error'
+
+  let progressPercent = 0
+  if (isComplete) {
+    progressPercent = 100
+  } else if (isScoringActive) {
+    const fraction = total > 0 ? current / total : 0
+    progressPercent = Math.min(95, Math.round(35 + fraction * 60))
+  } else if (isDedupActive) {
+    progressPercent = 30
+  } else if (isFetchingActive) {
+    const fraction = sourcesTotal > 0 ? sourcesFetched / sourcesTotal : 0
+    progressPercent = Math.min(25, Math.round(5 + fraction * 20))
+  }
+
+  return (
+    <div className="bg-[#faf9f5] border border-[#e3dacc] rounded-2xl p-5 sm:p-6 shadow-anthropic space-y-4 animate-fadeIn">
+      {/* 3-Phase Stepper Header */}
+      <div className="flex items-center justify-between gap-3 border-b border-[#e3dacc]/70 pb-3.5">
+        <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto w-full py-0.5">
+          {/* Phase 1: Ingesting */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-mono font-medium transition ${
+              isFetchingDone
+                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300/60'
+                : isFetchingActive
+                ? 'bg-[#c6613f] text-[#faf9f5] shadow-xs font-semibold'
+                : 'bg-[#f0eee6] text-[#87867f] border border-[#e3dacc]'
+            }`}>
+              {isFetchingDone ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : '1'}
+            </div>
+            <div className="flex flex-col">
+              <span className={`text-xs ${isFetchingActive ? 'font-semibold text-[#141413]' : 'font-medium text-[#87867f]'}`}>
+                Ingesting Sources
+              </span>
+              <span className="text-[10px] font-mono text-[#87867f]">
+                {sourcesFetched}/{sourcesTotal || 1} sources
+              </span>
+            </div>
+          </div>
+
+          <ChevronRight className="w-3.5 h-3.5 text-[#b0aea5] shrink-0" />
+
+          {/* Phase 2: Zero-Token Deduplication */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-mono font-medium transition ${
+              isDedupDone
+                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300/60'
+                : isDedupActive
+                ? 'bg-[#c6613f] text-[#faf9f5] shadow-xs font-semibold'
+                : 'bg-[#f0eee6] text-[#87867f] border border-[#e3dacc]'
+            }`}>
+              {isDedupDone ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : '2'}
+            </div>
+            <div className="flex flex-col">
+              <span className={`text-xs ${isDedupActive ? 'font-semibold text-[#141413]' : 'font-medium text-[#87867f]'}`}>
+                Zero-Token Dedup
+              </span>
+              <span className="text-[10px] font-mono text-[#87867f]">
+                {cachedSkipped} cached skipped
+              </span>
+            </div>
+          </div>
+
+          <ChevronRight className="w-3.5 h-3.5 text-[#b0aea5] shrink-0" />
+
+          {/* Phase 3: Scoring & Ranking */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-mono font-medium transition ${
+              isScoringDone
+                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300/60'
+                : isScoringActive
+                ? 'bg-[#c6613f] text-[#faf9f5] shadow-xs font-semibold'
+                : 'bg-[#f0eee6] text-[#87867f] border border-[#e3dacc]'
+            }`}>
+              {isScoringDone ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : '3'}
+            </div>
+            <div className="flex flex-col">
+              <span className={`text-xs ${isScoringActive ? 'font-semibold text-[#141413]' : 'font-medium text-[#87867f]'}`}>
+                Scoring &amp; Ranking
+              </span>
+              <span className="text-[10px] font-mono text-[#87867f]">
+                {current}/{total || '—'} signals
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Dismiss Button */}
+        {(isComplete || isError) && (
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="p-1 rounded-full text-[#87867f] hover:text-[#141413] hover:bg-[#e3dacc]/50 transition shrink-0"
+            title="Dismiss HUD"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
+      {/* Live Message Badge & Metric Pills */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-0.5">
+        {/* Live Message Badge */}
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          {loading ? (
+            <RotateCw className="w-4 h-4 animate-spin text-[#c6613f] shrink-0" />
+          ) : isComplete ? (
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          ) : (
+            <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+          )}
+          <span className="text-xs font-mono text-[#141413] truncate font-medium">
+            {message || (loading ? 'Processing scan pipeline...' : 'Scan idle.')}
+          </span>
+        </div>
+
+        {/* Live Metrics */}
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-mono px-3 py-1 rounded-full bg-emerald-50 text-emerald-900 border border-emerald-200/80 font-medium">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            <span>Zero-Token: <strong>{cachedSkipped}</strong> cached</span>
+          </span>
+
+          <span className="text-[11px] font-mono px-3 py-1 rounded-full bg-[#f0eee6] text-[#141413] border border-[#e3dacc] font-medium">
+            Scored: <strong>{current}</strong>/{total}
+          </span>
+
+          <span className="text-[11px] font-mono px-3 py-1 rounded-full bg-[#c6613f]/10 text-[#c6613f] border border-[#c6613f]/30 font-medium">
+            Passed: <strong>{passed}</strong>
+          </span>
+
+          {isComplete && elapsedSec > 0 && (
+            <span className="text-[11px] font-mono px-3 py-1 rounded-full bg-[#f0eee6] text-[#87867f] border border-[#e3dacc]">
+              {elapsedSec}s
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Progress Bar for Item Scoring */}
+      <div className="bg-[#f0eee6]/50 border border-[#e3dacc] rounded-xl p-3.5 space-y-2">
+        <div className="flex items-center justify-between text-xs font-mono text-[#87867f]">
+          <span className="truncate max-w-[80%]">
+            {isScoringActive 
+              ? (currentItemTitle ? `Evaluating: "${currentItemTitle}"` : 'Evaluating signals consensus...')
+              : isComplete 
+              ? 'Scan pipeline completed & cached' 
+              : isDedupActive 
+              ? 'Deduplicating signals with SQLite (0 tokens)' 
+              : 'Pulling items from registered sources...'}
+          </span>
+          <span className="font-semibold text-[#141413]">{progressPercent}%</span>
+        </div>
+        <div className="w-full h-2 bg-[#e3dacc]/60 rounded-full overflow-hidden border border-[#e3dacc]/50">
+          <div
+            className={`h-full transition-all duration-300 rounded-full ${
+              isComplete ? 'bg-emerald-600' : 'bg-[#c6613f]'
+            }`}
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ==========================================
+// Candidate Card & Dimension Score Formatting
+// ==========================================
+const DIMENSION_LABELS = {
+  lived_experience: 'Experience',
+  novelty: 'Novelty',
+  counter_intuitive: 'Novelty',
+  specificity: 'Specificity',
+  pov: 'POV',
+  relevance: 'Relevance',
+  rigor: 'Rigor',
+}
+
+function CandidateCard({ candidate, onSendToCouncil, onOpenInterview, onDismiss }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopySummary = async (e) => {
+    e.stopPropagation()
+    const parts = [
+      candidate.title,
+      candidate.url ? `Source: ${candidate.url}` : null,
+      candidate.source ? `Feed: ${candidate.source}` : null,
+      candidate.body_snippet ? `Excerpt:\n${candidate.body_snippet}` : null,
+    ].filter(Boolean)
+    const text = parts.join('\n')
+
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text)
+      } else {
+        throw new Error('Clipboard API unavailable')
+      }
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      try {
+        const textArea = document.createElement('textarea')
+        textArea.value = text
+        textArea.style.position = 'fixed'
+        textArea.style.opacity = '0'
+        document.body.appendChild(textArea)
+        textArea.focus()
+        textArea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textArea)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      } catch (fallbackErr) {
+        console.error('Failed to copy', fallbackErr)
+      }
+    }
+  }
+
+  const renderDimensionScores = () => {
+    if (!candidate.dimension_scores || typeof candidate.dimension_scores !== 'object') return null
+
+    const seen = new Set()
+    const chips = []
+    const preferredOrder = ['lived_experience', 'novelty', 'counter_intuitive', 'specificity', 'pov', 'relevance', 'rigor']
+    const allKeys = [...preferredOrder, ...Object.keys(candidate.dimension_scores)]
+
+    for (const key of allKeys) {
+      if (key === 'composite') continue
+      const val = candidate.dimension_scores[key]
+      if (typeof val !== 'number') continue
+      const label = DIMENSION_LABELS[key] || (key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' '))
+      if (seen.has(label)) continue
+      seen.add(label)
+      chips.push({ label, val: val.toFixed(1) })
+      if (chips.length >= 5) break
+    }
+
+    if (chips.length === 0) return null
+
+    return (
+      <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+        {chips.map(({ label, val }) => (
+          <span
+            key={label}
+            className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-[#f0eee6] text-[#5c5a55] border border-[#e3dacc] flex items-center gap-1"
+          >
+            <span className="text-[#87867f]">{label}:</span>
+            <span className="font-semibold text-[#141413]">{val}</span>
+          </span>
+        ))}
+      </div>
+    )
+  }
+
+  const isPass = candidate.verdict === 'pass'
+  const isReview = candidate.verdict === 'review'
+  const scoreFormatted = typeof candidate.score === 'number' ? candidate.score.toFixed(2) : candidate.score
+  const verdictText = (candidate.verdict || 'PASS').toUpperCase()
+
+  return (
+    <div className="bg-[#faf9f5] hover:bg-[#f0eee6]/30 transition-all duration-200 border border-[#e3dacc] hover:border-[#b0aea5] rounded-2xl p-5 space-y-3.5 shadow-anthropic group">
+      {/* Top Row: Topic Badge & Score Capsule */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          {candidate.topic_tag && (
+            <span className={`text-[10px] font-medium px-2.5 py-0.5 rounded-full border ${getTopicBadgeClass(candidate.topic_tag)}`}>
+              {candidate.topic_tag}
+            </span>
+          )}
+          <span className="text-[11px] text-[#87867f] font-mono">{candidate.source}</span>
+          {candidate.published_at && (
+            <>
+              <span className="text-[#b0aea5]">&bull;</span>
+              <span className="text-[11px] text-[#87867f] font-mono">
+                {new Date(candidate.published_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+              </span>
+            </>
+          )}
+        </div>
+
+        {/* Score Capsule: PASS 8.95 */}
+        <div className="flex items-center shrink-0">
+          <span className={`text-xs font-mono font-semibold px-2.5 py-0.5 rounded-full border flex items-center gap-1.5 ${
+            isPass
+              ? 'bg-[#c6613f]/10 text-[#c6613f] border-[#c6613f]/30'
+              : isReview
+              ? 'bg-[#d97757]/10 text-[#d97757] border-[#d97757]/30'
+              : 'bg-[#f0eee6] text-[#87867f] border-[#e3dacc]'
+          }`}>
+            <span className="text-[10px] uppercase font-bold tracking-wider">{verdictText}</span>
+            <span className="font-bold">{scoreFormatted}</span>
+          </span>
+        </div>
+      </div>
+
+      {/* Title (Clickable link to source) */}
+      <div>
+        {candidate.url ? (
+          <a
+            href={candidate.url}
+            target="_blank"
+            rel="noreferrer"
+            className="text-base font-serif font-medium text-[#141413] hover:text-[#c6613f] transition leading-snug inline-block"
+          >
+            {candidate.title}
+          </a>
+        ) : (
+          <h4 className="text-base font-serif font-medium text-[#141413] leading-snug">
+            {candidate.title}
+          </h4>
+        )}
+      </div>
+
+      {/* 2-line Clean Excerpt Preview */}
+      {candidate.body_snippet && (
+        <p
+          className="text-xs text-[#5c5a55] font-sans leading-relaxed line-clamp-2"
+          style={{
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}
+        >
+          {candidate.body_snippet}
+        </p>
+      )}
+
+      {/* Dimension Scores Micro-Chips */}
+      {renderDimensionScores()}
+
+      {/* Card Footer Action Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#e3dacc]">
+        {/* Quick Actions */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {/* Brief & Perspective (Subsystem 2) */}
+          {onOpenInterview && (
+            <button
+              type="button"
+              onClick={() => onOpenInterview(candidate)}
+              className="text-xs text-[#87867f] hover:text-[#141413] px-2.5 py-1 rounded-full hover:bg-[#e3dacc]/50 transition flex items-center gap-1 font-medium"
+              title="Open Topic Briefing & Perspective Intake"
+            >
+              <Sparkles className="w-3 h-3 text-[#d97757]" />
+              <span>Perspective</span>
+            </button>
+          )}
+
+          {/* Copy Summary */}
+          <button
+            type="button"
+            onClick={handleCopySummary}
+            className={`text-xs px-2.5 py-1 rounded-full transition flex items-center gap-1 font-mono ${
+              copied
+                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                : 'text-[#87867f] hover:text-[#141413] hover:bg-[#e3dacc]/50'
+            }`}
+            title="Copy title, link, and excerpt to clipboard"
+          >
+            {copied ? (
+              <>
+                <Check className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
+                <span className="font-semibold">Copied!</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-3 h-3" />
+                <span>Copy Summary</span>
+              </>
+            )}
+          </button>
+
+          {/* Open Source */}
+          {candidate.url && (
+            <a
+              href={candidate.url}
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs text-[#87867f] hover:text-[#141413] px-2 py-1 rounded-full hover:bg-[#e3dacc]/50 transition inline-flex items-center gap-1 font-mono"
+              title="Open source URL in new tab"
+            >
+              <span>Open Source</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          )}
+
+          {/* Dismiss */}
+          <button
+            type="button"
+            onClick={() => onDismiss(candidate)}
+            className="text-xs text-[#87867f] hover:text-rose-600 px-2 py-1 rounded-full hover:bg-rose-50 transition flex items-center gap-1 font-mono"
+            title="Dismiss candidate from active batch"
+          >
+            <X className="w-3 h-3" />
+            <span>Dismiss</span>
+          </button>
+        </div>
+
+        {/* Primary Action: Send to Council */}
+        <button
+          type="button"
+          onClick={() => onSendToCouncil(candidate)}
+          className="py-1.5 px-4 bg-[#141413] hover:bg-[#252524] text-[#faf9f5] rounded-full text-xs font-medium transition flex items-center gap-1.5 shadow-sm ml-auto shrink-0"
+        >
+          <span>Send to Council</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function OracleTab({ onSendToCouncil, onSendToCouncilWithDraft }) {
+  const [selectedInterviewItem, setSelectedInterviewItem] = useState(null)
+  const [oracleView, setOracleView] = useState('active') // 'active' | 'archive'
+  const [sourceSubTab, setSourceSubTab] = useState('rss') // 'rss' | 'github' | 'linkedin'
+  const [rssUrls, setRssUrls] = useState('https://dev.to/feed\nhttps://news.ycombinator.com/rss')
+  const [githubRepos, setGithubRepos] = useState('')
+  const [linkedInProfiles, setLinkedInProfiles] = useState('')
+  const [linkedInLiAt, setLinkedInLiAt] = useState('')
+  const [maxAgeDays, setMaxAgeDays] = useState('10')
+  const [maxItemsPerFeed, setMaxItemsPerFeed] = useState('5')
+  const [loading, setLoading] = useState(false)
+  const [candidates, setCandidates] = useState([])
+  const [error, setError] = useState('')
+  const [scanProgress, setScanProgress] = useState(null)
+
+  useEffect(() => {
+    window.__CM_SET_CANDIDATES__ = setCandidates
+  }, [])
+
+  // Active Batch Toolbar & Triage State
+  const [batchSearch, setBatchSearch] = useState('')
+  const [batchSort, setBatchSort] = useState('score') // 'score' | 'recency'
+  const [batchTopic, setBatchTopic] = useState('All')
+
+  const handleDismissCandidate = (candidate) => {
+    setCandidates(prev => prev.filter(c => (candidate.url && c.url ? c.url !== candidate.url : c.title !== candidate.title)))
+  }
+
+  // Derive unique active batch topics from current candidates
+  const batchTopics = ['All', ...Array.from(new Set(candidates.map(c => c.topic_tag).filter(Boolean)))]
+
+  // Live filter and sort candidates in the active batch
+  const filteredCandidates = candidates.filter((item) => {
+    if (batchTopic !== 'All' && item.topic_tag !== batchTopic) {
+      return false
+    }
+    if (batchSearch.trim()) {
+      const q = batchSearch.trim().toLowerCase()
+      const inTitle = (item.title || '').toLowerCase().includes(q)
+      const inSource = (item.source || '').toLowerCase().includes(q)
+      const inSnippet = (item.body_snippet || '').toLowerCase().includes(q)
+      const inTopic = (item.topic_tag || '').toLowerCase().includes(q)
+      if (!inTitle && !inSource && !inSnippet && !inTopic) return false
+    }
+    return true
+  }).sort((a, b) => {
+    if (batchSort === 'score') {
+      const scoreA = typeof a.score === 'number' ? a.score : 0
+      const scoreB = typeof b.score === 'number' ? b.score : 0
+      return scoreB - scoreA
+    } else if (batchSort === 'recency') {
+      const dateA = a.published_at ? new Date(a.published_at).getTime() : 0
+      const dateB = b.published_at ? new Date(b.published_at).getTime() : 0
+      return dateB - dateA
+    }
+    return 0
+  })
+
+  // LinkedIn Session & Public Bridge State
+  const [linkedInStatus, setLinkedInStatus] = useState(null)
+  const [syncingLinkedIn, setSyncingLinkedIn] = useState(false)
+  const [syncMsg, setSyncMsg] = useState('')
+
+  const fetchLinkedInStatus = async () => {
+    try {
+      const res = await fetch('/api/linkedin/status')
+      if (res.ok) {
+        const data = await res.json()
+        setLinkedInStatus(data)
+      }
+    } catch (err) {
+      console.error('Failed to fetch LinkedIn status', err)
+    }
+  }
+
+  const handleSyncLinkedIn = async () => {
+    setSyncingLinkedIn(true)
+    setSyncMsg('')
+    try {
+      const res = await fetch('/api/linkedin/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ headless: true }),
+      })
+      const data = await res.json()
+      setSyncMsg(data.message || (data.success ? 'Session synced successfully.' : 'Sync finished.'))
+      await fetchLinkedInStatus()
+    } catch (err) {
+      setSyncMsg('Sync error: ' + err.message)
+    } finally {
+      setSyncingLinkedIn(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchLinkedInStatus()
+  }, [])
+
+  const linkedInPresets = [
+    { label: 'Satya Nadella', handle: 'in/satyanadella' },
+    { label: 'Cloudflare', handle: 'company/cloudflare' },
+    { label: 'Netflix Tech', handle: 'company/netflix' },
+    { label: 'Sam Altman', handle: 'in/samaltman' },
+  ]
+
+  const handleAddLinkedInPreset = (handle) => {
+    const current = linkedInProfiles.split('\n').map(s => s.trim()).filter(Boolean)
+    if (!current.includes(handle)) {
+      setLinkedInProfiles(prev => prev.trim() ? `${prev.trim()}\n${handle}` : handle)
+    }
+  }
+
+  // Feed Archive State
+  const [archiveItems, setArchiveItems] = useState([])
+  const [archiveTotal, setArchiveTotal] = useState(0)
+  const [archiveLoading, setArchiveLoading] = useState(false)
+  const [archiveTopic, setArchiveTopic] = useState('All')
+  const [archiveVerdict, setArchiveVerdict] = useState('All')
+  const [archiveSearch, setArchiveSearch] = useState('')
+  const [availableTopics, setAvailableTopics] = useState([
+    'All',
+    '⚡ Systems & Architecture',
+    '📈 Engineering Leadership',
+    '🤖 AI & Machine Learning',
+    '☁️ Cloud & Infrastructure',
+    '🔒 Security & Reliability',
+    '🛠️ Developer Productivity',
+    '💻 General Engineering',
+  ])
+
+  const fetchArchive = async () => {
+    setArchiveLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (archiveTopic && archiveTopic !== 'All') params.append('topic', archiveTopic)
+      if (archiveVerdict && archiveVerdict !== 'All') params.append('verdict', archiveVerdict)
+      if (archiveSearch.trim()) params.append('search', archiveSearch.trim())
+      const res = await fetch(`/api/oracle/history?${params.toString()}`)
+      if (res.ok) {
+        const data = await res.json()
+        setArchiveItems(data.items || [])
+        setArchiveTotal(data.total || 0)
+        if (data.topics && data.topics.length > 0) {
+          setAvailableTopics(['All', ...data.topics])
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch oracle history', e)
+    } finally {
+      setArchiveLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchArchive()
+  }, [archiveTopic, archiveVerdict, archiveSearch])
+
+  const devFeedPresets = [
+    { label: 'dev.to', url: 'https://dev.to/feed' },
+    { label: 'Hacker News', url: 'https://news.ycombinator.com/rss' },
+    { label: 'Lobsters', url: 'https://lobste.rs/rss' },
+    { label: 'GitHub Blog', url: 'https://github.blog/feed/' },
+    { label: 'freeCodeCamp', url: 'https://www.freecodecamp.org/news/rss/' },
+  ]
+
+  const companyBlogPresets = [
+    { label: 'Cloudflare', url: 'https://blog.cloudflare.com/rss/' },
+    { label: 'Netflix Tech', url: 'https://netflixtechblog.com/feed' },
+    { label: 'Stripe', url: 'https://stripe.com/blog/feed.rss' },
+    { label: 'Spotify Eng', url: 'https://engineering.atspotify.com/feed/' },
+    { label: 'Dropbox Tech', url: 'https://dropbox.tech/feed' },
+  ]
+
+  const newsletterPresets = [
+    { label: 'Pragmatic Eng', url: 'https://newsletter.pragmaticengineer.com/feed' },
+    { label: 'ByteByteGo', url: 'https://blog.bytebytego.com/feed' },
+    { label: 'Refactoring', url: 'https://refactoring.fm/feed' },
+    { label: 'Developing Dev', url: 'https://www.developing.dev/feed' },
+    { label: 'Tidy First', url: 'https://tidyfirst.substack.com/feed' },
+    { label: 'Latent Space', url: 'https://www.latent.space/feed' },
+  ]
+
+  const podcastPresets = [
+    { label: 'Changelog', url: 'https://changelog.com/podcast/feed' },
+  ]
+
+  const redditPresets = [
+    { label: 'r/ExperiencedDevs', url: 'https://www.reddit.com/r/ExperiencedDevs/top/.rss?t=week' },
+    { label: 'r/LocalLLaMA', url: 'https://www.reddit.com/r/LocalLLaMA/top/.rss?t=week' },
+    { label: 'r/systemdesign', url: 'https://www.reddit.com/r/systemdesign/top/.rss?t=week' },
+  ]
+
+  const industryRadarPresets = [
+    { label: 'Techmeme', url: 'https://www.techmeme.com/feed.xml' },
+  ]
+
+  const viralRadarAllUrls = [
+    'https://blog.bytebytego.com/feed',
+    'https://newsletter.pragmaticengineer.com/feed',
+    'https://www.latent.space/feed',
+    'https://refactoring.fm/feed',
+    'https://www.developing.dev/feed',
+    'https://www.reddit.com/r/ExperiencedDevs/top/.rss?t=week',
+    'https://www.reddit.com/r/LocalLLaMA/top/.rss?t=week',
+    'https://www.techmeme.com/feed.xml',
+  ]
+
+  const handleLoadViralRadar = () => {
+    setRssUrls(viralRadarAllUrls.join('\n'))
+  }
+
+  const handleAddPreset = (url) => {
+    const current = rssUrls.split('\n').map(s => s.trim()).filter(Boolean)
+    if (!current.includes(url)) {
+      setRssUrls(prev => prev.trim() ? `${prev.trim()}\n${url}` : url)
+    }
+  }
+
+  const githubPresets = [
+    { label: 'facebook/react', repo: 'facebook/react' },
+    { label: 'rust-lang/rust', repo: 'rust-lang/rust' },
+    { label: 'tokio-rs/tokio', repo: 'tokio-rs/tokio' },
+    { label: 'anthropics/anthropic-sdk-python', repo: 'anthropics/anthropic-sdk-python' },
+  ]
+
+  const handleAddGithubPreset = (repo) => {
+    const current = githubRepos.split('\n').map(s => s.trim()).filter(Boolean)
+    if (!current.includes(repo)) {
+      setGithubRepos(prev => prev.trim() ? `${prev.trim()}\n${repo}` : repo)
+    }
+  }
+
+  const rssCount = rssUrls.split('\n').map(s => s.trim()).filter(Boolean).length
+  const ghCount = githubRepos.split('\n').map(s => s.trim()).filter(Boolean).length
+  const liCount = linkedInProfiles.split('\n').map(s => s.trim()).filter(Boolean).length
+  const totalSources = rssCount + ghCount + liCount
+
+  const handleRun = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+    setCandidates([])
+
+    const rssList = rssUrls.split('\n').map(s => s.trim()).filter(Boolean)
+    const ghList = githubRepos.split('\n').map(s => s.trim()).filter(Boolean)
+    const liProfiles = linkedInProfiles.split('\n').map(s => s.trim()).filter(Boolean)
+
+    if (rssList.length === 0 && ghList.length === 0 && liProfiles.length === 0 && !linkedInLiAt.trim()) {
+      setError('Please provide at least one source (RSS, GitHub, or LinkedIn).')
+      setLoading(false)
+      return
+    }
+
+    setScanProgress({
+      phase: 'fetching',
+      message: 'Initializing signal stream across registered sources...',
+      sourcesFetched: 0,
+      sourcesTotal: totalSources,
+      cachedSkipped: 0,
+      newSignals: 0,
+      current: 0,
+      total: 0,
+      currentItemTitle: '',
+      passed: 0,
+      elapsedSec: 0,
+    })
+
+    const dispatchSSE = (eventName, data) => {
+      if (!eventName || !data) return
+      if (eventName === 'phase') {
+        setScanProgress(prev => ({
+          ...(prev || {}),
+          phase: data.phase || prev?.phase || 'fetching',
+          message: data.message || prev?.message || '',
+        }))
+      } else if (eventName === 'source_fetched') {
+        setScanProgress(prev => ({
+          ...(prev || {}),
+          sourcesFetched: (prev?.sourcesFetched || 0) + 1,
+          message: `Fetched source: ${data.source}`,
+        }))
+      } else if (eventName === 'dedup') {
+        setScanProgress(prev => ({
+          ...(prev || {}),
+          phase: 'deduplicating',
+          cachedSkipped: data.cached_skipped ?? prev?.cachedSkipped ?? 0,
+          newSignals: data.new_signals ?? prev?.newSignals ?? 0,
+          message: data.message || `Zero token waste: ${data.cached_skipped ?? 0} cached posts skipped`,
+        }))
+      } else if (eventName === 'scoring_progress') {
+        setScanProgress(prev => ({
+          ...(prev || {}),
+          phase: 'scoring',
+          current: data.current ?? prev?.current ?? 0,
+          total: data.total ?? prev?.total ?? 0,
+          currentItemTitle: data.item_title || prev?.currentItemTitle || '',
+          message: data.item_title ? `Evaluating: ${data.item_title}` : 'Evaluating signals consensus...',
+        }))
+      } else if (eventName === 'candidate') {
+        if (data.candidate) {
+          setCandidates(prev => [...prev, data.candidate])
+          if (data.candidate.verdict !== 'reject') {
+            setScanProgress(prev => ({
+              ...(prev || {}),
+              passed: (prev?.passed || 0) + 1,
+            }))
+          }
+        }
+      } else if (eventName === 'complete') {
+        setScanProgress(prev => ({
+          ...(prev || {}),
+          phase: 'complete',
+          total: data.total_scanned ?? prev?.total ?? 0,
+          cachedSkipped: data.cached_skipped ?? prev?.cachedSkipped ?? 0,
+          passed: data.passed ?? prev?.passed ?? 0,
+          elapsedSec: data.elapsed_sec ?? 0,
+          message: `Scan complete: ${data.passed ?? 0} passed from ${data.total_scanned ?? 0} scanned in ${data.elapsed_sec ?? 0}s`,
+        }))
+        setLoading(false)
+        fetchArchive()
+      }
+    }
+
+    try {
+      const res = await fetch('/api/oracle/scan-stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rss_urls: rssList,
+          github_repos: ghList,
+          linkedin_profiles: liProfiles,
+          linkedin_li_at: linkedInLiAt.trim() || undefined,
+          max_age_days: maxAgeDays ? parseInt(maxAgeDays, 10) : undefined,
+          max_items_per_feed: maxItemsPerFeed ? parseInt(maxItemsPerFeed, 10) : 5,
+          limit: 15,
+          no_persist: false,
+        }),
+      })
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.detail || `Server returned ${res.status}`)
+      }
+
+      if (!res.body) {
+        throw new Error('ReadableStream not supported by response')
+      }
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder('utf-8')
+      let buffer = ''
+      let currentEvent = null
+      let isComplete = false
+
+      while (!isComplete) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || '' // keep uncompleted partial line
+
+        for (const line of lines) {
+          const trimmed = line.trim()
+          if (!trimmed) {
+            currentEvent = null
+            continue
+          }
+          if (trimmed.startsWith('event:')) {
+            currentEvent = trimmed.replace(/^event:\s*/, '').trim()
+          } else if (trimmed.startsWith('data:')) {
+            const jsonStr = trimmed.replace(/^data:\s*/, '').trim()
+            try {
+              const data = JSON.parse(jsonStr)
+              dispatchSSE(currentEvent, data)
+              if (currentEvent === 'complete') {
+                isComplete = true
+                reader.cancel().catch(() => {})
+                break
+              }
+            } catch (err) {
+              console.error('Failed to parse SSE JSON:', err, jsonStr)
+            }
+          }
+        }
+      }
+
+      fetchArchive()
+    } catch (err) {
+      setError(err.message || 'Failed to scan and score ideas.')
+      setScanProgress(prev => prev ? ({ ...prev, phase: 'error', message: err.message }) : null)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+
+  return (
+    <div className="space-y-8 animate-fadeIn">
+      {/* Header & View Switcher */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e3dacc] pb-5">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <h2 className="font-serif text-2xl font-medium tracking-tight text-[#141413]">The Oracle</h2>
+            <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-[#f0eee6] text-[#c6613f] border border-[#e3dacc]">
+              Zero Token Waste Deduplication
+            </span>
+          </div>
+          <p className="text-sm text-[#87867f] mt-1 font-sans">
+            Ingest signals from RSS, GitHub & LinkedIn with multi-tier conditional caching and automated technical domain taxonomy.
+          </p>
+        </div>
+
+        {/* View Switcher Tabs */}
+        <div className="flex items-center gap-1 bg-[#f0eee6] p-1 rounded-full border border-[#e3dacc] shrink-0 self-start sm:self-auto shadow-anthropic">
+          <button
+            type="button"
+            onClick={() => setOracleView('active')}
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium transition ${
+              oracleView === 'active'
+                ? 'bg-[#141413] text-[#faf9f5] shadow-sm'
+                : 'text-[#87867f] hover:text-[#141413] hover:bg-[#e3dacc]/50'
+            }`}
+          >
+            <Compass className="w-3.5 h-3.5" />
+            <span>Active Scanner</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setOracleView('archive')
+              fetchArchive()
+            }}
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium transition ${
+              oracleView === 'archive'
+                ? 'bg-[#141413] text-[#faf9f5] shadow-sm'
+                : 'text-[#87867f] hover:text-[#141413] hover:bg-[#e3dacc]/50'
+            }`}
+          >
+            <Database className="w-3.5 h-3.5" />
+            <span>Feed Archive ({archiveTotal})</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Sub-View 1: Active Scanner */}
+      {oracleView === 'active' && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+          {/* Modular Tabbed Source Cockpit */}
+          <form 
+            onSubmit={handleRun} 
+            className="md:col-span-1 bg-[#f0eee6]/60 rounded-2xl border border-[#e3dacc] shadow-anthropic flex flex-col md:sticky md:top-24 md:max-h-[calc(100vh-7.5rem)] overflow-hidden"
+          >
+            {/* Cockpit Header & Sub-Tab Navigation */}
+            <div className="p-4 pb-3 border-b border-[#e3dacc] shrink-0 space-y-3 bg-[#f0eee6]/80">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs uppercase font-mono tracking-wider text-[#87867f]">Source Cockpit</h3>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#faf9f5] text-[#87867f] border border-[#e3dacc]">
+                  {totalSources} Active
+                </span>
+              </div>
+
+              {/* Sub-Tab Navigation Header with item counts */}
+              <div className="grid grid-cols-3 gap-1 bg-[#faf9f5] p-1 rounded-xl border border-[#e3dacc]">
+                <button
+                  type="button"
+                  onClick={() => setSourceSubTab('rss')}
+                  className={`py-1.5 px-2 rounded-lg text-xs font-medium transition flex items-center justify-center gap-1.5 ${
+                    sourceSubTab === 'rss'
+                      ? 'bg-[#141413] text-[#faf9f5] shadow-xs'
+                      : 'text-[#87867f] hover:text-[#141413] hover:bg-[#e3dacc]/40'
+                  }`}
+                >
+                  <span>RSS Feeds</span>
+                  <span className={`font-mono text-[10px] px-1.5 py-0.2 rounded-full ${
+                    sourceSubTab === 'rss' ? 'bg-[#2a2a28] text-[#faf9f5]' : 'bg-[#f0eee6] text-[#87867f]'
+                  }`}>
+                    {rssCount}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSourceSubTab('github')}
+                  className={`py-1.5 px-2 rounded-lg text-xs font-medium transition flex items-center justify-center gap-1.5 ${
+                    sourceSubTab === 'github'
+                      ? 'bg-[#141413] text-[#faf9f5] shadow-xs'
+                      : 'text-[#87867f] hover:text-[#141413] hover:bg-[#e3dacc]/40'
+                  }`}
+                >
+                  <span>GitHub</span>
+                  <span className={`font-mono text-[10px] px-1.5 py-0.2 rounded-full ${
+                    sourceSubTab === 'github' ? 'bg-[#2a2a28] text-[#faf9f5]' : 'bg-[#f0eee6] text-[#87867f]'
+                  }`}>
+                    {ghCount}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSourceSubTab('linkedin')}
+                  title="LinkedIn Engine"
+                  className={`py-1.5 px-2 rounded-lg text-xs font-medium transition flex items-center justify-center gap-1.5 ${
+                    sourceSubTab === 'linkedin'
+                      ? 'bg-[#141413] text-[#faf9f5] shadow-xs'
+                      : 'text-[#87867f] hover:text-[#141413] hover:bg-[#e3dacc]/40'
+                  }`}
+                >
+                  <span className="truncate">LinkedIn Engine</span>
+                  <span className={`font-mono text-[10px] px-1.5 py-0.2 rounded-full ${
+                    sourceSubTab === 'linkedin' ? 'bg-[#2a2a28] text-[#faf9f5]' : 'bg-[#f0eee6] text-[#87867f]'
+                  }`}>
+                    {liCount}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable Middle Tab Panes */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-[200px]">
+              {/* Tab 1: RSS Feeds */}
+              {sourceSubTab === 'rss' && (
+                <div className="space-y-3 animate-fadeIn">
+                  {/* 1-Click Top Viral Tech Radar Button */}
+                  <button
+                    type="button"
+                    onClick={handleLoadViralRadar}
+                    className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-[#c6613f] to-[#d97757] hover:from-[#b55535] hover:to-[#c6613f] text-[#faf9f5] text-xs font-medium flex items-center justify-center gap-2 shadow-xs transition duration-150 group"
+                    title="Populate top viral newsletters, Reddit communities, and Techmeme"
+                  >
+                    <Flame className="w-3.5 h-3.5 text-[#faf9f5] group-hover:scale-110 transition-transform" />
+                    <span>🔥 Load Viral Tech Radar (8 Signals)</span>
+                  </button>
+
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-medium text-[#141413]">RSS / Atom Feeds</label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono text-[#87867f]">{rssCount} configured</span>
+                      {rssCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setRssUrls('')}
+                          className="text-[10px] font-mono text-[#c6613f] hover:underline"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <textarea
+                    rows={4}
+                    value={rssUrls}
+                    onChange={(e) => setRssUrls(e.target.value)}
+                    placeholder="https://example.com/feed.xml"
+                    className="w-full text-xs font-mono bg-[#faf9f5] border border-[#e3dacc] rounded-xl p-3 text-[#141413] focus:outline-none focus:border-[#141413] focus:ring-1 focus:ring-[#141413] placeholder-[#b0aea5]"
+                  />
+
+                  {/* Quick Presets */}
+                  <div className="space-y-2 pt-1">
+                    <div>
+                      <span className="text-[10px] text-[#87867f] font-mono block mb-1">Reddit Communities:</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {redditPresets.map((preset) => (
+                          <button
+                            key={preset.url}
+                            type="button"
+                            onClick={() => handleAddPreset(preset.url)}
+                            className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-[#faf9f5] hover:bg-[#141413] text-[#141413] hover:text-[#faf9f5] border border-[#e3dacc] transition duration-150"
+                            title={`Add ${preset.url}`}
+                          >
+                            + {preset.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-[#87867f] font-mono block mb-1">Top Newsletters:</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {newsletterPresets.map((preset) => (
+                          <button
+                            key={preset.url}
+                            type="button"
+                            onClick={() => handleAddPreset(preset.url)}
+                            className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-[#faf9f5] hover:bg-[#141413] text-[#141413] hover:text-[#faf9f5] border border-[#e3dacc] transition duration-150"
+                            title={`Add ${preset.url}`}
+                          >
+                            + {preset.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-[#87867f] font-mono block mb-1">Dev Community:</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {devFeedPresets.map((preset) => (
+                          <button
+                            key={preset.url}
+                            type="button"
+                            onClick={() => handleAddPreset(preset.url)}
+                            className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-[#faf9f5] hover:bg-[#141413] text-[#141413] hover:text-[#faf9f5] border border-[#e3dacc] transition duration-150"
+                            title={`Add ${preset.url}`}
+                          >
+                            + {preset.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-[#87867f] font-mono block mb-1">Company TechBlogs:</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {companyBlogPresets.map((preset) => (
+                          <button
+                            key={preset.url}
+                            type="button"
+                            onClick={() => handleAddPreset(preset.url)}
+                            className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-[#faf9f5] hover:bg-[#141413] text-[#141413] hover:text-[#faf9f5] border border-[#e3dacc] transition duration-150"
+                            title={`Add ${preset.url}`}
+                          >
+                            + {preset.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-[#87867f] font-mono block mb-1">Industry Radar:</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {industryRadarPresets.map((preset) => (
+                          <button
+                            key={preset.url}
+                            type="button"
+                            onClick={() => handleAddPreset(preset.url)}
+                            className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-[#faf9f5] hover:bg-[#141413] text-[#141413] hover:text-[#faf9f5] border border-[#e3dacc] transition duration-150"
+                            title={`Add ${preset.url}`}
+                          >
+                            + {preset.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-[#87867f] font-mono block mb-1">Podcasts:</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {podcastPresets.map((preset) => (
+                          <button
+                            key={preset.url}
+                            type="button"
+                            onClick={() => handleAddPreset(preset.url)}
+                            className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-[#faf9f5] hover:bg-[#141413] text-[#141413] hover:text-[#faf9f5] border border-[#e3dacc] transition duration-150"
+                            title={`Add ${preset.url}`}
+                          >
+                            + {preset.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 2: GitHub Releases */}
+              {sourceSubTab === 'github' && (
+                <div className="space-y-3 animate-fadeIn">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-medium text-[#141413]">GitHub Repositories</label>
+                    <span className="text-[10px] font-mono text-[#87867f]">{ghCount} configured</span>
+                  </div>
+                  <textarea
+                    rows={4}
+                    value={githubRepos}
+                    onChange={(e) => setGithubRepos(e.target.value)}
+                    placeholder="owner/repo (one per line)"
+                    className="w-full text-xs font-mono bg-[#faf9f5] border border-[#e3dacc] rounded-xl p-2.5 text-[#141413] focus:outline-none focus:border-[#141413] focus:ring-1 focus:ring-[#141413] placeholder-[#b0aea5]"
+                  />
+                  <span className="text-[11px] text-[#87867f] block">e.g. facebook/react or rust-lang/rust</span>
+
+                  <div className="space-y-2 pt-1">
+                    <span className="text-[10px] text-[#87867f] font-mono block mb-1">Quick Presets:</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {githubPresets.map((p) => (
+                        <button
+                          key={p.repo}
+                          type="button"
+                          onClick={() => handleAddGithubPreset(p.repo)}
+                          className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-[#faf9f5] hover:bg-[#141413] text-[#141413] hover:text-[#faf9f5] border border-[#e3dacc] transition duration-150"
+                          title={`Add ${p.repo}`}
+                        >
+                          + {p.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 3: LinkedIn Engine */}
+              {sourceSubTab === 'linkedin' && (
+                <div className="space-y-3 animate-fadeIn">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-medium text-[#141413]">LinkedIn Engine</label>
+                    {linkedInStatus?.session_valid ? (
+                      <span className="flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        Active Session
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200">
+                        <Globe className="w-2.5 h-2.5" />
+                        Public Bridge Mode
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="text-[11px] text-[#87867f] leading-tight">
+                    {linkedInStatus?.session_valid
+                      ? "Authenticated session active. Pulls home feed and full creator updates."
+                      : "Zero-auth public bridge active. Ingests public creator and company posts without login."}
+                  </p>
+
+                  {/* Creator & Company Handles */}
+                  <div>
+                    <label className="block text-[10px] font-mono text-[#87867f] mb-1">
+                      Target Handles (in/slug or company/slug):
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={linkedInProfiles}
+                      onChange={(e) => setLinkedInProfiles(e.target.value)}
+                      placeholder="satyanadella&#10;company/cloudflare"
+                      className="w-full text-xs font-mono bg-[#faf9f5] border border-[#e3dacc] rounded-xl p-2.5 text-[#141413] focus:outline-none focus:border-[#141413] focus:ring-1 focus:ring-[#141413] placeholder-[#b0aea5]"
+                    />
+                  </div>
+
+                  {/* Quick Add Presets */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-[#87867f] font-mono block">Creator Presets:</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {linkedInPresets.map((p) => (
+                        <button
+                          key={p.handle}
+                          type="button"
+                          onClick={() => handleAddLinkedInPreset(p.handle)}
+                          className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-[#faf9f5] hover:bg-[#141413] text-[#141413] hover:text-[#faf9f5] border border-[#e3dacc] transition duration-150"
+                        >
+                          + {p.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Auto-Sync Session Action */}
+                  <div className="pt-2 border-t border-[#e3dacc]/60 flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSyncLinkedIn}
+                      disabled={syncingLinkedIn}
+                      className="flex items-center gap-1.5 text-[11px] font-sans px-3 py-1.5 rounded-xl bg-[#faf9f5] hover:bg-[#e3dacc]/70 border border-[#e3dacc] text-[#141413] transition disabled:opacity-50"
+                      title="Auto-extract session from local Playwright persistent browser context"
+                    >
+                      <RotateCw className={`w-3 h-3 ${syncingLinkedIn ? 'animate-spin' : ''}`} />
+                      <span>{syncingLinkedIn ? 'Syncing...' : 'Auto-Sync Session'}</span>
+                    </button>
+
+                    <span className="text-[10px] text-[#87867f] font-mono truncate max-w-[140px]">
+                      {linkedInStatus?.saved_at ? `Synced ${new Date(linkedInStatus.saved_at).toLocaleDateString()}` : 'No session'}
+                    </span>
+                  </div>
+
+                  {syncMsg && (
+                    <p className="text-[10px] font-mono text-[#c6613f] bg-[#f0eee6] p-1.5 rounded-lg border border-[#e3dacc]">
+                      {syncMsg}
+                    </p>
+                  )}
+
+                  {/* Optional Manual li_at Override */}
+                  <details className="group pt-1">
+                    <summary className="text-[10px] font-mono text-[#87867f] cursor-pointer hover:text-[#141413] transition select-none">
+                      ▸ Manual li_at Cookie Override
+                    </summary>
+                    <div className="mt-2 space-y-1">
+                      <input
+                        type="password"
+                        value={linkedInLiAt}
+                        onChange={(e) => setLinkedInLiAt(e.target.value)}
+                        placeholder="Paste li_at cookie..."
+                        className="w-full text-xs font-mono bg-[#faf9f5] border border-[#e3dacc] rounded-xl p-2 text-[#141413] focus:outline-none focus:border-[#141413] placeholder-[#b0aea5]"
+                      />
+                      <span className="text-[10px] text-[#87867f] block">
+                        DevTools &rarr; Application &rarr; Cookies &rarr; <code className="text-[#141413] bg-[#e3dacc]/50 px-1 rounded">li_at</code>
+                      </span>
+                    </div>
+                  </details>
+                </div>
+              )}
+            </div>
+
+            {/* Sticky Footer: Freshness, Limits & Trigger Bar */}
+            <div className="p-4 bg-[#f0eee6] border-t border-[#e3dacc] space-y-3 shrink-0">
+              {/* Freshness & Limits */}
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className="block text-[11px] font-medium text-[#141413] mb-1">Max Age</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="1"
+                      max="90"
+                      value={maxAgeDays}
+                      onChange={(e) => setMaxAgeDays(e.target.value)}
+                      placeholder="10"
+                      className="w-full text-xs font-mono bg-[#faf9f5] border border-[#e3dacc] rounded-xl p-2 pr-10 text-[#141413] focus:outline-none focus:border-[#141413]"
+                    />
+                    <span className="absolute right-2.5 top-2 text-[10px] text-[#87867f] font-mono">days</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-[#141413] mb-1">Cap / Feed</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={maxItemsPerFeed}
+                      onChange={(e) => setMaxItemsPerFeed(e.target.value)}
+                      placeholder="25"
+                      className="w-full text-xs font-mono bg-[#faf9f5] border border-[#e3dacc] rounded-xl p-2 pr-11 text-[#141413] focus:outline-none focus:border-[#141413]"
+                    />
+                    <span className="absolute right-2.5 top-2 text-[10px] text-[#87867f] font-mono">posts</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Summary Badge */}
+              <div className="flex items-center justify-between pt-0.5">
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-mono px-2.5 py-1 rounded-full bg-[#faf9f5] text-[#87867f] border border-[#e3dacc]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#c6613f]"></span>
+                  <span>{totalSources} sources configured</span>
+                </span>
+                <span className="text-[10px] font-mono text-[#87867f]">
+                  {loading ? 'Evaluating...' : 'Ready'}
+                </span>
+              </div>
+
+              {error && (
+                <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span className="text-[11px] leading-tight">{error}</span>
+                </div>
+              )}
+
+              {/* Primary Trigger Button */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-2.5 px-4 bg-[#141413] hover:bg-[#252524] disabled:opacity-50 text-[#faf9f5] rounded-full text-xs font-medium transition flex items-center justify-center gap-2 shadow-sm"
+              >
+                {loading ? (
+                  <>
+                    <RotateCw className="w-3.5 h-3.5 animate-spin text-[#faf9f5]" />
+                    <span>Evaluating Samples...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5 text-[#d97757]" />
+                    <span>Scan & Score Candidates</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+
+          {/* Results Stream */}
+          <div className="md:col-span-2 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-[#e3dacc]">
+              <h3 className="text-xs uppercase font-mono tracking-wider text-[#87867f]">
+                Scored Candidates {candidates.length > 0 && filteredCandidates.length !== candidates.length 
+                  ? `(${filteredCandidates.length} of ${candidates.length})` 
+                  : `(${candidates.length})`}
+              </h3>
+              <span className="text-[11px] text-[#87867f] font-mono">Gate: 8.0 &bull; Margin: &plusmn;0.5</span>
+            </div>
+
+            {/* ScanProgressHUD: 3-Phase Stepper, Zero-Token Badge, Scoring Progress */}
+            {(loading || scanProgress) && (
+              <ScanProgressHUD
+                progress={scanProgress}
+                loading={loading}
+                onDismiss={() => setScanProgress(null)}
+              />
+            )}
+
+            {candidates.length === 0 && !loading && !scanProgress && (
+              <div className="border border-dashed border-[#b0aea5] rounded-2xl p-12 text-center text-[#87867f] bg-[#f0eee6]/30">
+                <Compass className="w-8 h-8 mx-auto mb-3 stroke-1 text-[#b0aea5]" />
+                <p className="text-sm font-medium text-[#141413]">No candidates scored in this scan yet.</p>
+                <p className="text-xs text-[#87867f] mt-1">Configure sources on the left and trigger a scan, or switch to the Feed Archive tab to browse all past posts.</p>
+              </div>
+            )}
+
+            {loading && candidates.length === 0 && (
+              <div className="border border-dashed border-[#e3dacc] rounded-2xl p-8 text-center text-[#87867f] bg-[#faf9f5]/50 animate-fadeIn">
+                <Sparkles className="w-5 h-5 mx-auto mb-2 text-[#d97757] animate-pulse" />
+                <p className="text-xs font-serif text-[#141413]">Listening to real-time signal stream...</p>
+                <p className="text-[11px] text-[#87867f] mt-0.5">Scored candidates will materialize here dynamically as consensus is reached.</p>
+              </div>
+            )}
+
+            {!loading && candidates.length === 0 && scanProgress && (
+              <div className="border border-dashed border-[#e3dacc] rounded-2xl p-8 text-center text-[#87867f] bg-[#faf9f5]/50 animate-fadeIn">
+                <p className="text-xs font-serif text-[#141413]">No signals met the score threshold (≥8.0) in this batch.</p>
+                <p className="text-[11px] text-[#87867f] mt-0.5">All items were either deduplicated from SQLite cache or scored below threshold.</p>
+              </div>
+            )}
+
+            {/* Active Batch Triage Toolbar */}
+            {candidates.length > 0 && (
+              <div className="bg-[#f0eee6]/60 p-3.5 rounded-2xl border border-[#e3dacc] space-y-3 shadow-anthropic animate-fadeIn">
+                {/* Search & Sort Controls Row */}
+                <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center justify-between">
+                  {/* Live Search Input */}
+                  <div className="relative flex-1">
+                    <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-[#87867f]" />
+                    <input
+                      type="text"
+                      value={batchSearch}
+                      onChange={(e) => setBatchSearch(e.target.value)}
+                      placeholder="Filter active batch by title, source, or excerpt..."
+                      className="w-full pl-9 pr-8 py-1.5 bg-[#faf9f5] border border-[#e3dacc] rounded-full text-xs text-[#141413] placeholder-[#b0aea5] focus:outline-none focus:border-[#141413] transition"
+                    />
+                    {batchSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setBatchSearch('')}
+                        className="absolute right-3 top-2 text-[#87867f] hover:text-[#141413]"
+                        title="Clear search"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Sort Controls */}
+                  <div className="flex items-center gap-1 bg-[#faf9f5] p-1 rounded-full border border-[#e3dacc] shrink-0 shadow-2xs">
+                    <span className="text-[10px] font-mono text-[#87867f] px-2 flex items-center gap-1">
+                      <Sliders className="w-3 h-3 text-[#b0aea5]" />
+                      <span>Sort:</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setBatchSort('score')}
+                      className={`px-3 py-1 rounded-full text-xs font-mono transition ${
+                        batchSort === 'score'
+                          ? 'bg-[#141413] text-[#faf9f5] font-medium shadow-sm'
+                          : 'text-[#87867f] hover:text-[#141413]'
+                      }`}
+                    >
+                      <span>Score &darr;</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBatchSort('recency')}
+                      className={`px-3 py-1 rounded-full text-xs font-mono transition ${
+                        batchSort === 'recency'
+                          ? 'bg-[#141413] text-[#faf9f5] font-medium shadow-sm'
+                          : 'text-[#87867f] hover:text-[#141413]'
+                      }`}
+                    >
+                      <span>Recency &darr;</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Topic Filter Chips */}
+                <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                  <span className="text-[10px] font-mono text-[#87867f] uppercase tracking-wider shrink-0 flex items-center gap-1 mr-1">
+                    <Tag className="w-3 h-3 text-[#d97757]" />
+                    <span>Topics:</span>
+                  </span>
+                  {batchTopics.map((topic) => {
+                    const active = batchTopic === topic
+                    const count = topic === 'All'
+                      ? candidates.length
+                      : candidates.filter(c => c.topic_tag === topic).length
+
+                    return (
+                      <button
+                        key={topic}
+                        type="button"
+                        onClick={() => setBatchTopic(topic)}
+                        className={`text-xs px-3 py-1 rounded-full border transition flex items-center gap-1.5 ${
+                          active
+                            ? 'bg-[#141413] text-[#faf9f5] border-[#141413] shadow-sm font-medium'
+                            : 'bg-[#faf9f5] text-[#87867f] border-[#e3dacc] hover:border-[#b0aea5] hover:text-[#141413]'
+                        }`}
+                      >
+                        <span>{formatTopicLabel(topic)}</span>
+                        <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                          active ? 'bg-[#2a2a28] text-[#faf9f5]' : 'bg-[#f0eee6] text-[#87867f]'
+                        }`}>
+                          {count}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Zero Filter Matches State */}
+            {candidates.length > 0 && filteredCandidates.length === 0 && (
+              <div className="border border-dashed border-[#b0aea5] rounded-2xl p-8 text-center text-[#87867f] bg-[#f0eee6]/30 animate-fadeIn">
+                <Search className="w-6 h-6 mx-auto mb-2 text-[#b0aea5]" />
+                <p className="text-xs font-medium text-[#141413]">No candidates match the active filters.</p>
+                <button
+                  type="button"
+                  onClick={() => { setBatchSearch(''); setBatchTopic('All'); }}
+                  className="text-[11px] text-[#c6613f] hover:underline mt-1.5 inline-block font-mono"
+                >
+                  Reset batch filters &rarr;
+                </button>
+              </div>
+            )}
+
+            {/* Candidates Card Feed */}
+            <div className="space-y-3">
+              {filteredCandidates.map((item, idx) => (
+                <CandidateCard
+                  key={item.url || item.title || idx}
+                  candidate={item}
+                  onSendToCouncil={onSendToCouncil}
+                  onOpenInterview={(c) => setSelectedInterviewItem(c)}
+                  onDismiss={handleDismissCandidate}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sub-View 2: Feed Archive & Topic Explorer */}
+      {oracleView === 'archive' && (
+        <div className="space-y-6">
+          {/* Search & Filter Bar */}
+          <div className="bg-[#f0eee6]/60 p-5 rounded-2xl border border-[#e3dacc] space-y-4 shadow-anthropic">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 absolute left-3.5 top-3 text-[#87867f]" />
+                <input
+                  type="text"
+                  value={archiveSearch}
+                  onChange={(e) => setArchiveSearch(e.target.value)}
+                  placeholder="Search past scanned posts by title or source..."
+                  className="w-full pl-10 pr-8 py-2.5 bg-[#faf9f5] border border-[#e3dacc] rounded-full text-xs text-[#141413] placeholder-[#b0aea5] focus:outline-none focus:border-[#141413]"
+                />
+                {archiveSearch && (
+                  <button 
+                    onClick={() => setArchiveSearch('')}
+                    className="absolute right-3.5 top-3 text-[#87867f] hover:text-[#141413]"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Verdict Filter Buttons */}
+              <div className="flex items-center gap-1 bg-[#faf9f5] p-1 rounded-full border border-[#e3dacc] overflow-x-auto shadow-sm">
+                {[
+                  { key: 'All', label: 'All' },
+                  { key: 'pass', label: 'Pass (≥8.0)' },
+                  { key: 'review', label: 'Review (7.5-8.0)' },
+                  { key: 'reject', label: 'Rejected' },
+                ].map((v) => (
+                  <button
+                    key={v.key}
+                    type="button"
+                    onClick={() => setArchiveVerdict(v.key)}
+                    className={`px-3 py-1 rounded-full text-xs font-mono transition shrink-0 ${
+                      archiveVerdict === v.key
+                        ? 'bg-[#141413] text-[#faf9f5] font-medium shadow-sm'
+                        : 'text-[#87867f] hover:text-[#141413]'
+                    }`}
+                  >
+                    {v.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Refresh Archive Button */}
+              <button
+                type="button"
+                onClick={fetchArchive}
+                className="px-4 py-2 rounded-full bg-[#faf9f5] border border-[#e3dacc] hover:border-[#b0aea5] text-[#141413] text-xs flex items-center gap-1.5 transition shrink-0 self-start sm:self-auto shadow-sm"
+                title="Refresh archive"
+              >
+                <RotateCw className={`w-3.5 h-3.5 ${archiveLoading ? 'animate-spin text-[#c6613f]' : 'text-[#87867f]'}`} />
+                <span>Refresh</span>
+              </button>
+            </div>
+
+            {/* Topic Taxonomy Pills */}
+            <div>
+              <div className="flex items-center gap-1.5 mb-2.5 text-xs font-medium text-[#87867f]">
+                <Tag className="w-3.5 h-3.5 text-[#c6613f]" />
+                <span>Filter by Content Topic Taxonomy:</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {availableTopics.map((topic) => {
+                  const active = archiveTopic === topic
+                  return (
+                    <button
+                      key={topic}
+                      type="button"
+                      onClick={() => setArchiveTopic(topic)}
+                      className={`text-xs px-3.5 py-1.5 rounded-full border transition flex items-center gap-1.5 ${
+                        active
+                          ? 'bg-[#141413] text-[#faf9f5] border-[#141413] shadow-sm font-medium'
+                          : 'bg-[#faf9f5] text-[#87867f] border-[#e3dacc] hover:border-[#b0aea5] hover:text-[#141413]'
+                      }`}
+                    >
+                      <span>{topic}</span>
+                      {topic !== 'All' && (
+                        <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${active ? 'bg-[#252524] text-[#faf9f5]' : 'bg-[#f0eee6] text-[#87867f]'}`}>
+                          {archiveItems.filter(i => i.topic_tag === topic).length}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Archive Results */}
+          {archiveLoading ? (
+            <div className="border border-[#e3dacc] rounded-2xl p-12 text-center text-[#87867f] space-y-3 bg-[#f0eee6]/50 shadow-anthropic">
+              <RotateCw className="w-6 h-6 mx-auto animate-spin text-[#c6613f]" />
+              <p className="text-sm font-medium text-[#141413]">Loading historical feed archive...</p>
+            </div>
+          ) : archiveItems.length === 0 ? (
+            <div className="border border-dashed border-[#b0aea5] rounded-2xl p-12 text-center text-[#87867f] bg-[#f0eee6]/30">
+              <Database className="w-8 h-8 mx-auto mb-3 stroke-1 text-[#b0aea5]" />
+              <p className="text-sm font-medium text-[#141413]">No historical posts match your filters.</p>
+              <p className="text-xs text-[#87867f] mt-1">Try resetting the topic or verdict filter above.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-xs text-[#87867f] font-mono px-1">
+                <span>Showing {archiveItems.length} of {archiveTotal} historical posts</span>
+                <span>Instant retrieval &bull; 0 LLM tokens spent</span>
+              </div>
+              {archiveItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="bg-[#faf9f5] hover:bg-[#f0eee6]/40 transition border border-[#e3dacc] rounded-2xl p-5 flex flex-col justify-between gap-3 shadow-anthropic"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-1.5">
+                      <h4 className="text-sm font-serif font-medium text-[#141413] leading-snug">{item.title}</h4>
+                      <div className="flex items-center gap-2 text-[11px] text-[#87867f] font-mono flex-wrap">
+                        <span className={`text-[10px] font-medium px-2.5 py-0.5 rounded-full border ${getTopicBadgeClass(item.topic_tag)}`}>
+                          {item.topic_tag}
+                        </span>
+                        <span>{item.source}</span>
+                        <span className="text-[#b0aea5]">&bull;</span>
+                        <span className="text-[#87867f]">
+                          {new Date(item.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        {item.url && (
+                          <>
+                            <span className="text-[#b0aea5]">&bull;</span>
+                            <a href={item.url} target="_blank" rel="noreferrer" className="hover:text-[#141413] flex items-center gap-1">
+                              <span>source</span>
+                              <ExternalLink className="w-2.5 h-2.5" />
+                            </a>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`text-xs font-mono font-semibold px-2.5 py-1 rounded-full border ${
+                        item.verdict === 'pass'
+                          ? 'bg-[#c6613f]/10 text-[#c6613f] border-[#c6613f]/30'
+                          : item.verdict === 'review'
+                          ? 'bg-[#d97757]/10 text-[#d97757] border-[#d97757]/30'
+                          : 'bg-[#f0eee6] text-[#87867f] border-[#e3dacc]'
+                      }`}>
+                        {typeof item.score === 'number' ? item.score.toFixed(2) : item.score}
+                      </span>
+                      <span className="text-[10px] uppercase tracking-wider font-mono text-[#87867f]">
+                        {item.verdict}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-2 border-t border-[#e3dacc]">
+                    <button
+                      onClick={() => setSelectedInterviewItem({ title: item.title, url: item.url, topic_tag: item.topic_tag })}
+                      className="text-xs text-[#c6613f] hover:text-[#a54c2d] font-medium flex items-center gap-1.5 transition"
+                    >
+                      <Sparkles className="w-3 h-3 text-[#d97757]" />
+                      <span>Brief & Perspective</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Topic Briefing & Perspective Intake Modal (Subsystem 2) */}
+      {selectedInterviewItem && (
+        <InterviewModal
+          item={selectedInterviewItem}
+          onClose={() => setSelectedInterviewItem(null)}
+          onSynthesizeComplete={(draft, slug) => {
+            setSelectedInterviewItem(null)
+            if (onSendToCouncilWithDraft) {
+              onSendToCouncilWithDraft(draft, slug)
+            } else {
+              onSendToCouncil({ title: slug })
+            }
+          }}
+          onSkipToCouncil={(item) => {
+            setSelectedInterviewItem(null)
+            onSendToCouncil(item)
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+// ==========================================
+function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onSendToDistribute }) {
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState(null)
+  const [error, setError] = useState('')
+  const [historyData, setHistoryData] = useState(null)
+  const [recentSpikes, setRecentSpikes] = useState([])
+  const [showHistory, setShowHistory] = useState(false)
+
+  const fetchHistory = async (slug) => {
+    if (!slug) return
+    try {
+      const res = await fetch(`/api/council/history/${encodeURIComponent(slug)}`)
+      if (res.ok) {
+        const data = await res.json()
+        setHistoryData(data)
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  const fetchSpikes = async () => {
+    try {
+      const res = await fetch('/api/council/spikes')
+      if (res.ok) {
+        const data = await res.json()
+        setRecentSpikes(data)
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  useEffect(() => {
+    fetchSpikes()
+  }, [])
+
+  useEffect(() => {
+    if (spikeId) {
+      fetchHistory(spikeId)
+    }
+  }, [spikeId])
+
+  const handleReview = async (e) => {
+    e.preventDefault()
+    if (!draft.trim()) {
+      setError('Draft text cannot be empty.')
+      return
+    }
+    setLoading(true)
+    setError('')
+    setResult(null)
+
+    try {
+      const targetSlug = spikeId || 'council-ui'
+      const res = await fetch('/api/council/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ draft, spike_id: targetSlug })
+      })
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.detail || `Council returned status ${res.status}`)
+      }
+
+      const data = await res.json()
+      setResult(data)
+      fetchHistory(targetSlug)
+      fetchSpikes()
+    } catch (err) {
+      setError(err.message || 'Council run failed.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSelectSpike = (slug) => {
+    setSpikeId(slug)
+    fetchHistory(slug)
+  }
+
+  const handleLoadDraft = (text) => {
+    if (text) {
+      setDraft(text)
+    }
+  }
+
+  const best = historyData?.best
+
+  return (
+    <div className="space-y-8 animate-fadeIn">
+      {/* Editorial Title */}
+      <div>
+        <h2 className="font-serif text-2xl font-medium tracking-tight text-[#141413]">Writer's Council</h2>
+        <p className="text-sm text-[#87867f] mt-1 font-sans">
+          Multi-judge adversarial panel (Perell, Puri, Housel, Slop Allergist) with z-score normalization and revision cycles.
+        </p>
+      </div>
+
+      {/* Historical Peak Banner (Refined Warm Stone & Clay) */}
+      {best && (
+        <div className="p-5 bg-[#f0eee6] border border-[#e3dacc] rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-anthropic">
+          <div className="flex items-start gap-3.5">
+            <div className="p-2.5 bg-[#c6613f]/10 text-[#c6613f] rounded-xl shrink-0 mt-0.5 border border-[#c6613f]/20">
+              <Trophy className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#c6613f]">All-Time Peak Iteration</span>
+                <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-[#faf9f5] text-[#141413] border border-[#e3dacc]">
+                  Iteration {best.iteration}
+                </span>
+                {best.score >= 8.0 && (
+                  <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                    PASS
+                  </span>
+                )}
+              </div>
+              <div className="text-2xl font-serif font-semibold text-[#141413] mt-0.5">
+                {best.score.toFixed(3)}
+                <span className="text-xs font-normal text-[#87867f] ml-2 font-mono">/ 10.0</span>
+              </div>
+              <p className="text-xs text-[#87867f] mt-0.5">
+                Highest scoring version recorded for <span className="font-mono text-[#141413] font-medium">{spikeId}</span>.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 shrink-0">
+            {best.draft && (
+              <button
+                onClick={() => handleLoadDraft(best.draft)}
+                className="px-4 py-2 bg-[#faf9f5] hover:bg-[#e3dacc]/50 text-[#141413] rounded-full text-xs font-medium transition flex items-center gap-1.5 border border-[#e3dacc] shadow-sm"
+              >
+                <RotateCw className="w-3.5 h-3.5 text-[#87867f]" />
+                <span>Load Peak Draft</span>
+              </button>
+            )}
+            {best.draft && onSendToDistribute && (
+              <button
+                onClick={() => onSendToDistribute(best.draft, spikeId)}
+                className="px-4 py-2 bg-[#c6613f] hover:bg-[#b55535] text-[#faf9f5] rounded-full text-xs font-medium transition flex items-center gap-1.5 shadow-sm"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                <span>Distribute Peak Post</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Signature High-Contrast Dual Panel Layout: Dark Editor vs Warm Ivory Verdict */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+        {/* Left: High-Contrast Slate Dark Drafting Studio */}
+        <form onSubmit={handleReview} className="bg-[#141413] text-[#faf9f5] p-6 rounded-2xl border border-[#252524] shadow-xl space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs uppercase font-mono tracking-wider text-[#b0aea5] flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#d97757]" />
+              <span>Draft Studio</span>
+            </h3>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={spikeId}
+                onChange={(e) => setSpikeId(e.target.value)}
+                placeholder="Spike Slug"
+                className="text-xs font-mono bg-[#1c1c1b] border border-[#333331] rounded-lg px-2.5 py-1 text-[#faf9f5] w-40 focus:outline-none focus:border-[#d97757]"
+              />
+            </div>
+          </div>
+
+          {/* Quick-select recent spikes */}
+          {recentSpikes.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              <span className="text-[10px] font-mono text-[#87867f] uppercase mr-1">Recent:</span>
+              {recentSpikes.slice(0, 4).map((spk) => (
+                <button
+                  key={spk.spike_id}
+                  type="button"
+                  onClick={() => handleSelectSpike(spk.spike_id)}
+                  className={`text-[11px] font-mono px-2.5 py-0.5 rounded-full border transition flex items-center gap-1 ${
+                    spikeId === spk.spike_id
+                      ? 'bg-[#c6613f]/30 text-[#faf9f5] border-[#c6613f]'
+                      : 'bg-[#1c1c1b] text-[#b0aea5] border-[#333331] hover:text-[#faf9f5]'
+                  }`}
+                >
+                  <span>{spk.spike_id}</span>
+                  <span className="text-[#87867f]">({spk.peak_score.toFixed(2)})</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          <textarea
+            rows={18}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Paste your rough draft or write directly here..."
+            className="w-full text-xs font-mono leading-relaxed bg-[#1c1c1b] border border-[#333331] rounded-xl p-4 text-[#faf9f5] focus:outline-none focus:border-[#d97757] resize-none placeholder-[#87867f]"
+          />
+
+          {error && (
+            <div className="p-3 bg-rose-950/40 border border-rose-800 rounded-xl text-rose-300 text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-2.5 px-4 bg-[#c6613f] hover:bg-[#b55535] disabled:opacity-50 text-[#faf9f5] rounded-full text-xs font-medium transition flex items-center justify-center gap-2 shadow-sm tracking-wide"
+          >
+            {loading ? <RotateCw className="w-3.5 h-3.5 animate-spin" /> : <Users className="w-3.5 h-3.5" />}
+            <span>{loading ? 'Council Deliberating & Revising...' : 'Submit to Council'}</span>
+          </button>
+        </form>
+
+        {/* Right: Warm Ivory Editorial Verdict Panel */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between pb-2 border-b border-[#e3dacc]">
+            <h3 className="text-xs uppercase font-mono tracking-wider text-[#87867f]">Editorial Verdict</h3>
+            <div className="flex items-center gap-3">
+              {result && (
+                <span className="text-[11px] font-mono text-[#87867f]">Iteration {result.iteration}</span>
+              )}
+              {historyData?.history?.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowHistory(!showHistory)}
+                  className="text-[11px] font-mono text-[#87867f] hover:text-[#141413] flex items-center gap-1 transition"
+                >
+                  <History className="w-3 h-3" />
+                  <span>{showHistory ? 'Hide History' : `History (${historyData.history.length})`}</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {!result && !loading && (
+            <div className="border border-dashed border-[#b0aea5] rounded-2xl p-12 text-center text-[#87867f] bg-[#f0eee6]/30">
+              <Users className="w-8 h-8 mx-auto mb-3 stroke-1 text-[#b0aea5]" />
+              <p className="text-sm font-medium text-[#141413]">No active evaluation.</p>
+              <p className="text-xs text-[#87867f] mt-1">Submit your draft or load a historical peak iteration to view the multi-judge evaluation.</p>
+            </div>
+          )}
+
+          {loading && (
+            <div className="border border-[#e3dacc] rounded-2xl p-12 text-center text-[#87867f] space-y-3 bg-[#f0eee6]/50 shadow-anthropic">
+              <RotateCw className="w-6 h-6 mx-auto animate-spin text-[#c6613f]" />
+              <p className="text-sm font-medium text-[#141413]">Obfuscating authorship & gathering parallel verdicts...</p>
+              <p className="text-xs text-[#87867f] font-mono">Running z-score normalization against rolling history</p>
+            </div>
+          )}
+
+          {result && (
+            <div className="bg-[#faf9f5] border border-[#e3dacc] rounded-2xl p-6 space-y-6 shadow-anthropic">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-mono uppercase text-[#87867f]">Current Run Score</span>
+                  <div className="text-3xl font-serif font-bold text-[#141413] mt-0.5">
+                    {result.score.toFixed(3)}
+                  </div>
+                </div>
+
+                <div className={`px-4 py-1.5 rounded-full border text-xs font-mono font-semibold uppercase tracking-wider flex items-center gap-1.5 ${
+                  result.verdict === 'pass' 
+                    ? 'bg-[#c6613f]/10 text-[#c6613f] border-[#c6613f]/30' 
+                    : result.verdict === 'revise'
+                    ? 'bg-[#d97757]/10 text-[#d97757] border-[#d97757]/30'
+                    : 'bg-rose-50 text-rose-800 border-rose-200'
+                }`}>
+                  {result.verdict === 'pass' && <CheckCircle2 className="w-3.5 h-3.5" />}
+                  {result.verdict === 'revise' && <RotateCw className="w-3.5 h-3.5" />}
+                  {result.verdict === 'reject' && <XCircle className="w-3.5 h-3.5" />}
+                  <span>{result.verdict}</span>
+                </div>
+              </div>
+
+              {/* Peak comparison note */}
+              {best && best.score > result.score && (
+                <div className="p-3 bg-[#f0eee6] border border-[#e3dacc] rounded-xl flex items-center justify-between gap-3 text-xs text-[#87867f]">
+                  <span>A previous iteration scored higher ({best.score.toFixed(3)}).</span>
+                  <button
+                    type="button"
+                    onClick={() => handleLoadDraft(best.draft)}
+                    className="text-[#c6613f] hover:underline font-mono font-medium text-[11px]"
+                  >
+                    Restore Peak Draft
+                  </button>
+                </div>
+              )}
+
+              {result.actions && result.actions.length > 0 && (
+                <div className="space-y-3 pt-4 border-t border-[#e3dacc]">
+                  <h4 className="text-xs font-mono uppercase tracking-wider text-[#87867f]">Required Editorial Actions</h4>
+                  <ul className="space-y-2">
+                    {result.actions.map((act, idx) => (
+                      <li key={idx} className="text-xs text-[#141413] flex items-start gap-2 bg-[#f0eee6]/70 p-3 rounded-xl border border-[#e3dacc]">
+                        <ChevronRight className="w-3.5 h-3.5 text-[#c6613f] shrink-0 mt-0.5" />
+                        <span>{act}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {onSendToDistribute && (
+                <div className="pt-4 border-t border-[#e3dacc] flex justify-end">
+                  <button
+                    onClick={() => onSendToDistribute(draft, spikeId)}
+                    className="px-5 py-2.5 bg-[#141413] hover:bg-[#252524] text-[#faf9f5] rounded-full text-xs font-medium transition flex items-center gap-2 shadow-sm"
+                  >
+                    <span>Distribute Current Post</span>
+                    <Share2 className="w-3.5 h-3.5 text-[#d97757]" />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* History Timeline */}
+          {showHistory && historyData?.history?.length > 0 && (
+            <div className="bg-[#f0eee6]/60 border border-[#e3dacc] rounded-2xl p-4 space-y-3 animate-fadeIn shadow-anthropic">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono uppercase tracking-wider text-[#87867f]">Iteration History</span>
+                <span className="text-[10px] font-mono text-[#87867f]">{historyData.history.length} records</span>
+              </div>
+              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                {historyData.history.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between p-2.5 bg-[#faf9f5] border border-[#e3dacc] rounded-xl text-xs"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-semibold text-[#141413]">Iter {item.iteration}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${
+                        item.score >= 8.0 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                      }`}>
+                        {item.score.toFixed(3)}
+                      </span>
+                      {item.score === best?.score && (
+                        <span className="text-[9px] font-mono px-2 py-0.5 bg-[#c6613f]/15 text-[#c6613f] rounded-full border border-[#c6613f]/30">PEAK</span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono text-[#87867f]">
+                        {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      {item.draft && (
+                        <button
+                          type="button"
+                          onClick={() => handleLoadDraft(item.draft)}
+                          className="text-[11px] font-mono text-[#c6613f] hover:underline"
+                        >
+                          Load
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ==========================================
+// 3. DISTRIBUTION TAB (Cross-Channel Engine)
+// ==========================================
+
+const DISTRIBUTION_FORMATS = [
+  {
+    id: 'linkedin',
+    label: 'LinkedIn Post',
+    shortLabel: 'LinkedIn',
+    tag: 'Primary Platform',
+    desc: 'High-performing, whitespace-optimized narrative with punchy hook, key operational lessons & relevant hashtags.',
+    defaultOn: true,
+    tagColor: 'text-[#141413] bg-[#e3dacc]/60 border-[#b0aea5]',
+  },
+  {
+    id: 'x_thread',
+    label: 'X (Twitter) Thread',
+    shortLabel: 'X Thread',
+    tag: '6-8 Cards',
+    desc: 'Numbered insight cards (1/, 2/) with viral single-line hook and closing operational takeaway.',
+    defaultOn: true,
+    tagColor: 'text-[#141413] bg-[#e3dacc]/60 border-[#b0aea5]',
+  },
+  {
+    id: 'video_script_short',
+    label: 'Video Script - Short Form',
+    shortLabel: 'Short Video',
+    tag: 'Reels / Shorts (60-90s)',
+    desc: 'Rapid-fire spoken script with [Visual Cue], [Camera Zoom], and pattern interrupts.',
+    defaultOn: true,
+    tagColor: 'text-[#c6613f] bg-[#c6613f]/10 border-[#c6613f]/30',
+  },
+  {
+    id: 'video_script_long',
+    label: 'Video Script - Long Form',
+    shortLabel: 'YouTube Deep Dive',
+    tag: 'YouTube (5-10 min)',
+    desc: 'Comprehensive technical breakdown script with chapters, B-roll, and code overlays.',
+    defaultOn: false,
+    tagColor: 'text-[#d97757] bg-[#d97757]/10 border-[#d97757]/30',
+  },
+  {
+    id: 'newsletter',
+    label: 'Newsletter Briefing',
+    shortLabel: 'Newsletter',
+    tag: 'Executive Digest',
+    desc: '300-400 word executive briefing with markdown headers and core strategic takeaways.',
+    defaultOn: true,
+    tagColor: 'text-emerald-800 bg-emerald-50 border-emerald-200',
+  },
+]
+
+function DistributeTab({ initialText, initialSlug }) {
+  const [anchorText, setAnchorText] = useState(initialText || '')
+  const [slug, setSlug] = useState(initialSlug || 'post-1')
+  const [loading, setLoading] = useState(false)
+  const [bundle, setBundle] = useState(null)
+  const [error, setError] = useState('')
+  const [activeFormat, setActiveFormat] = useState('linkedin')
+  const [copied, setCopied] = useState(false)
+  const [showConfigModal, setShowConfigModal] = useState(false)
+
+  // Format selection state (LinkedIn default ON)
+  const [enabledFormats, setEnabledFormats] = useState({
+    linkedin: true,
+    x_thread: true,
+    video_script_short: true,
+    video_script_long: false,
+    newsletter: true,
+  })
+
+  // Update if initialText changes
+  useEffect(() => {
+    if (initialText) setAnchorText(initialText)
+    if (initialSlug) setSlug(initialSlug)
+  }, [initialText, initialSlug])
+
+  const toggleFormat = (id) => {
+    setEnabledFormats(prev => {
+      const next = { ...prev, [id]: !prev[id] }
+      // Ensure at least one format is enabled
+      const hasAny = Object.values(next).some(Boolean)
+      if (!hasAny) return prev
+      return next
+    })
+  }
+
+  const selectAllFormats = () => {
+    setEnabledFormats({
+      linkedin: true,
+      x_thread: true,
+      video_script_short: true,
+      video_script_long: true,
+      newsletter: true,
+    })
+  }
+
+  const resetDefaultFormats = () => {
+    setEnabledFormats({
+      linkedin: true,
+      x_thread: true,
+      video_script_short: true,
+      video_script_long: false,
+      newsletter: true,
+    })
+  }
+
+  const activeFormatKeys = Object.keys(enabledFormats).filter(k => enabledFormats[k])
+
+  const handleGenerate = async (e) => {
+    e.preventDefault()
+    if (!anchorText.trim()) {
+      setError('Anchor post cannot be empty.')
+      return
+    }
+    if (activeFormatKeys.length === 0) {
+      setError('Please enable at least one distribution format.')
+      return
+    }
+
+    setLoading(true)
+    setError('')
+    setBundle(null)
+
+    try {
+      const res = await fetch('/api/distribute/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          anchor_post: anchorText,
+          project_slug: slug || 'post',
+          enabled_formats: activeFormatKeys,
+        })
+      })
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.detail || `Server returned ${res.status}`)
+      }
+
+      const data = await res.json()
+      setBundle(data)
+
+      const priorityOrder = ['linkedin', 'x_thread', 'video_script_short', 'video_script', 'video_script_long', 'newsletter']
+      const firstAvailable = priorityOrder.find(k => data[k])
+      if (firstAvailable) {
+        setActiveFormat(firstAvailable)
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to generate distribution derivatives.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCopy = (text) => {
+    if (!text) return
+    navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const getFormatContent = (fmt) => {
+    if (!bundle) return ''
+    if (fmt === 'video_script_short') {
+      return bundle.video_script_short || bundle.video_script || ''
+    }
+    return bundle[fmt] || ''
+  }
+
+  const availableFormats = DISTRIBUTION_FORMATS.filter(fmt => {
+    if (!bundle) return false
+    if (fmt.id === 'video_script_short') {
+      return Boolean(bundle.video_script_short || bundle.video_script)
+    }
+    return Boolean(bundle[fmt.id])
+  })
+
+  return (
+    <div className="space-y-8 animate-fadeIn">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e3dacc] pb-5">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <h2 className="font-serif text-2xl font-medium tracking-tight text-[#141413]">Distribution Engine</h2>
+            <span className="text-[10px] uppercase font-mono px-2.5 py-0.5 rounded-full bg-[#f0eee6] text-[#c6613f] border border-[#e3dacc]">
+              LinkedIn First
+            </span>
+          </div>
+          <p className="text-sm text-[#87867f] mt-1 font-sans">
+            Transform the verified anchor post into platform derivatives. Zero hallucination.
+          </p>
+        </div>
+
+        {/* Configuration Modal Trigger */}
+        <button
+          type="button"
+          onClick={() => setShowConfigModal(true)}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-mono bg-[#f0eee6] border border-[#e3dacc] hover:border-[#b0aea5] text-[#141413] transition shadow-anthropic self-start sm:self-auto"
+        >
+          <Sliders className="w-3.5 h-3.5 text-[#c6613f]" />
+          <span>Platforms ({activeFormatKeys.length}/5)</span>
+        </button>
+      </div>
+
+      {/* Main Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+        {/* Anchor Input Form */}
+        <form onSubmit={handleGenerate} className="space-y-4 bg-[#f0eee6]/60 p-6 rounded-2xl border border-[#e3dacc] shadow-anthropic">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs uppercase font-mono tracking-wider text-[#87867f]">Anchor Post (Verified)</h3>
+            <input
+              type="text"
+              value={slug}
+              onChange={(e) => setSlug(e.target.value)}
+              placeholder="Project Slug"
+              className="text-xs font-mono bg-[#faf9f5] border border-[#e3dacc] rounded-lg px-2.5 py-1 text-[#141413] w-36 focus:outline-none focus:border-[#141413]"
+            />
+          </div>
+
+          <textarea
+            rows={16}
+            value={anchorText}
+            onChange={(e) => setAnchorText(e.target.value)}
+            placeholder="Paste your approved anchor post or final draft..."
+            className="w-full text-xs font-mono leading-relaxed bg-[#faf9f5] border border-[#e3dacc] rounded-xl p-4 text-[#141413] focus:outline-none focus:border-[#141413] resize-none placeholder-[#b0aea5]"
+          />
+
+          {/* Active Platform Chips */}
+          <div className="flex items-center justify-between gap-2 p-3 bg-[#faf9f5] border border-[#e3dacc] rounded-xl">
+            <div className="flex items-center gap-1.5 flex-wrap text-[11px] font-mono">
+              <span className="text-[#87867f] mr-1">Active:</span>
+              {DISTRIBUTION_FORMATS.map(fmt => {
+                const isEnabled = enabledFormats[fmt.id]
+                return (
+                  <span
+                    key={fmt.id}
+                    onClick={() => toggleFormat(fmt.id)}
+                    className={`cursor-pointer px-2.5 py-0.5 rounded-full border transition ${
+                      isEnabled
+                        ? fmt.id === 'linkedin'
+                          ? 'bg-[#141413] text-[#faf9f5] border-[#141413] font-semibold'
+                          : 'bg-[#f0eee6] text-[#141413] border-[#b0aea5] hover:border-[#141413]'
+                        : 'opacity-40 line-through text-[#87867f] border-transparent hover:opacity-60'
+                    }`}
+                  >
+                    {fmt.shortLabel}
+                  </span>
+                )
+              })}
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowConfigModal(true)}
+              className="text-xs text-[#c6613f] hover:text-[#a54c2d] font-mono flex items-center gap-1 shrink-0"
+            >
+              <Settings className="w-3 h-3" />
+              <span>Edit</span>
+            </button>
+          </div>
+
+          {error && (
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-2.5 px-4 bg-[#141413] hover:bg-[#252524] disabled:opacity-50 text-[#faf9f5] rounded-full text-xs font-medium transition flex items-center justify-center gap-2 shadow-sm"
+          >
+            {loading ? <RotateCw className="w-3.5 h-3.5 animate-spin" /> : <Share2 className="w-3.5 h-3.5 text-[#d97757]" />}
+            <span>{loading ? 'Synthesizing Platform Derivatives...' : `Generate Platform Bundle (${activeFormatKeys.length} Formats)`}</span>
+          </button>
+        </form>
+
+        {/* Output Channel Previews */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between pb-2 border-b border-[#e3dacc]">
+            <h3 className="text-xs uppercase font-mono tracking-wider text-[#87867f]">Derivative Formats</h3>
+            {bundle && (
+              <span className="text-[11px] font-mono text-[#c6613f]">Saved to /projects/{slug}/distribution/</span>
+            )}
+          </div>
+
+          {!bundle && !loading && (
+            <div className="border border-dashed border-[#b0aea5] rounded-2xl p-12 text-center text-[#87867f] bg-[#f0eee6]/30">
+              <Share2 className="w-8 h-8 mx-auto mb-3 stroke-1 text-[#b0aea5]" />
+              <p className="text-sm font-medium text-[#141413]">No derivatives generated yet.</p>
+              <p className="text-xs text-[#87867f] mt-1">Submit anchor text to generate LinkedIn post, X thread, video scripts, and newsletter.</p>
+            </div>
+          )}
+
+          {loading && (
+            <div className="border border-[#e3dacc] rounded-2xl p-12 text-center text-[#87867f] space-y-3 bg-[#f0eee6]/50 shadow-anthropic">
+              <RotateCw className="w-6 h-6 mx-auto animate-spin text-[#c6613f]" />
+              <p className="text-sm font-medium text-[#141413]">Generating Enabled Platform Derivatives...</p>
+              <p className="text-xs text-[#87867f] font-mono">Enforcing strict groundedness (zero new facts)</p>
+            </div>
+          )}
+
+          {bundle && (
+            <div className="space-y-4">
+              {/* Channel Switcher */}
+              <div className="flex items-center justify-between bg-[#f0eee6] p-1 rounded-full border border-[#e3dacc] overflow-x-auto shadow-anthropic">
+                <div className="flex items-center gap-1">
+                  {availableFormats.map(fmt => {
+                    const isActive = activeFormat === fmt.id || (fmt.id === 'video_script_short' && activeFormat === 'video_script')
+                    const isLinkedIn = fmt.id === 'linkedin'
+                    return (
+                      <button
+                        key={fmt.id}
+                        onClick={() => setActiveFormat(fmt.id)}
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-mono transition flex items-center gap-1.5 whitespace-nowrap ${
+                          isActive
+                            ? 'bg-[#141413] text-[#faf9f5] shadow-sm'
+                            : 'text-[#87867f] hover:text-[#141413]'
+                        }`}
+                      >
+                        {isLinkedIn && <span className="w-1.5 h-1.5 rounded-full bg-[#d97757]" />}
+                        <span>{fmt.shortLabel}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <button
+                  onClick={() => handleCopy(getFormatContent(activeFormat))}
+                  className="flex items-center gap-1.5 px-3 py-1 text-xs font-mono bg-[#faf9f5] hover:bg-[#e3dacc]/50 text-[#141413] rounded-full border border-[#e3dacc] transition shrink-0 ml-2"
+                >
+                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-[#87867f]" />}
+                  <span>{copied ? 'Copied!' : 'Copy'}</span>
+                </button>
+              </div>
+
+              {/* Text Preview Box */}
+              <div className="bg-[#faf9f5] border border-[#e3dacc] rounded-2xl p-6 font-mono text-xs text-[#141413] leading-relaxed max-h-[480px] overflow-y-auto whitespace-pre-wrap shadow-anthropic">
+                {getFormatContent(activeFormat) || 'No content available for this format.'}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Platform Configuration Modal */}
+      {showConfigModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#141413]/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-[#faf9f5] border border-[#e3dacc] rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl space-y-0">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-[#e3dacc] flex items-center justify-between">
+              <div>
+                <h3 className="font-serif text-base font-semibold text-[#141413] flex items-center gap-2">
+                  <Sliders className="w-4 h-4 text-[#c6613f]" />
+                  <span>Platform Distribution Formats</span>
+                </h3>
+                <p className="text-xs text-[#87867f] mt-0.5">
+                  Select which platforms to generate. LinkedIn is set as default.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowConfigModal(false)}
+                className="p-1 rounded-full text-[#87867f] hover:text-[#141413] hover:bg-[#f0eee6] transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Platform Options List */}
+            <div className="p-5 space-y-3 max-h-[60vh] overflow-y-auto">
+              {DISTRIBUTION_FORMATS.map(fmt => {
+                const isEnabled = enabledFormats[fmt.id]
+                return (
+                  <div
+                    key={fmt.id}
+                    onClick={() => toggleFormat(fmt.id)}
+                    className={`p-4 rounded-xl border transition cursor-pointer flex items-start gap-3.5 ${
+                      isEnabled
+                        ? 'bg-[#f0eee6] border-[#b0aea5]'
+                        : 'bg-[#faf9f5] border-[#e3dacc] opacity-60'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isEnabled}
+                      onChange={() => {}}
+                      className="mt-1 rounded text-[#141413] focus:ring-0 focus:outline-none"
+                    />
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className={`text-xs font-medium ${isEnabled ? 'text-[#141413]' : 'text-[#87867f]'}`}>
+                          {fmt.label}
+                        </span>
+                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${fmt.tagColor}`}>
+                          {fmt.tag}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-[#87867f] leading-normal">
+                        {fmt.desc}
+                      </p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 bg-[#f0eee6] border-t border-[#e3dacc] flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={selectAllFormats}
+                  className="text-[11px] font-mono text-[#87867f] hover:text-[#141413] px-2 py-1 rounded hover:bg-[#e3dacc]/50 transition"
+                >
+                  Select All
+                </button>
+                <span className="text-[#b0aea5]">•</span>
+                <button
+                  type="button"
+                  onClick={resetDefaultFormats}
+                  className="text-[11px] font-mono text-[#87867f] hover:text-[#141413] px-2 py-1 rounded hover:bg-[#e3dacc]/50 transition"
+                >
+                  Reset Defaults
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowConfigModal(false)}
+                className="px-5 py-2 bg-[#141413] hover:bg-[#252524] text-[#faf9f5] rounded-full text-xs font-medium transition shadow-sm"
+              >
+                Apply & Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ==========================================
+// 3. LESSONS TAB (Governed Memory & Diff)
+// ==========================================
+function LessonsTab() {
+  const [activeRules, setActiveRules] = useState([])
+  const [pendingRules, setPendingRules] = useState([])
+  const [draftText, setDraftText] = useState('')
+  const [pubText, setPubText] = useState('')
+  const [proposals, setProposals] = useState([])
+  const [loadingDiff, setLoadingDiff] = useState(false)
+  const [error, setError] = useState('')
+  const [customRuleText, setCustomRuleText] = useState('')
+  const [loadingCustom, setLoadingCustom] = useState(false)
+  const [customSuccess, setCustomSuccess] = useState('')
+
+  const fetchLessons = async () => {
+    try {
+      const res = await fetch('/api/lessons')
+      const data = await res.json()
+      setActiveRules(data.rules || [])
+      setPendingRules(data.pending || [])
+    } catch {}
+  }
+
+  const handleAddCustomRule = async (e) => {
+    e.preventDefault()
+    if (!customRuleText.trim()) return
+    setLoadingCustom(true)
+    setError('')
+    setCustomSuccess('')
+
+    try {
+      const res = await fetch('/api/lessons/custom', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rule_text: customRuleText.trim(),
+          provenance_project: 'manual',
+          auto_approve: true,
+        })
+      })
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.detail || 'Failed to add custom rule')
+      }
+      setCustomRuleText('')
+      setCustomSuccess('Rule active in Council loop!')
+      setTimeout(() => setCustomSuccess(''), 3500)
+      fetchLessons()
+    } catch (err) {
+      setError(err.message || 'Failed to add custom rule')
+    } finally {
+      setLoadingCustom(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchLessons()
+  }, [])
+
+  const handleDiff = async (e) => {
+    e.preventDefault()
+    if (!draftText.trim() || !pubText.trim()) {
+      setError('Both draft and published texts are required.')
+      return
+    }
+    setLoadingDiff(true)
+    setError('')
+    setProposals([])
+
+    try {
+      const res = await fetch('/api/lessons/diff', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ draft: draftText, published: pubText, project_id: 'ui-diff' })
+      })
+      const data = await res.json()
+      setProposals(data.rules || [])
+    } catch (err) {
+      setError(err.message || 'Diff extraction failed.')
+    } finally {
+      setLoadingDiff(false)
+    }
+  }
+
+  const handleApprove = async (ruleId) => {
+    try {
+      await fetch(`/api/lessons/${ruleId}/approve`, { method: 'POST' })
+      fetchLessons()
+      setProposals(prev => prev.filter(p => p.rule_id !== ruleId))
+    } catch {}
+  }
+
+  const handleReject = async (ruleId) => {
+    try {
+      await fetch(`/api/lessons/${ruleId}/reject`, { method: 'POST' })
+      fetchLessons()
+      setProposals(prev => prev.filter(p => p.rule_id !== ruleId))
+    } catch {}
+  }
+
+  return (
+    <div className="space-y-8 animate-fadeIn">
+      <div className="border-b border-[#e3dacc] pb-5">
+        <h2 className="font-serif text-2xl font-medium tracking-tight text-[#141413]">Governed Lessons Store</h2>
+        <p className="text-sm text-[#87867f] mt-1 font-sans">
+          Extract declarative editorial rules from human diffs. Governed with conflict detection, decay, and human approval gates.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+        {/* Left Column: Direct Add + Diff Extractor */}
+        <div className="space-y-6">
+          {/* Add Custom Rule Card */}
+          <form onSubmit={handleAddCustomRule} className="space-y-3 bg-[#f0eee6]/60 p-5 rounded-2xl border border-[#e3dacc] shadow-anthropic">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs uppercase font-mono tracking-wider text-[#87867f]">Add Custom Writing Rule</h3>
+              <span className="text-[10px] font-mono text-[#c6613f] bg-[#c6613f]/10 px-2 py-0.5 rounded-full border border-[#c6613f]/20">
+                Instant Governance
+              </span>
+            </div>
+            <div>
+              <label className="block text-[11px] font-mono text-[#87867f] mb-1">Declarative Rule (Injected directly into Council drafter)</label>
+              <textarea
+                rows={2}
+                value={customRuleText}
+                onChange={(e) => setCustomRuleText(e.target.value)}
+                placeholder="e.g. Never open with buzzwords or greetings. Start immediately on what failed in production."
+                className="w-full text-xs font-mono bg-[#faf9f5] border border-[#e3dacc] rounded-xl p-3 text-[#141413] focus:outline-none focus:border-[#141413] placeholder-[#b0aea5]"
+              />
+            </div>
+            {customSuccess && (
+              <div className="p-2.5 bg-emerald-50 text-emerald-800 text-xs rounded-xl border border-emerald-200 flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
+                <span>{customSuccess}</span>
+              </div>
+            )}
+            <button
+              type="submit"
+              disabled={loadingCustom || !customRuleText.trim()}
+              className="w-full py-2.5 px-4 bg-[#141413] hover:bg-[#252524] disabled:opacity-50 text-[#faf9f5] rounded-full text-xs font-medium transition flex items-center justify-center gap-2 shadow-sm"
+            >
+              {loadingCustom ? <RotateCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-[#d97757]" />}
+              <span>{loadingCustom ? 'Saving & Activating...' : 'Save & Activate Rule'}</span>
+            </button>
+          </form>
+
+          {/* Diff Extractor Form */}
+          <div className="space-y-4 bg-[#f0eee6]/60 p-5 rounded-2xl border border-[#e3dacc] shadow-anthropic">
+            <h3 className="text-xs uppercase font-mono tracking-wider text-[#87867f]">Diff Extractor (Draft vs Published)</h3>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-[11px] font-mono text-[#87867f] mb-1">Original Draft (AI generated)</label>
+                <textarea
+                  rows={5}
+                  value={draftText}
+                  onChange={(e) => setDraftText(e.target.value)}
+                  placeholder="Paste AI generated draft..."
+                  className="w-full text-xs font-mono bg-[#faf9f5] border border-[#e3dacc] rounded-xl p-3 text-[#141413] focus:outline-none focus:border-[#141413] placeholder-[#b0aea5]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-mono text-[#87867f] mb-1">Published Text (Operator final edit)</label>
+                <textarea
+                  rows={5}
+                  value={pubText}
+                  onChange={(e) => setPubText(e.target.value)}
+                  placeholder="Paste published final version..."
+                  className="w-full text-xs font-mono bg-[#faf9f5] border border-[#e3dacc] rounded-xl p-3 text-[#141413] focus:outline-none focus:border-[#141413] placeholder-[#b0aea5]"
+                />
+              </div>
+
+              {error && (
+                <div className="p-2.5 bg-rose-50 text-rose-800 text-xs rounded-xl border border-rose-200">{error}</div>
+              )}
+
+              <button
+                onClick={handleDiff}
+                disabled={loadingDiff}
+                className="w-full py-2.5 px-4 bg-[#141413] hover:bg-[#252524] disabled:opacity-50 text-[#faf9f5] rounded-full text-xs font-medium transition flex items-center justify-center gap-2 shadow-sm"
+              >
+                {loadingDiff ? <RotateCw className="w-3.5 h-3.5 animate-spin" /> : <BookOpen className="w-3.5 h-3.5 text-[#d97757]" />}
+                <span>{loadingDiff ? 'Analyzing Diff Patterns...' : 'Extract Declarative Rules'}</span>
+              </button>
+            </div>
+
+            {/* Proposals / Review Queue */}
+            {proposals.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-[#e3dacc] space-y-3">
+                <h4 className="text-xs font-mono uppercase text-[#87867f]">Proposed Rules Pending Approval</h4>
+                {proposals.map((prop, idx) => (
+                  <div key={idx} className="bg-[#faf9f5] p-3.5 rounded-xl border border-[#e3dacc] space-y-2">
+                    <p className="text-xs text-[#141413] font-medium">{prop.rule}</p>
+                    
+                    {prop.is_conflict && (
+                      <div className="flex items-center gap-1.5 text-[11px] text-[#c6613f] bg-[#c6613f]/10 p-2 rounded-lg border border-[#c6613f]/20 font-mono">
+                        <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
+                        <span>Potential conflict with existing rule #{prop.conflict_rule_id}</span>
+                      </div>
+                    )}
+
+                    {prop.merge_required && (
+                      <div className="flex items-center gap-1.5 text-[11px] text-rose-800 bg-rose-50 p-2 rounded-lg border border-rose-200 font-mono">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>Rule cap reached (150 rules). Merge pass recommended.</span>
+                      </div>
+                    )}
+
+                    <div className="flex justify-end gap-2 pt-1">
+                      <button
+                        onClick={() => handleReject(prop.rule_id)}
+                        className="px-3 py-1 text-[11px] font-mono text-[#87867f] hover:text-[#141413] hover:bg-[#e3dacc]/50 rounded-full transition"
+                      >
+                        Reject
+                      </button>
+                      <button
+                        onClick={() => handleApprove(prop.rule_id)}
+                        className="px-3.5 py-1 text-[11px] font-mono text-[#faf9f5] bg-emerald-700 hover:bg-emerald-600 rounded-full transition shadow-sm"
+                      >
+                        Approve Rule
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Column: Pending Review Queue + Active Rules List */}
+        <div className="space-y-6">
+          {/* Pending Approval Queue from DB */}
+          {pendingRules.length > 0 && (
+            <div className="space-y-3 bg-[#c6613f]/5 p-5 rounded-2xl border border-[#c6613f]/30 shadow-anthropic">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#c6613f] animate-pulse" />
+                  <h3 className="text-xs uppercase font-mono tracking-wider text-[#c6613f] font-semibold">
+                    Governance Review Queue ({pendingRules.length} Pending)
+                  </h3>
+                </div>
+                <span className="text-[10px] font-mono text-[#87867f]">Human Approval Gate</span>
+              </div>
+              <p className="text-[11px] text-[#87867f] font-sans">
+                Extracted declarative rules must be approved before injection into the Writer's Council loop.
+              </p>
+              <div className="space-y-2.5 pt-1">
+                {pendingRules.map((rule) => (
+                  <div key={rule.id} className="bg-[#faf9f5] border border-[#e3dacc] rounded-xl p-3.5 space-y-2.5 shadow-sm">
+                    <div className="flex items-center justify-between text-[10px] font-mono text-[#87867f]">
+                      <span className="font-semibold text-[#141413]">Pending Rule #{rule.id}</span>
+                      <span className="bg-[#f0eee6] px-1.5 py-0.5 rounded text-[#141413]">{rule.provenance_project || 'diff'}</span>
+                    </div>
+                    <p className="text-xs text-[#141413] font-serif leading-relaxed">{rule.rule_text}</p>
+                    <div className="flex justify-end gap-2 pt-1 border-t border-[#e3dacc]/60">
+                      <button
+                        type="button"
+                        onClick={() => handleReject(rule.id)}
+                        className="px-3 py-1 text-[11px] font-mono text-[#87867f] hover:text-rose-700 hover:bg-rose-50 rounded-full transition"
+                      >
+                        Reject
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleApprove(rule.id)}
+                        className="px-3.5 py-1 text-[11px] font-mono text-[#faf9f5] bg-emerald-700 hover:bg-emerald-600 rounded-full transition shadow-sm flex items-center gap-1"
+                      >
+                        <Check className="w-3 h-3" />
+                        <span>Approve Rule</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Active Rules List */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-[#e3dacc]">
+              <h3 className="text-xs uppercase font-mono tracking-wider text-[#87867f]">Active Governed Rules ({activeRules.length})</h3>
+              <button onClick={fetchLessons} className="text-xs text-[#87867f] hover:text-[#141413] font-mono flex items-center gap-1">
+                <RotateCw className="w-3 h-3" />
+                <span>refresh</span>
+              </button>
+            </div>
+
+          <div className="space-y-2.5 max-h-[600px] overflow-y-auto pr-1">
+            {activeRules.length === 0 ? (
+              <div className="border border-dashed border-[#b0aea5] rounded-2xl p-8 text-center text-[#87867f] bg-[#f0eee6]/30">
+                <p className="text-xs">No active lessons codified yet.</p>
+              </div>
+            ) : (
+              activeRules.map((rule) => (
+                <div key={rule.id} className="bg-[#faf9f5] border border-[#e3dacc] rounded-xl p-3.5 space-y-1 shadow-anthropic">
+                  <div className="flex items-center justify-between text-[10px] font-mono text-[#87867f]">
+                    <span>#{rule.id}</span>
+                    <span className="bg-[#f0eee6] px-1.5 py-0.5 rounded text-[#141413]">{rule.provenance_project || 'manual'}</span>
+                  </div>
+                  <p className="text-xs text-[#141413] font-serif leading-relaxed">{rule.rule_text}</p>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ==========================================
+// 5. AUDIO TAB (ASR & Dictation Monitor)
+// ==========================================
+function AudioTab() {
+  const [audioPath, setAudioPath] = useState('')
+  const [model, setModel] = useState('small')
+
+  return (
+    <div className="space-y-8 animate-fadeIn max-w-2xl">
+      <div className="border-b border-[#e3dacc] pb-5">
+        <h2 className="font-serif text-2xl font-medium tracking-tight text-[#141413]">Audio & ASR Monitor</h2>
+        <p className="text-sm text-[#87867f] mt-1 font-sans">
+          Dual-path CPU-only transcription (faster-whisper int8 batch + whisper.cpp streaming).
+        </p>
+      </div>
+
+      <div className="bg-[#f0eee6]/60 p-6 rounded-2xl border border-[#e3dacc] space-y-6 shadow-anthropic">
+        <div className="space-y-4">
+          <h3 className="text-xs uppercase font-mono tracking-wider text-[#87867f]">Batch Transcription</h3>
+          
+          <div>
+            <label className="block text-xs font-medium text-[#141413] mb-1.5">Audio File Path</label>
+            <input
+              type="text"
+              value={audioPath}
+              onChange={(e) => setAudioPath(e.target.value)}
+              placeholder="C:/Users/.../recordings/interview.wav"
+              className="w-full text-xs font-mono bg-[#faf9f5] border border-[#e3dacc] rounded-xl p-2.5 text-[#141413] focus:outline-none focus:border-[#141413] placeholder-[#b0aea5]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-[#141413] mb-1.5">Model Size (CPU int8)</label>
+            <select
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              className="text-xs font-mono bg-[#faf9f5] border border-[#e3dacc] rounded-xl p-2.5 text-[#141413] focus:outline-none focus:border-[#141413] w-52"
+            >
+              <option value="tiny">tiny (fastest)</option>
+              <option value="base">base</option>
+              <option value="small">small (recommended)</option>
+              <option value="medium">medium</option>
+              <option value="large-v3">large-v3 (highest accuracy)</option>
+            </select>
+          </div>
+
+          <p className="text-xs text-[#87867f] font-mono">
+            CLI quick-run: <code className="text-[#141413] bg-[#e3dacc]/50 px-1.5 py-0.5 rounded">python -m content_machine transcribe &lt;path&gt; --model {model}</code>
+          </p>
+        </div>
+
+        <div className="pt-6 border-t border-[#e3dacc] space-y-3">
+          <h3 className="text-xs uppercase font-mono tracking-wider text-[#87867f]">Live Streaming Monitor</h3>
+          <div className="bg-[#faf9f5] p-4 rounded-xl border border-[#e3dacc] space-y-2 text-xs text-[#87867f] shadow-anthropic">
+            <p className="text-[#141413]">
+              Real-time whisper.cpp dictation monitoring streams directly to the terminal or browser WebSocket during the 09:00 Interview panel phase.
+            </p>
+            <p className="text-[11px] font-mono text-[#87867f]">
+              Hardware profile: i7-1255U CPU-only &bull; Target word count: 800-2,000 words before drafting gate opens.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ==========================================
+// 6. COMMENTING TAB (LinkedIn Comment Engine)
+// ==========================================
+function CommentingTab() {
+  const [postContent, setPostContent] = useState('')
+  const [angle, setAngle] = useState('insightful')
+  const [perspectiveText, setPerspectiveText] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [deliberationPhase, setDeliberationPhase] = useState('')
+  const [error, setError] = useState('')
+  const [currentResult, setCurrentResult] = useState(null)
+  const [copied, setCopied] = useState(false)
+  const [historyCopiedId, setHistoryCopiedId] = useState(null)
+  const [accordionOpen, setAccordionOpen] = useState(true)
+  const [history, setHistory] = useState([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [showHistory, setShowHistory] = useState(true)
+
+  // Voice recording state & refs
+  const [isRecording, setIsRecording] = useState(false)
+  const [recordingSeconds, setRecordingSeconds] = useState(0)
+  const [isTranscribing, setIsTranscribing] = useState(false)
+  const [recordingError, setRecordingError] = useState('')
+
+  const recognitionRef = useRef(null)
+  const mediaRecorderRef = useRef(null)
+  const audioChunksRef = useRef([])
+  const recordingTimerRef = useRef(null)
+
+  const ANGLES = [
+    {
+      id: 'insightful',
+      label: '💡 Nuanced Insight',
+      desc: 'Adds a deeper dimension, nuance, or underlying operational mechanism.',
+    },
+    {
+      id: 'contrarian',
+      label: '⚖️ Respectful Contrarian',
+      desc: 'Respectfully challenges assumptions with practical production experience.',
+    },
+    {
+      id: 'question',
+      label: '❓ Senior Question',
+      desc: 'Poses an incisive, senior-level question that advances the discussion.',
+    },
+  ]
+
+  const COUNCIL_JUDGES = [
+    {
+      id: 'perell',
+      name: 'David Perell',
+      role: 'Thesis & Signal',
+      description: 'Originality, counter-intuitive insight, and compelling hook',
+    },
+    {
+      id: 'puri',
+      name: 'Shaan Puri',
+      role: 'Brevity & Punch',
+      description: 'Fast velocity, high impact per word, zero conversational filler',
+    },
+    {
+      id: 'housel',
+      name: 'Morgan Housel',
+      role: 'Psychology & Timelessness',
+      description: 'Deeper human and market dynamics, timeless principles',
+    },
+    {
+      id: 'slop_allergist',
+      name: 'Slop Allergist',
+      role: 'Zero Cliches / Platitudes',
+      description: 'Purges generic praise ("Great post!"), platitudes, and empty jargon',
+    },
+  ]
+
+  const fetchHistory = async () => {
+    setHistoryLoading(true)
+    try {
+      const res = await fetch('/api/comments/history?limit=50')
+      if (res.ok) {
+        const data = await res.json()
+        setHistory(data.items || [])
+      }
+    } catch (err) {
+      console.warn('Could not fetch comments history:', err)
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchHistory()
+  }, [])
+
+  const stopVoiceRecording = () => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop()
+      } catch (e) {}
+      recognitionRef.current = null
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      try {
+        mediaRecorderRef.current.stop()
+      } catch (e) {}
+    }
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current)
+      recordingTimerRef.current = null
+    }
+    setIsRecording(false)
+  }
+
+  const startVoiceRecording = async () => {
+    setRecordingError('')
+    if (isRecording) {
+      stopVoiceRecording()
+      return
+    }
+
+    setRecordingSeconds(0)
+
+    const SpeechRecognition = typeof window !== 'undefined'
+      ? (window.SpeechRecognition || window.webkitSpeechRecognition)
+      : null
+
+    if (SpeechRecognition) {
+      try {
+        const recog = new SpeechRecognition()
+        recog.continuous = true
+        recog.interimResults = true
+        recog.lang = 'en-US'
+
+        recog.onstart = () => {
+          setIsRecording(true)
+          recordingTimerRef.current = setInterval(() => {
+            setRecordingSeconds((prev) => prev + 1)
+          }, 1000)
+        }
+
+        recog.onresult = (event) => {
+          let sessionFinal = ''
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              sessionFinal += event.results[i][0].transcript + ' '
+            }
+          }
+          if (sessionFinal.trim()) {
+            const textToAdd = sessionFinal.trim()
+            setPerspectiveText((prev) => (prev ? prev.trim() + ' ' + textToAdd : textToAdd))
+          }
+        }
+
+        recog.onerror = (event) => {
+          if (event.error !== 'no-speech') {
+            setRecordingError(`Voice input error: ${event.error}`)
+          }
+          stopVoiceRecording()
+        }
+
+        recog.onend = () => {
+          stopVoiceRecording()
+        }
+
+        recognitionRef.current = recog
+        recog.start()
+        return
+      } catch (err) {
+        console.warn('SpeechRecognition failed, falling back to MediaRecorder:', err)
+      }
+    }
+
+    // Fallback: MediaRecorder + backend /api/interview/transcribe
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mediaRecorder = new MediaRecorder(stream)
+      mediaRecorderRef.current = mediaRecorder
+      audioChunksRef.current = []
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          audioChunksRef.current.push(e.data)
+        }
+      }
+
+      mediaRecorder.onstart = () => {
+        setIsRecording(true)
+        recordingTimerRef.current = setInterval(() => {
+          setRecordingSeconds((prev) => prev + 1)
+        }, 1000)
+      }
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop())
+        if (recordingTimerRef.current) {
+          clearInterval(recordingTimerRef.current)
+          recordingTimerRef.current = null
+        }
+        setIsRecording(false)
+
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        if (audioBlob.size === 0) return
+
+        setIsTranscribing(true)
+        try {
+          const formData = new FormData()
+          formData.append('audio', audioBlob, 'recording.webm')
+          const res = await fetch('/api/interview/transcribe', {
+            method: 'POST',
+            body: formData,
+          })
+          if (!res.ok) throw new Error(`Transcription failed (${res.status})`)
+          const data = await res.json()
+          if (data.text) {
+            const textToAdd = data.text.trim()
+            setPerspectiveText((prev) => (prev ? prev.trim() + ' ' + textToAdd : textToAdd))
+          }
+        } catch (err) {
+          setRecordingError(err.message || 'Failed to transcribe audio.')
+        } finally {
+          setIsTranscribing(false)
+        }
+      }
+
+      mediaRecorder.start()
+    } catch (err) {
+      setRecordingError('Microphone access denied or audio recording unavailable.')
+      stopVoiceRecording()
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      stopVoiceRecording()
+    }
+  }, [])
+
+  const formatTimer = (seconds) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  const handleCopy = async (text, id = null) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      if (id) {
+        setHistoryCopiedId(id)
+        setTimeout(() => setHistoryCopiedId(null), 2000)
+      } else {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      }
+    } catch (err) {
+      console.error('Failed to copy text:', err)
+    }
+  }
+
+  const countSentences = (text) => {
+    if (!text || !text.trim()) return 0
+    const matches = text.trim().match(/[^.!?]+[.!?]+(\s|$)/g)
+    if (matches) return matches.length
+    return text.trim().length > 0 ? 1 : 0
+  }
+
+  const handleGenerate = async (e) => {
+    if (e) e.preventDefault()
+    if (!postContent.trim() || postContent.trim().length < 10) {
+      setError('LinkedIn post content must be at least 10 characters long.')
+      return
+    }
+
+    setLoading(true)
+    setError('')
+    setCurrentResult(null)
+
+    const phases = [
+      'Drafting candidate perspectives based on selected angle...',
+      "Writer's Council convening: Perell, Puri, Housel & Slop Allergist reviewing...",
+      'Evaluating z-score consensus & zero-slop purity...',
+      'Executing editorial polish and brevity calibration...',
+    ]
+    let phaseIdx = 0
+    setDeliberationPhase(phases[0])
+    const phaseInterval = setInterval(() => {
+      phaseIdx = (phaseIdx + 1) % phases.length
+      setDeliberationPhase(phases[phaseIdx])
+    }, 2400)
+
+    try {
+      const res = await fetch('/api/comments/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          post_content: postContent.trim(),
+          angle: angle,
+          perspective_text: perspectiveText.trim() || null,
+        }),
+      })
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.detail || `Comment generation failed (${res.status})`)
+      }
+
+      const data = await res.json()
+      setCurrentResult(data)
+      setAccordionOpen(true)
+      fetchHistory()
+    } catch (err) {
+      setError(err.message || 'Comment generation failed.')
+    } finally {
+      clearInterval(phaseInterval)
+      setLoading(false)
+    }
+  }
+
+  const handleLoadFromHistory = (item) => {
+    setPostContent(item.post_content)
+    if (item.angle) setAngle(item.angle)
+    if (item.perspective_text) setPerspectiveText(item.perspective_text)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const getVerdictBadge = (peakScore, verdict) => {
+    const scoreText = typeof peakScore === 'number' ? peakScore.toFixed(1) : '—'
+    const cleanVerdict = (verdict || 'publish').toLowerCase()
+
+    if (cleanVerdict === 'publish' || cleanVerdict === 'pass' || peakScore >= 8.5) {
+      return {
+        label: `${scoreText} / 10 • PASSED COUNCIL`,
+        classes: 'bg-emerald-100 text-emerald-800 border-emerald-300/80',
+        icon: CheckCircle2,
+      }
+    }
+    if (cleanVerdict === 'break_with_best') {
+      return {
+        label: `${scoreText} / 10 • BREAK-WITH-BEST`,
+        classes: 'bg-amber-100 text-amber-900 border-amber-300/80',
+        icon: AlertCircle,
+      }
+    }
+    return {
+      label: `${scoreText} / 10 • ${cleanVerdict.toUpperCase().replace(/_/g, '-')}`,
+      classes: 'bg-rose-100 text-rose-900 border-rose-300/80',
+      icon: AlertCircle,
+    }
+  }
+
+  const getAnglePill = (angleKey) => {
+    switch (angleKey) {
+      case 'insightful':
+        return '💡 Nuanced Insight'
+      case 'contrarian':
+        return '⚖️ Respectful Contrarian'
+      case 'question':
+        return '❓ Senior Question'
+      default:
+        return angleKey
+    }
+  }
+
+  return (
+    <div className="space-y-8 animate-fadeIn max-w-4xl mx-auto">
+      {/* 1. Header */}
+      <div className="border-b border-[#e3dacc] pb-5">
+        <div className="flex items-center gap-2 mb-1.5">
+          <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-[#c6613f]/10 text-[#c6613f] border border-[#c6613f]/30 font-medium">
+            Subsystem 7 • Perspective Engine
+          </span>
+        </div>
+        <h2 className="font-serif text-2xl font-medium tracking-tight text-[#141413]">
+          LinkedIn Comment Engine
+        </h2>
+        <p className="text-sm text-[#87867f] mt-1 font-sans">
+          High-signal 2–3 sentence perspectives anchored in your voice &amp; verified by the Writer's Council.
+        </p>
+      </div>
+
+      {/* 2. Input Panel */}
+      <div className="bg-[#f0eee6]/60 border border-[#e3dacc] rounded-2xl p-6 sm:p-7 space-y-6 shadow-anthropic">
+        {/* Post Content Input */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs uppercase font-mono tracking-wider text-[#87867f] font-semibold">
+              LinkedIn Post Content <span className="text-[#c6613f]">*</span>
+            </label>
+            <span className="text-[11px] font-mono text-[#87867f]">
+              {postContent.trim().length} chars {postContent.trim().length < 10 && '(min 10)'}
+            </span>
+          </div>
+          <textarea
+            rows={5}
+            value={postContent}
+            onChange={(e) => setPostContent(e.target.value)}
+            placeholder="Paste the LinkedIn post content you want to comment on..."
+            className="w-full text-xs sm:text-sm font-sans bg-[#faf9f5] border border-[#e3dacc] rounded-xl p-3.5 text-[#141413] focus:outline-none focus:border-[#141413] focus:ring-1 focus:ring-[#141413]/20 transition placeholder-[#b0aea5] leading-relaxed"
+          />
+        </div>
+
+        {/* Editorial Angle Selector */}
+        <div className="space-y-2.5">
+          <label className="text-xs uppercase font-mono tracking-wider text-[#87867f] font-semibold block">
+            Editorial Angle
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {ANGLES.map((item) => {
+              const active = angle === item.id
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setAngle(item.id)}
+                  className={`flex flex-col text-left p-3.5 rounded-xl border transition-all ${
+                    active
+                      ? 'bg-[#141413] text-[#faf9f5] border-[#141413] shadow-sm'
+                      : 'bg-[#faf9f5] text-[#87867f] hover:text-[#141413] hover:bg-[#e3dacc]/40 border-[#e3dacc]'
+                  }`}
+                >
+                  <span className={`text-xs font-medium ${active ? 'text-[#faf9f5]' : 'text-[#141413]'}`}>
+                    {item.label}
+                  </span>
+                  <span className={`text-[11px] mt-1 line-clamp-2 ${active ? 'text-[#faf9f5]/80' : 'text-[#87867f]'}`}>
+                    {item.desc}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Operator Perspective with Integrated Microphone */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs uppercase font-mono tracking-wider text-[#87867f] font-semibold">
+              Operator Perspective <span className="font-normal lowercase text-[#87867f]">(optional)</span>
+            </label>
+
+            {/* Voice Dictation Button */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={startVoiceRecording}
+                disabled={isTranscribing}
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono transition shadow-sm ${
+                  isRecording
+                    ? 'bg-rose-600 text-white animate-pulse shadow-rose-200'
+                    : isTranscribing
+                    ? 'bg-[#e3dacc] text-[#87867f] cursor-wait'
+                    : 'bg-[#faf9f5] hover:bg-[#e3dacc] text-[#141413] border border-[#e3dacc]'
+                }`}
+                title={isRecording ? 'Click to stop recording' : 'Dictate your perspective using voice'}
+              >
+                {isRecording ? (
+                  <>
+                    <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                    <span className="font-medium">Listening... Stop ({formatTimer(recordingSeconds)})</span>
+                  </>
+                ) : isTranscribing ? (
+                  <>
+                    <RotateCw className="w-3 h-3 animate-spin text-[#c6613f]" />
+                    <span>Transcribing audio...</span>
+                  </>
+                ) : (
+                  <>
+                    <Mic className="w-3 h-3 text-[#c6613f]" />
+                    <span>🎙️ Speak Perspective</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Microphone Error Banner */}
+          {recordingError && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs flex items-center justify-between gap-2 animate-fadeIn">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
+                <span>{recordingError}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRecordingError('')}
+                className="p-1 text-amber-600 hover:text-amber-800 rounded-full"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
+          <textarea
+            rows={3}
+            value={perspectiveText}
+            onChange={(e) => setPerspectiveText(e.target.value)}
+            placeholder="Your personal perspective, counterpoint, or angle (optional)..."
+            className={`w-full text-xs sm:text-sm font-sans bg-[#faf9f5] border rounded-xl p-3.5 text-[#141413] focus:outline-none focus:border-[#141413] transition placeholder-[#b0aea5] leading-relaxed ${
+              isRecording ? 'border-[#c6613f] ring-2 ring-[#c6613f]/20' : 'border-[#e3dacc]'
+            }`}
+          />
+        </div>
+
+        {/* Error Notification */}
+        {error && (
+          <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center gap-2 animate-fadeIn">
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* Generate Button & Animated Deliberation Status */}
+        <div className="pt-2 flex flex-col gap-3">
+          <button
+            type="button"
+            onClick={handleGenerate}
+            disabled={loading || postContent.trim().length < 10}
+            className="w-full py-3 px-6 bg-[#c6613f] hover:bg-[#a54c2d] disabled:opacity-50 disabled:cursor-not-allowed text-[#faf9f5] rounded-full text-xs sm:text-sm font-medium transition flex items-center justify-center gap-2 shadow-sm"
+          >
+            {loading ? (
+              <>
+                <RotateCw className="w-4 h-4 animate-spin text-white" />
+                <span>Council Deliberation in Progress...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4" />
+                <span>Run Council Round &amp; Generate Comment</span>
+              </>
+            )}
+          </button>
+
+          {loading && (
+            <div className="bg-[#faf9f5] border border-[#e3dacc] rounded-xl p-3.5 flex items-center gap-3 animate-fadeIn">
+              <RotateCw className="w-4 h-4 animate-spin text-[#c6613f] shrink-0" />
+              <div className="text-xs font-mono text-[#141413] truncate">
+                <span className="font-semibold text-[#c6613f]">Council Round: </span>
+                <span className="text-[#87867f]">{deliberationPhase}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 3. Editorial Polish Card */}
+      {currentResult && (
+        <div className="bg-[#faf9f5] border border-[#e3dacc] rounded-2xl p-6 sm:p-7 space-y-6 shadow-anthropic animate-fadeIn">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#e3dacc] pb-4">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              {(() => {
+                const badge = getVerdictBadge(currentResult.peak_score, currentResult.verdict)
+                const IconComponent = badge.icon
+                return (
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-semibold border ${badge.classes}`}>
+                    <IconComponent className="w-3.5 h-3.5" />
+                    <span>{badge.label}</span>
+                  </span>
+                )
+              })()}
+              <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-[#f0eee6] text-[#141413] border border-[#e3dacc]">
+                Iter {currentResult.iteration}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-[#f0eee6] text-[#87867f] border border-[#e3dacc]">
+                {countSentences(currentResult.final_comment)} sentences
+              </span>
+              <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-[#f0eee6] text-[#87867f] border border-[#e3dacc]">
+                {currentResult.final_comment.length} chars
+              </span>
+            </div>
+          </div>
+
+          {/* Generated Comment Block */}
+          <div className="bg-[#f0eee6]/40 border border-[#e3dacc] rounded-2xl p-5 sm:p-6 relative space-y-4 shadow-anthropic">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-mono uppercase tracking-wider text-[#87867f] font-semibold">
+                Polished Comment
+              </span>
+              <button
+                type="button"
+                onClick={() => handleCopy(currentResult.final_comment)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-mono font-medium transition bg-[#141413] hover:bg-[#252524] text-[#faf9f5] shadow-sm"
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>Copy Comment</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            <blockquote className="font-serif text-base sm:text-lg text-[#141413] leading-relaxed whitespace-pre-wrap selection:bg-[#c6613f]/20">
+              {currentResult.final_comment}
+            </blockquote>
+
+            {currentResult.initial_draft && currentResult.initial_draft !== currentResult.final_comment && (
+              <details className="pt-3 border-t border-[#e3dacc]/70 text-xs text-[#87867f]">
+                <summary className="cursor-pointer font-mono text-[11px] hover:text-[#141413]">
+                  View Initial Draft (Pre-Council Polish)
+                </summary>
+                <div className="mt-2 p-3 bg-[#faf9f5] border border-[#e3dacc] rounded-xl font-serif text-xs leading-relaxed text-[#87867f] italic">
+                  {currentResult.initial_draft}
+                </div>
+              </details>
+            )}
+          </div>
+
+          {/* Expandable Council Deliberation Accordion */}
+          <div className="border border-[#e3dacc] rounded-xl overflow-hidden bg-[#faf9f5]">
+            <button
+              type="button"
+              onClick={() => setAccordionOpen(!accordionOpen)}
+              className="w-full px-5 py-3.5 bg-[#f0eee6]/50 hover:bg-[#f0eee6] flex items-center justify-between text-left transition"
+            >
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-[#c6613f]" />
+                <span className="text-xs font-mono uppercase tracking-wider text-[#141413] font-semibold">
+                  Writer's Council Deliberation &amp; Critiques
+                </span>
+              </div>
+              {accordionOpen ? (
+                <ChevronUp className="w-4 h-4 text-[#87867f]" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-[#87867f]" />
+              )}
+            </button>
+
+            {accordionOpen && (
+              <div className="p-5 space-y-4 border-t border-[#e3dacc] bg-[#faf9f5] animate-fadeIn">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                  {COUNCIL_JUDGES.map((judge) => {
+                    const score =
+                      currentResult.judge_scores?.[judge.id] ??
+                      currentResult.judge_scores?.[judge.id.toLowerCase()]
+                    const critique =
+                      currentResult.judge_critiques?.[judge.id] ??
+                      currentResult.judge_critiques?.[judge.id.toLowerCase()] ??
+                      'No specific critique logged.'
+
+                    const scoreColor =
+                      typeof score === 'number'
+                        ? score >= 8.5
+                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                          : score >= 7.0
+                          ? 'bg-amber-100 text-amber-900 border-amber-300'
+                          : 'bg-rose-100 text-rose-900 border-rose-300'
+                        : 'bg-[#f0eee6] text-[#87867f] border-[#e3dacc]'
+
+                    return (
+                      <div
+                        key={judge.id}
+                        className="bg-[#f0eee6]/40 border border-[#e3dacc] rounded-xl p-4 space-y-2 shadow-anthropic"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            <span className="text-xs font-medium text-[#141413] block">{judge.name}</span>
+                            <span className="text-[10px] font-mono text-[#87867f] block">{judge.role}</span>
+                          </div>
+                          <span className={`text-xs font-mono font-semibold px-2 py-0.5 rounded-full border ${scoreColor}`}>
+                            {typeof score === 'number' ? `${score.toFixed(1)} / 10` : '—'}
+                          </span>
+                        </div>
+                        <p className="text-xs font-serif text-[#141413] leading-relaxed italic">
+                          "{critique}"
+                        </p>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {currentResult.actions && currentResult.actions.length > 0 && (
+                  <div className="pt-3 border-t border-[#e3dacc] space-y-2">
+                    <span className="text-[11px] font-mono uppercase tracking-wider text-[#87867f] font-semibold block">
+                      Council Action Items
+                    </span>
+                    <ul className="space-y-1.5">
+                      {currentResult.actions.map((act, idx) => (
+                        <li key={idx} className="text-xs text-[#141413] flex items-start gap-2 bg-[#f0eee6]/60 p-2.5 rounded-lg border border-[#e3dacc]">
+                          <ChevronRight className="w-3.5 h-3.5 text-[#c6613f] shrink-0 mt-0.5" />
+                          <span>{act}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 4. Recent Comments History */}
+      <div className="bg-[#f0eee6]/60 border border-[#e3dacc] rounded-2xl p-6 sm:p-7 space-y-4 shadow-anthropic">
+        <div className="flex items-center justify-between pb-3 border-b border-[#e3dacc]">
+          <div className="flex items-center gap-2">
+            <History className="w-4 h-4 text-[#87867f]" />
+            <h3 className="text-xs uppercase font-mono tracking-wider text-[#87867f] font-semibold">
+              Recent Comments History ({history.length})
+            </h3>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={fetchHistory}
+              disabled={historyLoading}
+              className="text-xs text-[#87867f] hover:text-[#141413] font-mono flex items-center gap-1 transition"
+              title="Refresh history"
+            >
+              <RotateCw className={`w-3 h-3 ${historyLoading ? 'animate-spin' : ''}`} />
+              <span>refresh</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowHistory(!showHistory)}
+              className="text-xs text-[#87867f] hover:text-[#141413] p-1 rounded-full"
+            >
+              {showHistory ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+
+        {showHistory && (
+          <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
+            {historyLoading && history.length === 0 ? (
+              <div className="p-8 text-center text-[#87867f] text-xs font-mono">
+                <RotateCw className="w-4 h-4 animate-spin inline-block text-[#c6613f] mb-2" />
+                <p>Loading recent comments...</p>
+              </div>
+            ) : history.length === 0 ? (
+              <div className="border border-dashed border-[#b0aea5] rounded-xl p-8 text-center text-[#87867f] bg-[#faf9f5]">
+                <p className="text-xs">No comments generated yet. Generated comments will be saved here.</p>
+              </div>
+            ) : (
+              history.map((item) => {
+                const isItemCopied = historyCopiedId === item.id
+                return (
+                  <div
+                    key={item.id}
+                    className="bg-[#faf9f5] border border-[#e3dacc] rounded-xl p-4 space-y-3 shadow-anthropic transition hover:border-[#b0aea5]"
+                  >
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#f0eee6] text-[#141413] border border-[#e3dacc]">
+                          {getAnglePill(item.angle)}
+                        </span>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                          {typeof item.peak_score === 'number' ? item.peak_score.toFixed(1) : item.peak_score} / 10 • {item.verdict}
+                        </span>
+                        <span className="text-[10px] font-mono text-[#87867f]">
+                          Iter {item.iteration_count}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono text-[#87867f]">
+                          {new Date(item.created_at).toLocaleString([], {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(item.final_comment, item.id)}
+                          className="p-1 text-[#87867f] hover:text-[#141413] transition"
+                          title="Copy final comment"
+                        >
+                          {isItemCopied ? (
+                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleLoadFromHistory(item)}
+                          className="text-[11px] font-mono text-[#c6613f] hover:underline"
+                        >
+                          Use in Editor
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="text-xs font-serif text-[#141413] leading-relaxed">
+                      {item.final_comment}
+                    </div>
+
+                    <div className="pt-2 border-t border-[#e3dacc]/60 flex items-center justify-between text-[10px] font-mono text-[#87867f]">
+                      <span className="truncate max-w-[70%]">
+                        Post: "{item.post_content.slice(0, 100)}..."
+                      </span>
+                      <span>
+                        {countSentences(item.final_comment)} sentences • {item.final_comment.length} chars
+                      </span>
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
