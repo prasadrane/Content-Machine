@@ -88,108 +88,43 @@ export default function App() {
 
   return (
     <div className="min-h-screen w-full bg-[#faf9f5] text-[#141413] flex flex-col font-sans selection:bg-[#c6613f]/20 selection:text-[#c6613f]">
-      {/* Anthropic-style Sticky Navigation Header */}
+      {/* Minimalist Editorial Navigation Header */}
       <header className="border-b border-[#e3dacc]/70 bg-[#faf9f5]/85 backdrop-blur-md sticky top-0 z-40 transition-colors w-full">
-        <div className="max-w-7xl w-full mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-7xl w-full mx-auto px-6 h-14 flex items-center justify-between">
           {/* Brand Logo & Title */}
-          <div className="flex items-center gap-3">
-            {/* Anthropic Iconic Dual-Square Mark */}
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
-              <svg width="28" height="28" viewBox="0 0 48 48" fill="none" className="shrink-0" aria-hidden="true">
-                <g>
-                  <rect x="6" y="16" width="24" height="24" rx="6" stroke="#141413" strokeWidth="2.5" />
-                </g>
-                <g>
-                  <rect x="18" y="8" width="24" height="24" rx="6" fill="#141413" />
-                </g>
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0">
+              <svg width="24" height="24" viewBox="0 0 48 48" fill="none" className="shrink-0" aria-hidden="true">
+                <rect x="6" y="16" width="24" height="24" rx="6" stroke="#141413" strokeWidth="2.5" />
+                <rect x="18" y="8" width="24" height="24" rx="6" fill="#141413" />
               </svg>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-serif font-semibold tracking-tight text-base text-[#141413]">Content Machine</span>
-                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-[#f0eee6] text-[#87867f] border border-[#e3dacc]">
-                  v2 &bull; Anthropic Edition
-                </span>
-              </div>
-            </div>
+            <span className="font-serif font-semibold tracking-tight text-base text-[#141413]">
+              Content Machine
+            </span>
           </div>
 
-          {/* Grouped Pill Navigation Tabs */}
-          <nav className="flex items-center gap-3" aria-label="Main Navigation">
-            {/* Workflow Pipeline Group */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-[#87867f] font-semibold select-none">
-                Pipeline
-              </span>
-              <div className="flex items-center gap-1 bg-[#f0eee6] p-1 rounded-full border border-[#e3dacc]/80 shadow-anthropic">
-                <TabBtn 
-                  active={activeTab === 'oracle'} 
-                  onClick={() => setActiveTab('oracle')}
-                  icon={<Compass className="w-3.5 h-3.5" />}
-                  label="Oracle" 
-                />
-                <TabBtn 
-                  active={activeTab === 'council'} 
-                  onClick={() => setActiveTab('council')}
-                  icon={<Users className="w-3.5 h-3.5" />}
-                  label="Council" 
-                />
-                <TabBtn 
-                  active={activeTab === 'distribute'} 
-                  onClick={() => setActiveTab('distribute')}
-                  icon={<Share2 className="w-3.5 h-3.5" />}
-                  label="Distribute" 
-                />
-              </div>
-            </div>
-
-            {/* Subtle Divider between groups */}
-            <div className="h-4 w-px bg-[#e3dacc]" aria-hidden="true" />
-
-            {/* Auxiliary Tools Group */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-[#87867f] font-semibold select-none">
-                Tools
-              </span>
-              <div className="flex items-center gap-1 bg-[#f0eee6] p-1 rounded-full border border-[#e3dacc]/80 shadow-anthropic">
-                <TabBtn 
-                  active={activeTab === 'profile'} 
-                  onClick={() => setActiveTab('profile')}
-                  icon={<User className="w-3.5 h-3.5" />}
-                  label="Profile" 
-                />
-                <TabBtn 
-                  active={activeTab === 'commenting'} 
-                  onClick={() => setActiveTab('commenting')}
-                  icon={<MessageSquare className="w-3.5 h-3.5" />}
-                  label="Commenting" 
-                />
-                <TabBtn 
-                  active={activeTab === 'lessons'} 
-                  onClick={() => setActiveTab('lessons')}
-                  icon={<BookOpen className="w-3.5 h-3.5" />}
-                  label="Lessons" 
-                />
-                <TabBtn 
-                  active={activeTab === 'audio'} 
-                  onClick={() => setActiveTab('audio')}
-                  icon={<Mic className="w-3.5 h-3.5" />}
-                  label="Audio" 
-                />
-              </div>
-            </div>
+          {/* Minimalist Navigation Bar */}
+          <nav className="flex items-center gap-1 sm:gap-1.5" aria-label="Main Navigation">
+            <TabBtn active={activeTab === 'oracle'} onClick={() => setActiveTab('oracle')} label="Oracle" />
+            <TabBtn active={activeTab === 'council'} onClick={() => setActiveTab('council')} label="Council" />
+            <TabBtn active={activeTab === 'distribute'} onClick={() => setActiveTab('distribute')} label="Distribute" />
+            <TabBtn active={activeTab === 'lessons'} onClick={() => setActiveTab('lessons')} label="Lessons" />
+            <TabBtn active={activeTab === 'audio'} onClick={() => setActiveTab('audio')} label="Audio" />
+            <TabBtn active={activeTab === 'commenting'} onClick={() => setActiveTab('commenting')} label="Comments" />
+            <TabBtn active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} label="Profile" />
           </nav>
 
-          {/* Server Status Pill */}
-          <div className="flex items-center gap-2 text-xs text-[#87867f] font-mono px-3 py-1 rounded-full bg-[#f0eee6] border border-[#e3dacc]">
-            <span className={`w-2 h-2 rounded-full ${serverOnline ? 'bg-emerald-600 shadow-[0_0_6px_rgba(5,150,105,0.4)]' : 'bg-[#c6613f]'}`} />
-            <span className="text-[11px] font-medium">{serverOnline ? 'Operational' : 'Offline'}</span>
+          {/* Minimal Live Status */}
+          <div className="flex items-center gap-1.5 text-xs text-[#87867f] font-mono">
+            <span className={`w-2 h-2 rounded-full ${serverOnline ? 'bg-emerald-600' : 'bg-[#c6613f]'}`} />
+            <span className="text-[11px] hidden sm:inline">{serverOnline ? 'Online' : 'Offline'}</span>
           </div>
         </div>
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-10">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-8">
         {activeTab === 'oracle' && (
           <OracleTab 
             onSendToCouncil={handleSendToCouncil} 
@@ -218,30 +153,28 @@ export default function App() {
       </main>
 
       {/* Editorial Footer */}
-      <footer className="border-t border-[#e3dacc] py-8 text-center text-xs text-[#87867f] font-serif w-full bg-[#faf9f5]">
-        <p className="italic">
-          Content Machine &bull; Anchor in lived human experience &bull; Zero text generator slop
-        </p>
+      <footer className="border-t border-[#e3dacc]/60 py-6 text-center text-xs text-[#87867f] font-sans w-full bg-[#faf9f5]">
+        <p>Content Machine</p>
       </footer>
     </div>
   )
 }
 
-function TabBtn({ active, onClick, icon, label }) {
+function TabBtn({ active, onClick, label }) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
+      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
         active 
-          ? 'bg-[#141413] text-[#faf9f5] shadow-sm' 
-          : 'text-[#87867f] hover:text-[#141413] hover:bg-[#e3dacc]/50'
+          ? 'bg-[#e3dacc]/70 text-[#141413] font-semibold' 
+          : 'text-[#87867f] hover:text-[#141413] hover:bg-[#e3dacc]/30'
       }`}
     >
-      {icon}
       <span>{label}</span>
     </button>
   )
 }
+
 
 // ==========================================
 // 1. ORACLE TAB (Ingestion & Idea Scoring)
@@ -522,7 +455,7 @@ function InterviewModal({ item, onClose, onSynthesizeComplete, onSkipToCouncil }
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-[#c6613f]/10 text-[#c6613f] border border-[#c6613f]/30">
-                Subsystem 2 &bull; Topic Briefing & Perspective Intake
+                Topic Briefing & Perspective
               </span>
             </div>
             <h2 className="text-xl font-serif font-medium text-[#141413] leading-snug">
@@ -888,7 +821,7 @@ function ScanProgressHUD({ progress, loading, onDismiss }) {
                 Scoring &amp; Ranking
               </span>
               <span className="text-[10px] font-mono text-[#87867f]">
-                {current}/{total || '—'} signals
+                {current}/{total || '-'} signals
               </span>
             </div>
           </div>
@@ -1622,14 +1555,9 @@ function OracleTab({ onSendToCouncil, onSendToCouncilWithDraft }) {
       {/* Header & View Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e3dacc] pb-5">
         <div>
-          <div className="flex items-center gap-2.5">
-            <h2 className="font-serif text-2xl font-medium tracking-tight text-[#141413]">The Oracle</h2>
-            <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-[#f0eee6] text-[#c6613f] border border-[#e3dacc]">
-              Zero Token Waste Deduplication
-            </span>
-          </div>
+          <h2 className="font-serif text-2xl font-medium tracking-tight text-[#141413]">The Oracle</h2>
           <p className="text-sm text-[#87867f] mt-1 font-sans">
-            Ingest signals from RSS, GitHub & LinkedIn with multi-tier conditional caching and automated technical domain taxonomy.
+            Discover, filter, and score engineering topics from your feeds.
           </p>
         </div>
 
@@ -2597,7 +2525,7 @@ function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onSendToDistribute }
       <div>
         <h2 className="font-serif text-2xl font-medium tracking-tight text-[#141413]">Writer's Council</h2>
         <p className="text-sm text-[#87867f] mt-1 font-sans">
-          Multi-judge adversarial panel (Perell, Puri, Housel, Slop Allergist) with z-score normalization and revision cycles.
+          Multi-judge editorial review and iterative revision.
         </p>
       </div>
 
@@ -3178,14 +3106,9 @@ function DistributeTab({ initialText, initialSlug }) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e3dacc] pb-5">
         <div>
-          <div className="flex items-center gap-2.5">
-            <h2 className="font-serif text-2xl font-medium tracking-tight text-[#141413]">Distribution Engine</h2>
-            <span className="text-[10px] uppercase font-mono px-2.5 py-0.5 rounded-full bg-[#f0eee6] text-[#c6613f] border border-[#e3dacc]">
-              LinkedIn First
-            </span>
-          </div>
+          <h2 className="font-serif text-2xl font-medium tracking-tight text-[#141413]">Distribute</h2>
           <p className="text-sm text-[#87867f] mt-1 font-sans">
-            Transform the verified anchor post into platform derivatives. Zero hallucination.
+            Generate channel-native formats from your verified post.
           </p>
         </div>
 
@@ -3593,9 +3516,9 @@ function LessonsTab() {
   return (
     <div className="space-y-8 animate-fadeIn">
       <div className="border-b border-[#e3dacc] pb-5">
-        <h2 className="font-serif text-2xl font-medium tracking-tight text-[#141413]">Governed Lessons Store</h2>
+        <h2 className="font-serif text-2xl font-medium tracking-tight text-[#141413]">Editorial Lessons</h2>
         <p className="text-sm text-[#87867f] mt-1 font-sans">
-          Extract declarative editorial rules from human diffs. Governed with conflict detection, decay, and human approval gates.
+          Codified writing rules and approved stylistic constraints.
         </p>
       </div>
 
@@ -3812,9 +3735,9 @@ function AudioTab() {
   return (
     <div className="space-y-8 animate-fadeIn max-w-2xl">
       <div className="border-b border-[#e3dacc] pb-5">
-        <h2 className="font-serif text-2xl font-medium tracking-tight text-[#141413]">Audio & ASR Monitor</h2>
+        <h2 className="font-serif text-2xl font-medium tracking-tight text-[#141413]">Audio & Voice</h2>
         <p className="text-sm text-[#87867f] mt-1 font-sans">
-          Dual-path CPU-only transcription (faster-whisper int8 batch + whisper.cpp streaming).
+          Speech transcription and dictation monitor.
         </p>
       </div>
 
@@ -4225,7 +4148,7 @@ function CommentingTab() {
   }
 
   const getVerdictBadge = (peakScore, verdict) => {
-    const scoreText = typeof peakScore === 'number' ? peakScore.toFixed(1) : '—'
+    const scoreText = typeof peakScore === 'number' ? peakScore.toFixed(1) : '-'
     const cleanVerdict = (verdict || 'publish').toLowerCase()
 
     if (cleanVerdict === 'publish' || cleanVerdict === 'pass' || peakScore >= 8.5) {
@@ -4266,16 +4189,11 @@ function CommentingTab() {
     <div className="space-y-8 animate-fadeIn max-w-4xl mx-auto">
       {/* 1. Header */}
       <div className="border-b border-[#e3dacc] pb-5">
-        <div className="flex items-center gap-2 mb-1.5">
-          <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-[#c6613f]/10 text-[#c6613f] border border-[#c6613f]/30 font-medium">
-            Subsystem 7 • Perspective Engine
-          </span>
-        </div>
         <h2 className="font-serif text-2xl font-medium tracking-tight text-[#141413]">
-          LinkedIn Comment Engine
+          LinkedIn Comments
         </h2>
         <p className="text-sm text-[#87867f] mt-1 font-sans">
-          High-signal 2–3 sentence perspectives anchored in your voice &amp; verified by the Writer's Council.
+          High-signal 2-3 sentence perspectives verified against your style guide.
         </p>
       </div>
 
@@ -4629,7 +4547,7 @@ function CommentingTab() {
                             <span className="text-[10px] font-mono text-[#87867f] block">{judge.role}</span>
                           </div>
                           <span className={`text-xs font-mono font-semibold px-2 py-0.5 rounded-full border ${scoreColor}`}>
-                            {typeof score === 'number' ? `${score.toFixed(1)} / 10` : '—'}
+                            {typeof score === 'number' ? `${score.toFixed(1)} / 10` : '-'}
                           </span>
                         </div>
                         <p className="text-xs font-serif text-[#141413] leading-relaxed italic">
@@ -4809,7 +4727,7 @@ const CORE_VOICE_INVARIANTS = [
   {
     title: 'No Emoji Overload',
     summary: '0-1 functional emoji max',
-    description: 'Maximum 0–1 functional emoji per piece; zero bullet-point emoji spam or decoration.',
+    description: 'Maximum 0-1 functional emoji per piece; zero bullet-point emoji spam or decoration.',
   },
 ]
 
@@ -4920,16 +4838,13 @@ function ProfileTab() {
     <div className="space-y-8 animate-fadeIn max-w-7xl mx-auto">
       {/* 1. Header */}
       <div className="border-b border-[#e3dacc] pb-5">
-        <div className="flex items-center gap-2 mb-1.5">
-          <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-[#c6613f]/10 text-[#c6613f] border border-[#c6613f]/30 font-medium">
-            Subsystem 3 • Voice &amp; Persona Grounding
-          </span>
-          {hasChanges && (
-            <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+        {hasChanges && (
+          <div className="mb-2">
+            <span className="text-[10px] uppercase font-mono px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
               Unsaved Changes
             </span>
-          )}
-        </div>
+          </div>
+        )}
         <h2 className="font-serif text-2xl font-medium tracking-tight text-[#141413]">
           Author Voice &amp; Profile
         </h2>
@@ -5195,7 +5110,7 @@ function ProfileTab() {
 
             <div className="flex items-center justify-between text-[10px] font-mono text-[#87867f] pt-1">
               <span>
-                Length: {profile?.full_markdown ? `${profile.full_markdown.length} chars • ${profile.full_markdown.split('\n').length} lines` : '—'}
+                Length: {profile?.full_markdown ? `${profile.full_markdown.length} chars | ${profile.full_markdown.split('\n').length} lines` : '-'}
               </span>
               <span>
                 Source: knowledge/02_voice-guide.md
