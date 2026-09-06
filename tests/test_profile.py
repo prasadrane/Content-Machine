@@ -80,5 +80,138 @@ class TestProfile(unittest.TestCase):
         self.assertEqual(UpdateProfileRequest.model_validate(req_data), update_req_with_values)
 
 
+class TestProfileManager(unittest.TestCase):
+    def setUp(self):
+        import tempfile
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.home_root = Path(self.temp_dir.name)
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
+
+    def test_get_profile_parses_markdown(self):
+        from content_machine.profile.manager import ProfileManager
+
+        manager = ProfileManager(home_root=self.home_root)
+        runtime_file = self.home_root / "knowledge" / "02_voice-guide.md"
+        self.assertTrue(runtime_file.exists(), "Runtime file should be copied from seed")
+
+        profile = manager.get_profile()
+        self.assertEqual(profile.name, "Prasad Rane")
+        self.assertEqual(profile.headline, "Senior Software & AI Systems Engineer")
+        self.assertIn("Relentless hands-on builder", profile.current_focus)
+        self.assertTrue(len(profile.technical_domains) >= 5)
+        self.assertIn(".NET Core", profile.technical_domains)
+        self.assertEqual(len(profile.hard_invariants), 5)
+
+        # Check that the 5 non-negotiable negative constraints are present
+        invariants_text = " ".join(profile.hard_invariants)
+        self.assertIn("Zero Company Attribution", invariants_text)
+        self.assertIn("No False Corporate Employment", invariants_text)
+        self.assertIn("Job-Status Agnostic Technical Tone", invariants_text)
+        self.assertIn("Zero Fluff or Generic Praise", invariants_text)
+        self.assertIn("No Emoji Overload", invariants_text)
+
+        self.assertIn("# Voice & Persona Guide — Prasad Rane", profile.full_markdown)
+
+    def test_update_profile_preserves_invariants(self):
+        from content_machine.profile.manager import ProfileManager
+
+        manager = ProfileManager(home_root=self.home_root)
+        new_focus = "Actively evaluating local multi-model routing and agentic workflows."
+        new_domains = ["Distributed Systems", "Kafka", "Agentic AI", "FastAPI"]
+        notes = "Focus on production resilience and backpressure patterns."
+
+        update_req = UpdateProfileRequest(
+            current_focus=new_focus,
+            technical_domains=new_domains,
+            custom_notes=notes,
+        )
+        updated_profile = manager.update_profile(update_req)
+
+        self.assertEqual(updated_profile.current_focus, new_focus)
+        self.assertEqual(updated_profile.technical_domains, new_domains)
+        self.assertIn(notes, updated_profile.full_markdown)
+
+        # Invariants must still be strictly 5 and intact
+        self.assertEqual(len(updated_profile.hard_invariants), 5)
+        invariants_text = " ".join(updated_profile.hard_invariants)
+        self.assertIn("Zero Company Attribution", invariants_text)
+        self.assertIn("No False Corporate Employment", invariants_text)
+        self.assertIn("Job-Status Agnostic Technical Tone", invariants_text)
+        self.assertIn("Zero Fluff or Generic Praise", invariants_text)
+        self.assertIn("No Emoji Overload", invariants_text)
+
+        # Re-read from disk to ensure persistence
+        fresh_profile = manager.get_profile()
+        self.assertEqual(fresh_profile.current_focus, new_focus)
+        self.assertEqual(fresh_profile.technical_domains, new_domains)
+        self.assertIn(notes, fresh_profile.full_markdown)
+        self.assertEqual(len(fresh_profile.hard_invariants), 5)
+
+    def test_get_voice_guide_text(self):
+        from content_machine.profile.manager import ProfileManager
+
+        manager = ProfileManager(home_root=self.home_root)
+        text = manager.get_voice_guide_text()
+        self.assertIsInstance(text, str)
+        self.assertIn("# Voice & Persona Guide — Prasad Rane", text)
+        self.assertIn("## 2. Voice Invariants & Negative Constraints (NON-NEGOTIABLE)", text)
+
+    def test_default_voice_guide_creation_without_seed(self):
+        from content_machine.profile.manager import ProfileManager
+
+        empty_seed = self.home_root / "nonexistent_seed.md"
+        manager = ProfileManager(home_root=self.home_root / "isolated", seed_path=empty_seed)
+        profile = manager.get_profile()
+
+        self.assertEqual(profile.name, "Prasad Rane")
+        self.assertEqual(profile.headline, "Senior Software & AI Systems Engineer")
+        self.assertEqual(len(profile.hard_invariants), 5)
+        self.assertTrue((self.home_root / "isolated" / "knowledge" / "02_voice-guide.md").exists())
+
+    def test_update_profile_partial_updates(self):
+        from content_machine.profile.manager import ProfileManager
+
+        manager = ProfileManager(home_root=self.home_root)
+
+        # Update only focus
+        p1 = manager.update_profile(UpdateProfileRequest(current_focus="Focus only update"))
+        self.assertEqual(p1.current_focus, "Focus only update")
+        self.assertIn(".NET Core", p1.technical_domains)
+
+        # Update only domains
+        p2 = manager.update_profile(UpdateProfileRequest(technical_domains=["Rust", "Wasm"]))
+        self.assertEqual(p2.current_focus, "Focus only update")
+        self.assertEqual(p2.technical_domains, ["Rust", "Wasm"])
+
+        # Update only custom notes
+        p3 = manager.update_profile(UpdateProfileRequest(custom_notes="Only note"))
+        self.assertEqual(p3.current_focus, "Focus only update")
+        self.assertEqual(p3.technical_domains, ["Rust", "Wasm"])
+        self.assertIn("Only note", p3.full_markdown)
+
+        # Ensure all 5 invariants remained intact
+        self.assertEqual(len(p3.hard_invariants), 5)
+
+    def test_mirror_to_seed_in_dev_mode(self):
+        from content_machine.profile.manager import ProfileManager
+
+        custom_seed = self.home_root / "mock_seed.md"
+        custom_seed.write_text("# Voice & Persona Guide — Prasad Rane\n", encoding="utf-8")
+
+        manager = ProfileManager(
+            home_root=self.home_root / "dev_home",
+            seed_path=custom_seed,
+            dev_mode=True,
+        )
+
+        manager.update_profile(UpdateProfileRequest(current_focus="Dev focus mirrored"))
+        seed_content = custom_seed.read_text(encoding="utf-8")
+        self.assertIn("Dev focus mirrored", seed_content)
+
+
 if __name__ == "__main__":
     unittest.main()
+
+
