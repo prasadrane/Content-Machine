@@ -76,6 +76,12 @@ class SynthesizeDraftResponse(BaseModel):
     spike_id: str
 
 
+class HumanizeTone(str, Enum):
+    PUNCHY_DIRECT = "punchy_direct"
+    PRAGMATIC_ARCHITECT = "pragmatic_architect"
+    CONVERSATIONAL_PEER = "conversational_peer"
+
+
 class CommentAngle(str, Enum):
     INSIGHTFUL = "insightful"
     CONTRARIAN = "contrarian"
@@ -86,6 +92,8 @@ class GenerateCommentRequest(BaseModel):
     post_content: str = Field(min_length=10, description="Raw content of the LinkedIn post being commented on")
     angle: CommentAngle = CommentAngle.INSIGHTFUL
     perspective_text: str | None = None
+    humanize: bool = Field(default=True, description="Apply Humanize Transformer polish pass")
+    tone: HumanizeTone = Field(default=HumanizeTone.PUNCHY_DIRECT, description="Target human tone")
 
 
 class CommentRunResponse(BaseModel):
@@ -98,6 +106,9 @@ class CommentRunResponse(BaseModel):
     actions: list[str] = Field(default_factory=list)
     judge_scores: dict[str, float] = Field(default_factory=dict)
     judge_critiques: dict[str, str] = Field(default_factory=dict)
+    humanized: bool = Field(default=True)
+    humanize_tone: str = Field(default="punchy_direct")
+    burstiness_score: float = Field(default=0.0)
 
 
 class CommentHistoryItem(BaseModel):
@@ -134,12 +145,6 @@ class UpdateProfileRequest(BaseModel):
     current_focus: Optional[str] = None
     technical_domains: Optional[list[str]] = None
     custom_notes: Optional[str] = None
-
-
-class HumanizeTone(str, Enum):
-    PUNCHY_DIRECT = "punchy_direct"
-    PRAGMATIC_ARCHITECT = "pragmatic_architect"
-    CONVERSATIONAL_PEER = "conversational_peer"
 
 
 class HumanizeChannel(str, Enum):

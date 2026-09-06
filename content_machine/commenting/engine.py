@@ -13,6 +13,7 @@ from uuid import uuid4
 
 from ..config import AppConfig
 from ..council.loop import run_council
+from ..humanize import HumanizeTone, HumanizeTransformer
 from ..lessons.store import LessonsStore
 from ..profile.manager import ProfileManager
 from ..schemas import (
@@ -57,6 +58,12 @@ class CommentingEngine:
         self.router = router
         self.cfg = cfg
         self.db_conn = db_conn
+        self.writer_model = (
+            self.cfg.models.writer
+            if isinstance(self.cfg.models.writer, str)
+            else (self.cfg.models.writer[0] if self.cfg.models.writer else "qwen3.8-max")
+        )
+        self.humanizer = HumanizeTransformer(router=self.router, model=self.writer_model)
 
     def _build_synthesis_prompt(
         self,
@@ -147,6 +154,8 @@ class CommentingEngine:
         post_content: str,
         angle: str | CommentAngle = CommentAngle.INSIGHTFUL,
         perspective_text: Optional[str] = None,
+        humanize: bool = True,
+        tone: str | HumanizeTone = HumanizeTone.PUNCHY_DIRECT,
     ) -> CommentRunResponse:
         angle_str = angle.value if hasattr(angle, "value") else str(angle)
         initial_draft = self.synthesize_initial_draft(
@@ -166,7 +175,15 @@ class CommentingEngine:
         )
 
         final_comment = getattr(council_res, "draft", initial_draft)
-        final_comment = _sanitize_sentences(final_comment, max_sentences=3)
+        tone_enum = HumanizeTone(tone) if isinstance(tone, str) else tone
+        if humanize:
+            h_res = self.humanizer.humanize_comment(final_comment, tone=tone_enum, max_sentences=3)
+            final_comment = h_res.humanized_text
+            burstiness_score = h_res.burstiness_score
+        else:
+            final_comment = _sanitize_sentences(final_comment, max_sentences=3)
+            burstiness_score = 0.0
+
         iteration = getattr(council_res, "iteration", 1)
 
         # Extract peak score
@@ -249,6 +266,9 @@ class CommentingEngine:
             actions=actions,
             judge_scores=judge_scores,
             judge_critiques=judge_critiques,
+            humanized=humanize,
+            humanize_tone=str(tone_enum.value if hasattr(tone_enum, "value") else tone_enum),
+            burstiness_score=burstiness_score,
         )
 
     def get_history(self, limit: int = 50) -> list[CommentHistoryItem]:
