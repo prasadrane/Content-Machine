@@ -2455,6 +2455,14 @@ function OracleTab({ onSendToCouncil, onSendToCouncilWithDraft }) {
 }
 
 // ==========================================
+// 2. WRITER'S COUNCIL TAB
+// ==========================================
+const HUMANIZE_TONES = [
+  { id: 'punchy_direct', label: '⚡ Punchy & Direct', desc: 'Short sentences, raw cadence, aggressive brevity' },
+  { id: 'pragmatic_architect', label: '🏛️ Pragmatic Architect', desc: 'Senior eng rigor, operational trade-offs, zero fluff' },
+  { id: 'conversational_peer', label: '☕ Conversational Peer', desc: 'Natural peer dialogue, warm clarity, lived experience' },
+]
+
 function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onSendToDistribute }) {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
@@ -2462,6 +2470,10 @@ function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onSendToDistribute }
   const [historyData, setHistoryData] = useState(null)
   const [recentSpikes, setRecentSpikes] = useState([])
   const [showHistory, setShowHistory] = useState(false)
+  const [humanizing, setHumanizing] = useState(false)
+  const [humanizedResult, setHumanizedResult] = useState(null)
+  const [humanizeCopied, setHumanizeCopied] = useState(false)
+  const [humanizeError, setHumanizeError] = useState('')
 
   const fetchHistory = async (slug) => {
     if (!slug) return
@@ -2545,6 +2557,40 @@ function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onSendToDistribute }
 
   const best = historyData?.best
 
+  const handleHumanize = async (sourceText) => {
+    const textToHumanize = sourceText || best?.draft || draft
+    if (!textToHumanize || !textToHumanize.trim()) {
+      setHumanizeError('No draft text available to humanize.')
+      return
+    }
+
+    setHumanizing(true)
+    setHumanizeError('')
+    try {
+      const res = await fetch('/api/humanize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: textToHumanize,
+          channel: 'linkedin_post',
+          tone: 'pragmatic_architect',
+        }),
+      })
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.detail || `Humanize failed (${res.status})`)
+      }
+
+      const data = await res.json()
+      setHumanizedResult(data)
+    } catch (err) {
+      setHumanizeError(err.message || 'Failed to humanize draft.')
+    } finally {
+      setHumanizing(false)
+    }
+  }
+
   return (
     <div className="space-y-8 animate-fadeIn">
       {/* Editorial Title */}
@@ -2584,9 +2630,10 @@ function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onSendToDistribute }
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 shrink-0">
+          <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
             {best.draft && (
               <button
+                type="button"
                 onClick={() => handleLoadDraft(best.draft)}
                 className="px-4 py-2 bg-[#faf9f5] hover:bg-[#e3dacc]/50 text-[#141413] rounded-full text-xs font-medium transition flex items-center gap-1.5 border border-[#e3dacc] shadow-sm"
               >
@@ -2594,8 +2641,24 @@ function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onSendToDistribute }
                 <span>Load Peak Draft</span>
               </button>
             )}
+            {best.draft && (
+              <button
+                type="button"
+                onClick={() => handleHumanize(best.draft)}
+                disabled={humanizing}
+                className="px-4 py-2 bg-[#faf9f5] hover:bg-[#e3dacc]/50 text-[#c6613f] border border-[#c6613f]/40 hover:border-[#c6613f] rounded-full text-xs font-medium transition flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+              >
+                {humanizing ? (
+                  <RotateCw className="w-3.5 h-3.5 animate-spin text-[#c6613f]" />
+                ) : (
+                  <Sparkles className="w-3.5 h-3.5 text-[#c6613f]" />
+                )}
+                <span>{humanizing ? 'Humanizing...' : '🪄 Humanize Peak Draft'}</span>
+              </button>
+            )}
             {best.draft && onSendToDistribute && (
               <button
+                type="button"
                 onClick={() => onSendToDistribute(best.draft, spikeId)}
                 className="px-4 py-2 bg-[#c6613f] hover:bg-[#b55535] text-[#faf9f5] rounded-full text-xs font-medium transition flex items-center gap-1.5 shadow-sm"
               >
@@ -2604,6 +2667,91 @@ function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onSendToDistribute }
               </button>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Humanized Peak Draft Card */}
+      {humanizedResult && (
+        <div className="p-6 bg-[#faf9f5] border border-[#e3dacc] rounded-2xl shadow-anthropic space-y-4 animate-fadeIn">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#e3dacc] pb-4">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-semibold bg-[#c6613f]/10 text-[#c6613f] border border-[#c6613f]/30">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Humanized ✨ (Burstiness: {typeof humanizedResult.burstiness_score === 'number' ? humanizedResult.burstiness_score.toFixed(1) : humanizedResult.burstiness_score})</span>
+              </div>
+              <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-[#f0eee6] text-[#87867f] border border-[#e3dacc]">
+                {humanizedResult.sentence_count || 0} sentences
+              </span>
+              <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-[#f0eee6] text-[#87867f] border border-[#e3dacc]">
+                Tone: Pragmatic Architect
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setDraft(humanizedResult.humanized_text)
+                }}
+                className="px-3.5 py-1.5 rounded-full text-xs font-mono font-medium transition bg-[#141413] hover:bg-[#252524] text-[#faf9f5] flex items-center gap-1.5 shadow-sm"
+                title="Replace editor content with this humanized version"
+              >
+                <FileText className="w-3.5 h-3.5 text-[#d97757]" />
+                <span>Use in Editor</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(humanizedResult.humanized_text)
+                  setHumanizeCopied(true)
+                  setTimeout(() => setHumanizeCopied(false), 2000)
+                }}
+                className="px-3.5 py-1.5 rounded-full text-xs font-mono font-medium transition bg-[#faf9f5] hover:bg-[#e3dacc]/50 text-[#141413] border border-[#e3dacc] flex items-center gap-1.5 shadow-sm"
+              >
+                {humanizeCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-[#87867f]" />}
+                <span>{humanizeCopied ? 'Copied!' : 'Copy'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setHumanizedResult(null)}
+                className="p-1.5 rounded-full text-[#87867f] hover:text-[#141413] hover:bg-[#f0eee6] transition"
+                title="Dismiss"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Purged Clichés Chips */}
+          {humanizedResult.banned_words_purged && humanizedResult.banned_words_purged.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap text-xs">
+              <span className="text-[#87867f] font-mono text-[11px] uppercase tracking-wider font-semibold">
+                Purged AI Clichés ({humanizedResult.banned_words_purged.length}):
+              </span>
+              {humanizedResult.banned_words_purged.map((word, idx) => (
+                <span
+                  key={idx}
+                  className="px-2.5 py-0.5 rounded-full text-[11px] font-mono bg-rose-50 text-rose-800 border border-rose-200 line-through"
+                >
+                  {word}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Humanized Text Box */}
+          <div className="bg-[#f0eee6]/40 border border-[#e3dacc] rounded-xl p-5 font-serif text-sm sm:text-base leading-relaxed text-[#141413] whitespace-pre-wrap selection:bg-[#c6613f]/20">
+            {humanizedResult.humanized_text}
+          </div>
+        </div>
+      )}
+
+      {humanizeError && (
+        <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center gap-2 animate-fadeIn">
+          <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+          <span>{humanizeError}</span>
         </div>
       )}
 
@@ -2763,17 +2911,33 @@ function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onSendToDistribute }
                 </div>
               )}
 
-              {onSendToDistribute && (
-                <div className="pt-4 border-t border-[#e3dacc] flex justify-end">
+              <div className="pt-4 border-t border-[#e3dacc] flex items-center justify-between gap-3 flex-wrap">
+                {(result.verdict === 'pass' || best?.draft) && (
+                  <button
+                    type="button"
+                    onClick={() => handleHumanize(best?.draft || draft)}
+                    disabled={humanizing}
+                    className="px-4 py-2 bg-[#faf9f5] hover:bg-[#e3dacc]/50 text-[#c6613f] border border-[#c6613f]/40 hover:border-[#c6613f] rounded-full text-xs font-medium transition flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                  >
+                    {humanizing ? (
+                      <RotateCw className="w-3.5 h-3.5 animate-spin text-[#c6613f]" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5 text-[#c6613f]" />
+                    )}
+                    <span>{humanizing ? 'Humanizing...' : '🪄 Humanize Peak Draft'}</span>
+                  </button>
+                )}
+
+                {onSendToDistribute && (
                   <button
                     onClick={() => onSendToDistribute(draft, spikeId)}
-                    className="px-5 py-2.5 bg-[#141413] hover:bg-[#252524] text-[#faf9f5] rounded-full text-xs font-medium transition flex items-center gap-2 shadow-sm"
+                    className="px-5 py-2.5 bg-[#141413] hover:bg-[#252524] text-[#faf9f5] rounded-full text-xs font-medium transition flex items-center gap-2 shadow-sm ml-auto"
                   >
                     <span>Distribute Current Post</span>
                     <Share2 className="w-3.5 h-3.5 text-[#d97757]" />
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
 
@@ -2888,6 +3052,8 @@ function DistributeTab({ initialText, initialSlug }) {
   const [activeFormat, setActiveFormat] = useState('linkedin')
   const [copied, setCopied] = useState(false)
   const [showConfigModal, setShowConfigModal] = useState(false)
+  const [humanize, setHumanize] = useState(true)
+  const [humanizeTone, setHumanizeTone] = useState('pragmatic_architect')
 
   // Format selection state (LinkedIn default ON)
   const [enabledFormats, setEnabledFormats] = useState({
@@ -2959,6 +3125,8 @@ function DistributeTab({ initialText, initialSlug }) {
           anchor_post: anchorText,
           project_slug: slug || 'post',
           enabled_formats: activeFormatKeys,
+          humanize: humanize,
+          tone: humanizeTone,
         })
       })
 
@@ -3086,6 +3254,57 @@ function DistributeTab({ initialText, initialSlug }) {
               <Settings className="w-3 h-3" />
               <span>Edit</span>
             </button>
+          </div>
+
+          {/* Humanize Polish Control Bar */}
+          <div className="p-3.5 bg-[#faf9f5] border border-[#e3dacc] rounded-xl space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-xs uppercase font-mono tracking-wider text-[#87867f] font-semibold">
+                  Humanize Polish
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#f0eee6] text-[#87867f] border border-[#e3dacc]">
+                  Cross-Channel De-AI
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setHumanize(!humanize)}
+                className={`px-3 py-1 rounded-full text-xs font-mono font-medium transition flex items-center gap-1.5 border shadow-sm ${
+                  humanize
+                    ? 'bg-[#c6613f] text-[#faf9f5] border-[#c6613f]'
+                    : 'bg-[#f0eee6] text-[#87867f] border-[#e3dacc] hover:text-[#141413]'
+                }`}
+              >
+                <span>🪄 Humanize Polish</span>
+                <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${humanize ? 'bg-[#faf9f5]/20 text-[#faf9f5]' : 'bg-[#e3dacc] text-[#87867f]'}`}>
+                  {humanize ? 'ON' : 'OFF'}
+                </span>
+              </button>
+            </div>
+
+            {humanize && (
+              <div className="pt-2 border-t border-[#e3dacc]/60 flex items-center gap-1.5 flex-wrap">
+                <span className="text-[11px] font-mono text-[#87867f] mr-1">Tone:</span>
+                {HUMANIZE_TONES.map(t => {
+                  const active = humanizeTone === t.id
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setHumanizeTone(t.id)}
+                      className={`px-2.5 py-1 rounded-full text-[11px] font-mono border transition ${
+                        active
+                          ? 'bg-[#141413] text-[#faf9f5] border-[#141413] shadow-sm font-semibold'
+                          : 'bg-[#f0eee6] text-[#87867f] hover:text-[#141413] border-[#e3dacc]'
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
           </div>
 
           {error && (
@@ -3657,6 +3876,8 @@ function CommentingTab() {
   const [postContent, setPostContent] = useState('')
   const [angle, setAngle] = useState('insightful')
   const [perspectiveText, setPerspectiveText] = useState('')
+  const [humanize, setHumanize] = useState(true)
+  const [humanizeTone, setHumanizeTone] = useState('punchy_direct')
   const [loading, setLoading] = useState(false)
   const [deliberationPhase, setDeliberationPhase] = useState('')
   const [error, setError] = useState('')
@@ -3972,6 +4193,8 @@ function CommentingTab() {
           post_content: postContent.trim(),
           angle: angle,
           perspective_text: perspectiveText.trim() || null,
+          humanize: humanize,
+          tone: humanizeTone,
         }),
       })
 
@@ -3996,6 +4219,8 @@ function CommentingTab() {
     setPostContent(item.post_content)
     if (item.angle) setAngle(item.angle)
     if (item.perspective_text) setPerspectiveText(item.perspective_text)
+    if (item.humanize_tone) setHumanizeTone(item.humanize_tone)
+    if (typeof item.humanized === 'boolean') setHumanize(item.humanized)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -4176,6 +4401,64 @@ function CommentingTab() {
           />
         </div>
 
+        {/* Humanize Polish Controls */}
+        <div className="space-y-2.5 p-4 bg-[#faf9f5] border border-[#e3dacc] rounded-xl">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-xs uppercase font-mono tracking-wider text-[#87867f] font-semibold">
+                Humanize Polish
+              </span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#f0eee6] text-[#87867f] border border-[#e3dacc]">
+                Anti-AI Transformer
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setHumanize(!humanize)}
+              className={`px-3 py-1 rounded-full text-xs font-mono font-medium transition flex items-center gap-1.5 border shadow-sm ${
+                humanize
+                  ? 'bg-[#c6613f] text-[#faf9f5] border-[#c6613f]'
+                  : 'bg-[#f0eee6] text-[#87867f] border-[#e3dacc] hover:text-[#141413]'
+              }`}
+            >
+              <span>🪄 Humanize Polish</span>
+              <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${humanize ? 'bg-[#faf9f5]/20 text-[#faf9f5]' : 'bg-[#e3dacc] text-[#87867f]'}`}>
+                {humanize ? 'ON' : 'OFF'}
+              </span>
+            </button>
+          </div>
+
+          {humanize && (
+            <div className="pt-2 border-t border-[#e3dacc]/60 space-y-2">
+              <span className="text-[11px] font-mono text-[#87867f] block">Target Human Tone:</span>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {HUMANIZE_TONES.map((t) => {
+                  const active = humanizeTone === t.id
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setHumanizeTone(t.id)}
+                      className={`px-3 py-2 rounded-xl text-left border transition text-xs font-mono flex flex-col gap-0.5 ${
+                        active
+                          ? 'bg-[#141413] text-[#faf9f5] border-[#141413] shadow-sm'
+                          : 'bg-[#f0eee6]/60 text-[#87867f] hover:text-[#141413] hover:bg-[#f0eee6] border-[#e3dacc]'
+                      }`}
+                    >
+                      <span className={`font-medium ${active ? 'text-[#faf9f5]' : 'text-[#141413]'}`}>
+                        {t.label}
+                      </span>
+                      <span className={`text-[10px] line-clamp-1 ${active ? 'text-[#faf9f5]/70' : 'text-[#87867f]'}`}>
+                        {t.desc}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Error Notification */}
         {error && (
           <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center gap-2 animate-fadeIn">
@@ -4232,6 +4515,12 @@ function CommentingTab() {
                   </span>
                 )
               })()}
+              {currentResult.humanized && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-semibold bg-[#c6613f]/10 text-[#c6613f] border border-[#c6613f]/30">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Humanized ✨ (Burstiness: {typeof currentResult.burstiness_score === 'number' ? currentResult.burstiness_score.toFixed(1) : (currentResult.burstiness_score || '0.0')})</span>
+                </span>
+              )}
               <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-[#f0eee6] text-[#141413] border border-[#e3dacc]">
                 Iter {currentResult.iteration}
               </span>
@@ -4429,6 +4718,11 @@ function CommentingTab() {
                         <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
                           {typeof item.peak_score === 'number' ? item.peak_score.toFixed(1) : item.peak_score} / 10 • {item.verdict}
                         </span>
+                        {item.humanized && (
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#c6613f]/10 text-[#c6613f] border border-[#c6613f]/30 font-semibold">
+                            Humanized ✨
+                          </span>
+                        )}
                         <span className="text-[10px] font-mono text-[#87867f]">
                           Iter {item.iteration_count}
                         </span>
