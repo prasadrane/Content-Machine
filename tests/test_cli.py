@@ -511,11 +511,98 @@ class TestCommentCLI(unittest.TestCase):
         self.assertIn("--post must be at least 10 characters long", err)
 
 
+# ---------------------------------------------------------------------------
+# humanize subcommand
+# ---------------------------------------------------------------------------
+
+class TestHumanizeCLI(unittest.TestCase):
+
+    def test_humanize_cli_with_inline_text(self):
+        """humanize <text> runs transformer and prints humanized text and metrics."""
+        from content_machine.schemas import HumanizeChannel, HumanizeResult, HumanizeTone
+        mock_result = HumanizeResult(
+            original_text="Delve into the multifaceted tapestry of modern systems.",
+            humanized_text="Dig into modern systems.",
+            channel=HumanizeChannel.LINKEDIN_POST,
+            tone=HumanizeTone.PUNCHY_DIRECT,
+            banned_words_purged=["delve", "tapestry"],
+            burstiness_score=5.5,
+            sentence_count=1,
+            was_modified=True,
+        )
+
+        with patch("content_machine.__main__.HumanizeTransformer") as MockTransformer, \
+             patch("content_machine.__main__._make_router"):
+            mock_inst = MagicMock()
+            mock_inst.transform.return_value = mock_result
+            MockTransformer.return_value = mock_inst
+
+            code, out, err = _run_cli(
+                "humanize",
+                "Delve into the multifaceted tapestry of modern systems.",
+                "--channel", "linkedin_post",
+                "--tone", "punchy_direct",
+            )
+
+        self.assertEqual(code, 0)
+        self.assertIn("Dig into modern systems.", out)
+        self.assertIn("Burstiness Score: 5.50", out)
+        self.assertIn("delve, tapestry", out)
+        mock_inst.transform.assert_called_once_with(
+            text="Delve into the multifaceted tapestry of modern systems.",
+            channel=HumanizeChannel.LINKEDIN_POST,
+            tone=HumanizeTone.PUNCHY_DIRECT,
+        )
+
+    def test_humanize_cli_with_file(self):
+        """humanize <file_path> reads file contents and runs transformer."""
+        from content_machine.schemas import HumanizeChannel, HumanizeResult, HumanizeTone
+        mock_result = HumanizeResult(
+            original_text="File content to humanize.",
+            humanized_text="Humanized file content.",
+            channel=HumanizeChannel.GENERAL,
+            tone=HumanizeTone.PRAGMATIC_ARCHITECT,
+            banned_words_purged=[],
+            burstiness_score=4.0,
+            sentence_count=1,
+            was_modified=True,
+        )
+
+        with tempfile.NamedTemporaryFile("w", delete=False, suffix=".md", encoding="utf-8") as f:
+            f.write("File content to humanize.")
+            tmp_path = f.name
+
+        try:
+            with patch("content_machine.__main__.HumanizeTransformer") as MockTransformer, \
+                 patch("content_machine.__main__._make_router"):
+                mock_inst = MagicMock()
+                mock_inst.transform.return_value = mock_result
+                MockTransformer.return_value = mock_inst
+
+                code, out, err = _run_cli("humanize", tmp_path)
+
+            self.assertEqual(code, 0)
+            self.assertIn("Humanized file content.", out)
+            mock_inst.transform.assert_called_once_with(
+                text="File content to humanize.",
+                channel=HumanizeChannel.GENERAL,
+                tone=HumanizeTone.PRAGMATIC_ARCHITECT,
+            )
+        finally:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+
+    def test_humanize_missing_target_fails(self):
+        """humanize without path/text fails with non-zero exit code."""
+        code, _, err = _run_cli("humanize")
+        self.assertNotEqual(code, 0)
+
+
 if __name__ == "__main__":
     loader = unittest.TestLoader()
     suite = unittest.TestSuite()
     for cls in [TestCLIHelp, TestOracleCLI, TestCouncilCLI,
-                TestTranscribeCLI, TestLessonsCLI, TestCommentCLI]:
+                TestTranscribeCLI, TestLessonsCLI, TestCommentCLI, TestHumanizeCLI]:
         suite.addTests(loader.loadTestsFromTestCase(cls))
 
     runner = unittest.TextTestRunner(verbosity=0)
@@ -526,3 +613,4 @@ if __name__ == "__main__":
         print("ALL PASS")
     else:
         sys.exit(1)
+

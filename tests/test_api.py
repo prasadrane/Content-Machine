@@ -486,10 +486,39 @@ class TestDistributeAPI(unittest.TestCase):
         self.assertEqual(data["linkedin"], "LinkedIn Post")
         self.assertEqual(data["video_script_long"], "[Chapter 1] Deep Dive")
         self.assertIsNone(data.get("x_thread"))
+        from content_machine.schemas import HumanizeTone
         mock_inst.generate_all.assert_called_once_with(
             "In March 2022, I fired our highest-performing engineer.",
             formats=["linkedin", "video_script_long"],
+            humanize=True,
+            tone=HumanizeTone.PRAGMATIC_ARCHITECT,
         )
+
+
+    def test_distribute_run_forwards_humanize_params(self):
+        """POST /api/distribute/run forwards humanize and tone params to engine.generate_all."""
+        from content_machine.schemas import HumanizeTone
+        with patch("content_machine.api.app.DistributionEngine") as MockEng, \
+             patch("content_machine.api.app._make_router"):
+            mock_inst = MagicMock()
+            mock_inst.generate_all.return_value = {"linkedin": "Polished"}
+            MockEng.return_value = mock_inst
+
+            client = _make_client()
+            r = client.post("/api/distribute/run", json={
+                "anchor_post": "In March 2022, I fired our highest-performing engineer.",
+                "humanize": False,
+                "tone": "conversational_peer",
+            })
+
+        self.assertEqual(r.status_code, 200)
+        mock_inst.generate_all.assert_called_once_with(
+            "In March 2022, I fired our highest-performing engineer.",
+            formats=None,
+            humanize=False,
+            tone=HumanizeTone.CONVERSATIONAL_PEER,
+        )
+
 
 
 class TestLinkedInAPI(unittest.TestCase):
@@ -639,6 +668,48 @@ class TestCommentsAPI(unittest.TestCase):
             r_invalid = client.get("/api/comments/history?limit=500")
             self.assertEqual(r_invalid.status_code, 422)
 
+    def test_post_comment_forwards_humanize_params(self):
+        """POST /api/comments/generate forwards humanize and tone to CommentingEngine."""
+        from content_machine.schemas import CommentAngle, CommentRunResponse, HumanizeTone
+        mock_resp = CommentRunResponse(
+            comment_id="comment-123",
+            initial_draft="Draft",
+            final_comment="Final comment",
+            iteration=1,
+            peak_score=8.5,
+            verdict="PASS",
+            actions=[],
+            judge_scores={},
+            judge_critiques={},
+            humanized=True,
+            humanize_tone="punchy_direct",
+            burstiness_score=4.2,
+        )
+        with patch("content_machine.api.app.CommentingEngine") as MockEngine, \
+             patch("content_machine.api.app._make_router"), \
+             patch("content_machine.api.app._make_db"):
+            mock_inst = MagicMock()
+            mock_inst.generate_comment.return_value = mock_resp
+            MockEngine.return_value = mock_inst
+
+            client = _make_client()
+            r = client.post("/api/comments/generate", json={
+                "post_content": "A high quality engineering post about database index structures.",
+                "angle": "insightful",
+                "humanize": True,
+                "tone": "punchy_direct",
+            })
+
+        self.assertEqual(r.status_code, 200)
+        mock_inst.generate_comment.assert_called_once_with(
+            post_content="A high quality engineering post about database index structures.",
+            angle=CommentAngle.INSIGHTFUL,
+            perspective_text=None,
+            humanize=True,
+            tone=HumanizeTone.PUNCHY_DIRECT,
+        )
+
+
 
 # ---------------------------------------------------------------------------
 # Profile
@@ -698,10 +769,64 @@ class TestProfileAPI(unittest.TestCase):
             mock_inst.update_profile.assert_called_once()
 
 
+# ---------------------------------------------------------------------------
+# Humanize
+# ---------------------------------------------------------------------------
+
+class TestHumanizeAPI(unittest.TestCase):
+
+    def test_post_humanize_endpoint(self):
+        """POST /api/humanize transforms text and returns HumanizeResult."""
+        from content_machine.schemas import HumanizeChannel, HumanizeResult, HumanizeTone
+        mock_result = HumanizeResult(
+            original_text="Delve into this tapestry of ideas.",
+            humanized_text="Dig into these ideas.",
+            channel=HumanizeChannel.LINKEDIN_POST,
+            tone=HumanizeTone.PRAGMATIC_ARCHITECT,
+            banned_words_purged=["delve", "tapestry"],
+            burstiness_score=4.5,
+            sentence_count=1,
+            was_modified=True,
+        )
+        with patch("content_machine.humanize.HumanizeTransformer") as MockTransformer, \
+             patch("content_machine.api.app._make_router"):
+            mock_inst = MagicMock()
+            mock_inst.transform.return_value = mock_result
+            MockTransformer.return_value = mock_inst
+
+            client = _make_client()
+            r = client.post("/api/humanize", json={
+                "text": "Delve into this tapestry of ideas.",
+                "channel": "linkedin_post",
+                "tone": "pragmatic_architect",
+            })
+
+        self.assertEqual(r.status_code, 200)
+        data = r.json()
+        self.assertEqual(data["humanized_text"], "Dig into these ideas.")
+        self.assertEqual(data["channel"], "linkedin_post")
+        self.assertEqual(data["tone"], "pragmatic_architect")
+        self.assertEqual(data["banned_words_purged"], ["delve", "tapestry"])
+        self.assertEqual(data["burstiness_score"], 4.5)
+        self.assertTrue(data["was_modified"])
+        mock_inst.transform.assert_called_once_with(
+            text="Delve into this tapestry of ideas.",
+            channel=HumanizeChannel.LINKEDIN_POST,
+            tone=HumanizeTone.PRAGMATIC_ARCHITECT,
+            max_sentences=None,
+        )
+
+    def test_post_humanize_short_text_fails(self):
+        """POST /api/humanize requires text of at least 10 chars."""
+        client = _make_client()
+        r = client.post("/api/humanize", json={"text": "short"})
+        self.assertEqual(r.status_code, 422)
+
+
 if __name__ == "__main__":
     loader = unittest.TestLoader()
     suite = unittest.TestSuite()
-    for cls in [TestHealth, TestOracleAPI, TestCouncilAPI, TestLessonsAPI, TestDistributeAPI, TestLinkedInAPI, TestCommentsAPI, TestProfileAPI]:
+    for cls in [TestHealth, TestOracleAPI, TestCouncilAPI, TestLessonsAPI, TestDistributeAPI, TestLinkedInAPI, TestCommentsAPI, TestProfileAPI, TestHumanizeAPI]:
         suite.addTests(loader.loadTestsFromTestCase(cls))
 
     runner = unittest.TextTestRunner(verbosity=0)
@@ -712,3 +837,4 @@ if __name__ == "__main__":
         print("ALL PASS")
     else:
         sys.exit(1)
+

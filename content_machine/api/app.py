@@ -40,7 +40,11 @@ from content_machine.schemas import (
     CommentHistoryItem,
     ProfileData,
     UpdateProfileRequest,
+    DistributeRunRequest,
+    HumanizeRequest,
+    HumanizeResult,
 )
+
 
 # ---------------------------------------------------------------------------
 # Shared infrastructure (mirrors CLI helpers; patchable in tests)
@@ -234,13 +238,8 @@ class LessonsCustomResponse(BaseModel):
     merge_required: bool = False
 
 
-class DistributeRunRequest(BaseModel):
-    anchor_post: str = Field(min_length=10)
-    project_slug: Optional[str] = None
-    enabled_formats: Optional[list[str]] = None
-
-
 class DistributeRunResponse(BaseModel):
+
     linkedin: Optional[str] = None
     x_thread: Optional[str] = None
     video_script: Optional[str] = None
@@ -773,10 +772,16 @@ def distribute_run(req: DistributeRunRequest):
         model=cfg.models.scanner,
         model_long=getattr(cfg.models, "video_long", "qwen3.8-max"),
     )
-    bundle = engine.generate_all(req.anchor_post, formats=req.enabled_formats)
+    bundle = engine.generate_all(
+        req.anchor_post,
+        formats=req.enabled_formats,
+        humanize=req.humanize,
+        tone=req.tone,
+    )
     if req.project_slug:
         engine.save_bundle(req.project_slug, bundle)
     return DistributeRunResponse(**bundle)
+
 
 
 @app.get("/api/linkedin/status", response_model=LinkedInStatusResponse)
@@ -912,7 +917,10 @@ def comments_generate(req: GenerateCommentRequest):
             post_content=req.post_content,
             angle=req.angle,
             perspective_text=req.perspective_text,
+            humanize=req.humanize,
+            tone=req.tone,
         )
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Comment generation failed: {str(e)}")
 
@@ -944,7 +952,25 @@ def profile_update(req: UpdateProfileRequest):
     return manager.update_profile(req)
 
 
+# ---------------------------------------------------------------------------
+# Humanize Transformer
+# ---------------------------------------------------------------------------
+
+@app.post("/api/humanize", response_model=HumanizeResult)
+def humanize_text_endpoint(req: HumanizeRequest):
+    from content_machine.humanize import HumanizeTransformer
+    router = _make_router()
+    transformer = HumanizeTransformer(router=router)
+    return transformer.transform(
+        text=req.text,
+        channel=req.channel,
+        tone=req.tone,
+        max_sentences=req.max_sentences,
+    )
+
+
 # Catch-all: serve index.html for SPA routing (only if UI is built)
+
 @app.get("/{full_path:path}")
 def spa_fallback(full_path: str):
     index = _UI_DIST / "index.html"

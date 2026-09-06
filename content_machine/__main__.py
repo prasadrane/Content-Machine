@@ -36,10 +36,13 @@ from content_machine.connectors.linkedin import LinkedInConnector
 from content_machine.connectors.rss import RSSConnector
 from content_machine.council.loop import run_council
 from content_machine.distribution.engine import DistributionEngine
+from content_machine.humanize.transformer import HumanizeTransformer
 from content_machine.lessons.differ import LessonsDiffer
 from content_machine.lessons.store import LessonsStore
 from content_machine.oracle.oracle import OracleOrchestrator
 from content_machine.oracle.scorer import IdeaScorer
+from content_machine.schemas import HumanizeChannel, HumanizeTone
+
 
 
 # ---------------------------------------------------------------------------
@@ -414,8 +417,56 @@ def _cmd_comment(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_humanize(args: argparse.Namespace) -> int:
+    path_or_text = getattr(args, "path", None) or getattr(args, "text", "")
+    if not path_or_text:
+        print("error: text or file path is required", file=sys.stderr)
+        return 1
+
+    content = path_or_text
+    try:
+        p = Path(path_or_text)
+        if p.is_file():
+            content = p.read_text(encoding="utf-8")
+    except Exception:
+        pass
+
+    channel_raw = getattr(args, "channel", "general")
+    try:
+        channel = HumanizeChannel(channel_raw.lower())
+    except (ValueError, AttributeError):
+        channel = HumanizeChannel.GENERAL
+
+    tone_raw = getattr(args, "tone", "pragmatic_architect")
+    try:
+        tone = HumanizeTone(tone_raw.lower())
+    except (ValueError, AttributeError):
+        tone = HumanizeTone.PRAGMATIC_ARCHITECT
+
+    router = _make_router()
+    transformer = HumanizeTransformer(router=router)
+    result = transformer.transform(
+        text=content,
+        channel=channel,
+        tone=tone,
+    )
+
+    print("\n" + "=" * 60)
+    print(f"Humanized Output ({result.channel.value} / {result.tone.value})")
+    print("=" * 60)
+    print(result.humanized_text)
+    print("=" * 60)
+    print(f"Burstiness Score: {result.burstiness_score:.2f}")
+    purged = ", ".join(result.banned_words_purged) if result.banned_words_purged else "None"
+    print(f"Purged Words: {purged}")
+    print(f"Sentence Count: {result.sentence_count}")
+    print()
+    return 0
+
+
 
 def _build_parser() -> argparse.ArgumentParser:
+
     parser = argparse.ArgumentParser(
         prog="content_machine",
         description="Content Machine — AI-augmented content pipeline.",
@@ -507,6 +558,16 @@ def _build_parser() -> argparse.ArgumentParser:
     p_comment.add_argument("--perspective", default=None,
                            help="Operator's lived perspective or grounding context.")
 
+    # humanize
+    p_humanize = sub.add_parser("humanize", help="Humanize draft text, stripping AI tells and increasing burstiness.")
+    p_humanize.add_argument("path", metavar="PATH_OR_TEXT", help="Draft text or path to markdown file.")
+    p_humanize.add_argument("--channel", default="general",
+                            choices=["linkedin_post", "linkedin_comment", "x_thread", "video_script", "general"],
+                            help="Target channel: linkedin_post, linkedin_comment, x_thread, video_script, general (default: general).")
+    p_humanize.add_argument("--tone", default="pragmatic_architect",
+                            choices=["punchy_direct", "pragmatic_architect", "conversational_peer"],
+                            help="Target tone: punchy_direct, pragmatic_architect, conversational_peer (default: pragmatic_architect).")
+
     return parser
 
 
@@ -540,6 +601,7 @@ def main() -> None:
         "distribute": _cmd_distribute,
         "serve": _cmd_serve,
         "comment": _cmd_comment,
+        "humanize": _cmd_humanize,
     }
 
     handler = dispatch.get(args.command)
@@ -548,6 +610,7 @@ def main() -> None:
         sys.exit(1)
 
     sys.exit(handler(args))
+
 
 
 if __name__ == "__main__":

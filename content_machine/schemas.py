@@ -173,4 +173,13 @@ class HumanizeResult(BaseModel):
     was_modified: bool = Field(default=True)
 
 
+class DistributeRunRequest(BaseModel):
+    anchor_post: str = Field(min_length=10)
+    project_slug: Optional[str] = None
+    enabled_formats: Optional[list[str]] = None
+    humanize: bool = Field(default=True)
+    tone: HumanizeTone = Field(default=HumanizeTone.PRAGMATIC_ARCHITECT)
+
+
+
 
