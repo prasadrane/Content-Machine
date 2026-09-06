@@ -24,9 +24,9 @@ class CouncilScores(BaseModel):
 class IdeaScore(BaseModel):
     """One sampled scoring of a content idea (plan v2 §2.2)."""
 
-    pov: float = Field(ge=0, le=10, description="Strong point of view: clear, opinionated stance rather than neutral information, with a falsifiable thesis")
-    lived_experience: float = Field(ge=0, le=10, description="Storytelling elements: personal anecdote or specific narrative grounded in concrete operational reality")
-    specificity: float = Field(ge=0, le=10, description="Specific examples: concrete details, use cases, or evidence (metrics, dates, dialogue) that support the argument")
+    pov: float = Field(ge=0, le=10, description="Point of view: falsifiable contrarian thesis")
+    lived_experience: float = Field(ge=0, le=10, description="Grounding in concrete operational reality")
+    specificity: float = Field(ge=0, le=10, description="Anecdotal specificity: metrics, dates, dialogue")
     counter_intuitive: float = Field(ge=0, le=10, description="Disruption of standard industry assumptions")
     generic_penalty_applied: bool = Field(description="Concept is a known business cliche; -0.50 composite penalty")
     composite: float = Field(ge=0, le=10)
