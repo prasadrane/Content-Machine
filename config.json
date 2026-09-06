@@ -1,0 +1,167 @@
+{
+  "routes": {
+    "token_plan_relay": {
+      "protocol": "messages",
+      "base_url_env": "ANTHROPIC_BASE_URL",
+      "auth_token_env": "ANTHROPIC_AUTH_TOKEN"
+    }
+  },
+  "route_models": {
+    "*": ["token_plan_relay"]
+  },
+  "models": {
+    "writer": "qwen3.8-max",
+    "scanner": "qwen3.8-flash",
+    "video_long": "qwen3.8-max",
+    "council": {
+      "perell": "qwen3.8-max",
+      "puri": "qwen3.8-flash",
+      "housel": "qwen3.8-max",
+      "slop_allergist": "qwen3.8-flash"
+    }
+  },
+  "thresholds": {
+    "idea_gate": 8.0,
+    "idea_margin": 0.5,
+    "idea_samples": 3,
+    "council_min_score_raw": 9.0,
+    "council_margin": 0.3,
+    "council_max_iterations": 3,
+    "normalization_min_samples": 30,
+    "preferred_max_latency_s": 90.0
+  },
+  "rss_feeds": [
+    {
+      "url": "https://dev.to/feed",
+      "name": "dev_to",
+      "category": "developer_community",
+      "enabled": true
+    },
+    {
+      "url": "https://news.ycombinator.com/rss",
+      "name": "hacker_news",
+      "category": "tech",
+      "enabled": true
+    },
+    {
+      "url": "https://lobste.rs/rss",
+      "name": "lobsters",
+      "category": "engineering",
+      "enabled": true
+    },
+    {
+      "url": "https://github.blog/feed/",
+      "name": "github_blog",
+      "category": "developer_tools",
+      "enabled": true
+    },
+    {
+      "url": "https://www.freecodecamp.org/news/rss/",
+      "name": "freecodecamp",
+      "category": "tutorials_engineering",
+      "enabled": true
+    },
+    {
+      "url": "https://blog.cloudflare.com/rss/",
+      "name": "cloudflare_blog",
+      "category": "company_engineering_blog",
+      "enabled": true
+    },
+    {
+      "url": "https://netflixtechblog.com/feed",
+      "name": "netflix_techblog",
+      "category": "company_engineering_blog",
+      "enabled": true
+    },
+    {
+      "url": "https://stripe.com/blog/feed.rss",
+      "name": "stripe_engineering",
+      "category": "company_engineering_blog",
+      "enabled": true
+    },
+    {
+      "url": "https://engineering.atspotify.com/feed/",
+      "name": "spotify_engineering",
+      "category": "company_engineering_blog",
+      "enabled": true
+    },
+    {
+      "url": "https://dropbox.tech/feed",
+      "name": "dropbox_techblog",
+      "category": "company_engineering_blog",
+      "enabled": true
+    },
+    {
+      "url": "https://newsletter.pragmaticengineer.com/feed",
+      "name": "pragmatic_engineer",
+      "category": "engineering_newsletter",
+      "enabled": true
+    },
+    {
+      "url": "https://blog.bytebytego.com/feed",
+      "name": "bytebytego",
+      "category": "engineering_newsletter",
+      "enabled": true
+    },
+    {
+      "url": "https://refactoring.fm/feed",
+      "name": "refactoring",
+      "category": "engineering_newsletter",
+      "enabled": true
+    },
+    {
+      "url": "https://www.developing.dev/feed",
+      "name": "developing_dev",
+      "category": "engineering_newsletter",
+      "enabled": true
+    },
+    {
+      "url": "https://tidyfirst.substack.com/feed",
+      "name": "tidy_first",
+      "category": "engineering_newsletter",
+      "enabled": true
+    },
+    {
+      "url": "https://www.latent.space/feed",
+      "name": "latent_space",
+      "category": "engineering_newsletter",
+      "enabled": true
+    },
+    {
+      "url": "https://changelog.com/podcast/feed",
+      "name": "changelog_podcast",
+      "category": "tech_podcast",
+      "enabled": true
+    },
+    {
+      "url": "https://www.reddit.com/r/ExperiencedDevs/top/.rss?t=week",
+      "name": "reddit_experienced_devs",
+      "category": "developer_community",
+      "enabled": true
+    },
+    {
+      "url": "https://www.reddit.com/r/LocalLLaMA/top/.rss?t=week",
+      "name": "reddit_localllama",
+      "category": "ai_machine_learning",
+      "enabled": true
+    },
+    {
+      "url": "https://www.reddit.com/r/systemdesign/top/.rss?t=week",
+      "name": "reddit_systemdesign",
+      "category": "systems_architecture",
+      "enabled": true
+    },
+    {
+      "url": "https://www.techmeme.com/feed.xml",
+      "name": "techmeme",
+      "category": "tech_industry_radar",
+      "enabled": true
+    },
+    {
+      "url": "https://rss.app/feeds/example_linkedin_proxy.xml",
+      "name": "linkedin:feed",
+      "category": "industry_trends",
+      "enabled": false
+    }
+  ]
+}
