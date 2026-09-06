@@ -45,6 +45,13 @@ import { DIMENSION_LABELS, HUMANIZE_TONES, DISTRIBUTION_FORMATS, CORE_VOICE_INVA
 import { getHealth } from './api/health'
 import { runOracleScan, getOracleHistory } from './api/oracle'
 import { getLinkedInStatus, syncLinkedIn } from './api/linkedin'
+import { runCouncil, getCouncilHistory, getCouncilSpikes } from './api/council'
+import { runHumanize } from './api/humanize'
+import { getLessons, addCustomLesson, diffLessons, approveLesson, rejectLesson } from './api/lessons'
+import { runDistribute } from './api/distribute'
+import { getBrief, synthesizeDraft, transcribeAudio } from './api/interview'
+import { generateComments, getCommentsHistory } from './api/comments'
+import { getProfile, saveProfile } from './api/profile'
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('oracle')
@@ -301,14 +308,7 @@ function InterviewModal({ item, onClose, onSynthesizeComplete, onSkipToCouncil }
 
         setIsTranscribingAudio(true)
         try {
-          const formData = new FormData()
-          formData.append('audio', audioBlob, 'recording.webm')
-          const res = await fetch('/api/interview/transcribe', {
-            method: 'POST',
-            body: formData,
-          })
-          if (!res.ok) throw new Error(`Transcription failed (${res.status})`)
-          const data = await res.json()
+          const data = await transcribeAudio(audioBlob, 'recording.webm')
           if (data.text) {
             const textToAdd = data.text.trim()
             if (target === 'raw') {
@@ -351,20 +351,12 @@ function InterviewModal({ item, onClose, onSynthesizeComplete, onSkipToCouncil }
     setLoadingBriefing(true)
     setBriefingError('')
 
-    fetch('/api/interview/brief', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: item.title,
-        url: item.url || null,
-        body: item.body || item.title,
-        topic_tag: item.topic_tag || 'General Engineering',
-      }),
+    getBrief({
+      title: item.title,
+      url: item.url || null,
+      body: item.body || item.title,
+      topic_tag: item.topic_tag || 'General Engineering',
     })
-      .then((res) => {
-        if (!res.ok) throw new Error(`Status ${res.status}`)
-        return res.json()
-      })
       .then((data) => {
         if (isMounted) {
           setBriefing(data)
@@ -396,24 +388,13 @@ function InterviewModal({ item, onClose, onSynthesizeComplete, onSkipToCouncil }
     const spikeId = item.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 30)
 
     try {
-      const res = await fetch('/api/interview/synthesize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          topic_title: item.title,
-          topic_summary: briefing?.summary || item.title,
-          responses,
-          raw_notes: rawNotes,
-          spike_id: spikeId,
-        }),
+      const data = await synthesizeDraft({
+        topic_title: item.title,
+        topic_summary: briefing?.summary || item.title,
+        responses,
+        raw_notes: rawNotes,
+        spike_id: spikeId,
       })
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}))
-        throw new Error(errData.detail || `Synthesis failed (${res.status})`)
-      }
-
-      const data = await res.json()
       onSynthesizeComplete(data.draft, data.spike_id)
     } catch (err) {
       setSynthError(err.message || 'Draft synthesis failed.')
@@ -2303,11 +2284,8 @@ function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onSendToDistribute }
   const fetchHistory = async (slug) => {
     if (!slug) return
     try {
-      const res = await fetch(`/api/council/history/${encodeURIComponent(slug)}`)
-      if (res.ok) {
-        const data = await res.json()
-        setHistoryData(data)
-      }
+      const data = await getCouncilHistory(slug)
+      setHistoryData(data)
     } catch {
       // ignore
     }
@@ -2315,11 +2293,8 @@ function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onSendToDistribute }
 
   const fetchSpikes = async () => {
     try {
-      const res = await fetch('/api/council/spikes')
-      if (res.ok) {
-        const data = await res.json()
-        setRecentSpikes(data)
-      }
+      const data = await getCouncilSpikes()
+      setRecentSpikes(data)
     } catch {
       // ignore
     }
@@ -2347,18 +2322,7 @@ function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onSendToDistribute }
 
     try {
       const targetSlug = spikeId || 'council-ui'
-      const res = await fetch('/api/council/run', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ draft, spike_id: targetSlug })
-      })
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}))
-        throw new Error(errData.detail || `Council returned status ${res.status}`)
-      }
-
-      const data = await res.json()
+      const data = await runCouncil({ draft, spike_id: targetSlug })
       setResult(data)
       fetchHistory(targetSlug)
       fetchSpikes()
@@ -2392,22 +2356,11 @@ function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onSendToDistribute }
     setHumanizing(true)
     setHumanizeError('')
     try {
-      const res = await fetch('/api/humanize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: textToHumanize,
-          channel: 'linkedin_post',
-          tone: 'pragmatic_architect',
-        }),
+      const data = await runHumanize({
+        text: textToHumanize,
+        channel: 'linkedin_post',
+        tone: 'pragmatic_architect',
       })
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}))
-        throw new Error(errData.detail || `Humanize failed (${res.status})`)
-      }
-
-      const data = await res.json()
       setHumanizedResult(data)
     } catch (err) {
       setHumanizeError(err.message || 'Failed to humanize draft.')
@@ -2891,24 +2844,13 @@ function DistributeTab({ initialText, initialSlug }) {
     setBundle(null)
 
     try {
-      const res = await fetch('/api/distribute/run', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          anchor_post: anchorText,
-          project_slug: slug || 'post',
-          enabled_formats: activeFormatKeys,
-          humanize: humanize,
-          tone: humanizeTone,
-        })
+      const data = await runDistribute({
+        anchor_post: anchorText,
+        project_slug: slug || 'post',
+        enabled_formats: activeFormatKeys,
+        humanize: humanize,
+        tone: humanizeTone,
       })
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}))
-        throw new Error(errData.detail || `Server returned ${res.status}`)
-      }
-
-      const data = await res.json()
       setBundle(data)
 
       const priorityOrder = ['linkedin', 'x_thread', 'video_script_short', 'video_script', 'video_script_long', 'newsletter']
@@ -3274,8 +3216,7 @@ function LessonsTab() {
 
   const fetchLessons = async () => {
     try {
-      const res = await fetch('/api/lessons')
-      const data = await res.json()
+      const data = await getLessons()
       setActiveRules(data.rules || [])
       setPendingRules(data.pending || [])
     } catch {}
@@ -3289,19 +3230,11 @@ function LessonsTab() {
     setCustomSuccess('')
 
     try {
-      const res = await fetch('/api/lessons/custom', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          rule_text: customRuleText.trim(),
-          provenance_project: 'manual',
-          auto_approve: true,
-        })
+      await addCustomLesson({
+        rule_text: customRuleText.trim(),
+        provenance_project: 'manual',
+        auto_approve: true,
       })
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}))
-        throw new Error(errData.detail || 'Failed to add custom rule')
-      }
       setCustomRuleText('')
       setCustomSuccess('Rule active in Council loop!')
       setTimeout(() => setCustomSuccess(''), 3500)
@@ -3328,12 +3261,7 @@ function LessonsTab() {
     setProposals([])
 
     try {
-      const res = await fetch('/api/lessons/diff', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ draft: draftText, published: pubText, project_id: 'ui-diff' })
-      })
-      const data = await res.json()
+      const data = await diffLessons({ draft: draftText, published: pubText, project_id: 'ui-diff' })
       setProposals(data.rules || [])
     } catch (err) {
       setError(err.message || 'Diff extraction failed.')
@@ -3344,7 +3272,7 @@ function LessonsTab() {
 
   const handleApprove = async (ruleId) => {
     try {
-      await fetch(`/api/lessons/${ruleId}/approve`, { method: 'POST' })
+      await approveLesson(ruleId)
       fetchLessons()
       setProposals(prev => prev.filter(p => p.rule_id !== ruleId))
     } catch {}
@@ -3352,7 +3280,7 @@ function LessonsTab() {
 
   const handleReject = async (ruleId) => {
     try {
-      await fetch(`/api/lessons/${ruleId}/reject`, { method: 'POST' })
+      await rejectLesson(ruleId)
       fetchLessons()
       setProposals(prev => prev.filter(p => p.rule_id !== ruleId))
     } catch {}
@@ -3717,11 +3645,8 @@ function CommentingTab() {
   const fetchHistory = async () => {
     setHistoryLoading(true)
     try {
-      const res = await fetch('/api/comments/history?limit=50')
-      if (res.ok) {
-        const data = await res.json()
-        setHistory(data.items || [])
-      }
+      const data = await getCommentsHistory(50)
+      setHistory(data.items || [])
     } catch (err) {
       console.warn('Could not fetch comments history:', err)
     } finally {
@@ -3869,14 +3794,7 @@ function CommentingTab() {
 
         setIsTranscribing(true)
         try {
-          const formData = new FormData()
-          formData.append('audio', audioBlob, 'recording.webm')
-          const res = await fetch('/api/interview/transcribe', {
-            method: 'POST',
-            body: formData,
-          })
-          if (!res.ok) throw new Error(`Transcription failed (${res.status})`)
-          const data = await res.json()
+          const data = await transcribeAudio(audioBlob, 'recording.webm')
           if (data.text) {
             const textToAdd = data.text.trim()
             setPerspectiveText((prev) => (prev ? prev.trim() + ' ' + textToAdd : textToAdd))
@@ -3954,24 +3872,13 @@ function CommentingTab() {
     }, 2400)
 
     try {
-      const res = await fetch('/api/comments/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          post_content: postContent.trim(),
-          angle: angle,
-          perspective_text: perspectiveText.trim() || null,
-          humanize: humanize,
-          tone: humanizeTone,
-        }),
+      const data = await generateComments({
+        post_content: postContent.trim(),
+        angle: angle,
+        perspective_text: perspectiveText.trim() || null,
+        humanize: humanize,
+        tone: humanizeTone,
       })
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}))
-        throw new Error(errData.detail || `Comment generation failed (${res.status})`)
-      }
-
-      const data = await res.json()
       setCurrentResult(data)
       setAccordionOpen(true)
       fetchHistory()
@@ -4565,9 +4472,7 @@ function ProfileTab() {
     setError('')
 
     try {
-      const res = await fetch('/api/profile')
-      if (!res.ok) throw new Error(`Failed to load author profile (${res.status})`)
-      const data = await res.json()
+      const data = await getProfile()
       setProfile(data)
       setCurrentFocus(data.current_focus || '')
       setTechnicalDomains(data.technical_domains || [])
@@ -4590,19 +4495,10 @@ function ProfileTab() {
     setSaveSuccess(false)
 
     try {
-      const res = await fetch('/api/profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          current_focus: currentFocus,
-          technical_domains: technicalDomains,
-        }),
+      const data = await saveProfile({
+        current_focus: currentFocus,
+        technical_domains: technicalDomains,
       })
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}))
-        throw new Error(errData.detail || `Failed to save voice profile (${res.status})`)
-      }
-      const data = await res.json()
       setProfile(data)
       setCurrentFocus(data.current_focus || '')
       setTechnicalDomains(data.technical_domains || [])
