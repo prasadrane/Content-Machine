@@ -1,4 +1,4 @@
-﻿"""LinkedIn commenting engine (spec: §3.3).
+"""LinkedIn commenting engine (spec: §3.3).
 
 Synthesizes high-signal, 2-3 sentence comments using writer models,
 governed negative constraints from LessonsStore, and Writer's Council review.
@@ -31,6 +31,16 @@ ANGLE_DIRECTIVES: dict[str, str] = {
     "contrarian": "Respectfully challenge an unstated assumption or introduce a critical counter-intuitive edge case from experience.",
     "question": "Pose a sharp, senior-level question that advances the conversation beyond superficial agreement.",
 }
+
+
+def _sanitize_sentences(text: str, max_sentences: int = 3) -> str:
+    import re
+    if not text:
+        return ""
+    sentences = re.split(r'(?<=[.!?])\s+', text.strip())
+    if len(sentences) > max_sentences:
+        return " ".join(sentences[:max_sentences]).strip()
+    return text.strip()
 
 
 class CommentingEngine:
@@ -144,6 +154,7 @@ class CommentingEngine:
         )
 
         final_comment = getattr(council_res, "draft", initial_draft)
+        final_comment = _sanitize_sentences(final_comment, max_sentences=3)
         iteration = getattr(council_res, "iteration", 1)
 
         # Extract peak score

@@ -504,6 +504,12 @@ class TestCommentCLI(unittest.TestCase):
         code, _, err = _run_cli("comment")
         self.assertNotEqual(code, 0)
 
+    def test_comment_short_post_fails(self):
+        """comment with post < 10 chars prints error and exits 1."""
+        code, _, err = _run_cli("comment", "--post", "short")
+        self.assertEqual(code, 1)
+        self.assertIn("--post must be at least 10 characters long", err)
+
 
 if __name__ == "__main__":
     loader = unittest.TestLoader()

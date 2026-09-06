@@ -111,6 +111,7 @@ CREATE INDEX IF NOT EXISTS idx_history_judge
   ON judge_score_history(judge_slot, model_config, created_at);
 CREATE INDEX IF NOT EXISTS idx_iterations_spike ON iterations(spike_id, iteration);
 CREATE INDEX IF NOT EXISTS idx_transcripts_spike ON transcripts(spike_id);
+CREATE INDEX IF NOT EXISTS idx_comments_created_at ON comments(created_at DESC);
 """
 
 

@@ -146,6 +146,13 @@ class TestCommentSchemasAndDB(unittest.TestCase):
         self.assertIsNotNone(cursor.fetchone())
         conn.close()
 
+    def test_db_comments_index_exists(self):
+        conn = connect(":memory:")
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_comments_created_at'")
+        self.assertIsNotNone(cursor.fetchone())
+        conn.close()
+
 
 class TestCommentingEngine(unittest.TestCase):
     def setUp(self):
@@ -335,6 +342,51 @@ class TestCommentingEngine(unittest.TestCase):
         history_limited = engine.get_history(limit=1)
         self.assertEqual(len(history_limited), 1)
         self.assertEqual(history_limited[0].id, "c2")
+
+    def test_sanitize_sentences_clamping(self):
+        from content_machine.commenting.engine import _sanitize_sentences
+
+        text_4 = "First sentence here. Second sentence follows! Third sentence concludes? Fourth sentence should be removed."
+        clamped = _sanitize_sentences(text_4, max_sentences=3)
+        self.assertEqual(
+            clamped,
+            "First sentence here. Second sentence follows! Third sentence concludes?",
+        )
+
+        text_2 = "Only two sentences. Nothing removed."
+        self.assertEqual(_sanitize_sentences(text_2), text_2)
+
+    def test_generate_comment_clamps_to_three_sentences(self):
+        from unittest.mock import patch
+        from content_machine.commenting import CommentingEngine
+        from content_machine.council.loop import CouncilDecision
+
+        self.router.complete.return_value = "Draft sentence 1. Draft sentence 2."
+        mock_decision = CouncilDecision(
+            iteration=1,
+            threshold_met=True,
+            gate_basis="raw",
+            composite_raw=9.0,
+            composite_normalized=None,
+            judge_scores={},
+            required_actions=[],
+            draft="Sentence one. Sentence two! Sentence three? Sentence four that must be cut.",
+            notes=[],
+        )
+
+        with patch("content_machine.commenting.engine.run_council", return_value=mock_decision):
+            engine = CommentingEngine(router=self.router, cfg=self.cfg, db_conn=self.conn)
+            resp = engine.generate_comment(
+                post_content="A long enough post about microservice resilience.",
+                angle="insightful",
+            )
+            self.assertEqual(
+                resp.final_comment,
+                "Sentence one. Sentence two! Sentence three?",
+            )
+            cur = self.conn.execute("SELECT final_comment FROM comments WHERE id = ?", (resp.comment_id,))
+            row = cur.fetchone()
+            self.assertEqual(row["final_comment"], "Sentence one. Sentence two! Sentence three?")
 
 
 if __name__ == "__main__":

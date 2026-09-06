@@ -371,8 +371,8 @@ def _cmd_comment(args: argparse.Namespace) -> int:
     from content_machine.schemas import CommentAngle
 
     post_content = getattr(args, "post", None)
-    if not post_content:
-        print("error: --post cannot be empty", file=sys.stderr)
+    if not post_content or len(post_content.strip()) < 10:
+        print("error: --post must be at least 10 characters long", file=sys.stderr)
         return 1
 
     angle_raw = getattr(args, "angle", "insightful")

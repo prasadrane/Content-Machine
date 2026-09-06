@@ -3668,6 +3668,7 @@ function CommentingTab() {
   const mediaRecorderRef = useRef(null)
   const audioChunksRef = useRef([])
   const recordingTimerRef = useRef(null)
+  const recordingTimeoutRef = useRef(null)
 
   const ANGLES = [
     {
@@ -3734,6 +3735,10 @@ function CommentingTab() {
   }, [])
 
   const stopVoiceRecording = () => {
+    if (recordingTimeoutRef.current) {
+      clearTimeout(recordingTimeoutRef.current)
+      recordingTimeoutRef.current = null
+    }
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop()
@@ -3761,6 +3766,15 @@ function CommentingTab() {
 
     setRecordingSeconds(0)
 
+    if (recordingTimeoutRef.current) {
+      clearTimeout(recordingTimeoutRef.current)
+      recordingTimeoutRef.current = null
+    }
+    // 120-second automatic recording stop timeout safeguard
+    recordingTimeoutRef.current = setTimeout(() => {
+      stopVoiceRecording()
+    }, 120000)
+
     const SpeechRecognition = typeof window !== 'undefined'
       ? (window.SpeechRecognition || window.webkitSpeechRecognition)
       : null
@@ -3775,7 +3789,13 @@ function CommentingTab() {
         recog.onstart = () => {
           setIsRecording(true)
           recordingTimerRef.current = setInterval(() => {
-            setRecordingSeconds((prev) => prev + 1)
+            setRecordingSeconds((prev) => {
+              if (prev + 1 >= 120) {
+                stopVoiceRecording()
+                return 120
+              }
+              return prev + 1
+            })
           }, 1000)
         }
 
@@ -3827,7 +3847,13 @@ function CommentingTab() {
       mediaRecorder.onstart = () => {
         setIsRecording(true)
         recordingTimerRef.current = setInterval(() => {
-          setRecordingSeconds((prev) => prev + 1)
+          setRecordingSeconds((prev) => {
+            if (prev + 1 >= 120) {
+              stopVoiceRecording()
+              return 120
+            }
+            return prev + 1
+          })
         }, 1000)
       }
 
