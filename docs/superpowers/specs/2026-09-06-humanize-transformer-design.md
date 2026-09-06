@@ -1,4 +1,4 @@
-# Design Specification: Humanize Transformer Subsystem
+# Design Specification: Humanize Transformer Subsystem (Full System Integration)
 
 **Date:** 2026-09-06  
 **Status:** Approved  
@@ -8,27 +8,36 @@
 
 ## 1. Executive Summary & Objective
 
-Content Machine generates high-signal engineering thoughts and LinkedIn commentary grounded in the author's real lived experience and voice profile. However, raw LLM outputs (even after 4-judge Writer's Council review) frequently exhibit subtle statistical and rhetorical "AI tells":
-- Monotonous sentence length cadence (low burstiness).
-- Predictable transition markers (*"Furthermore"*, *"Moreover"*, *"In today's fast-paced world"*).
-- Unearned significance puffery (*"stands as a testament"*, *"marking a pivotal moment"*, *"evolving landscape"*).
+Content Machine transforms real engineering signals and lived experiences into high-signal technical content. However, raw LLM outputs (even after 4-judge Writer's Council review) frequently exhibit subtle statistical and rhetorical "AI tells":
+- Monotonous sentence length cadence (low burstiness; $\sigma < 2.5$).
+- Predictable transition collocations (*"Furthermore"*, *"Moreover"*, *"In today's fast-paced world"*).
+- Significance puffery (*"stands as a testament"*, *"marking a pivotal moment"*, *"evolving landscape"*).
 - Formulaic punctuation like excessive em-dashes (`—`) and balanced 3-item lists.
+- Latinate abstract verbs (*"utilize"*, *"facilitate"*, *"delve"*) instead of concrete mechanical actions (*"use"*, *"run"*, *"dig into"*).
 
-This specification establishes a dedicated **Humanize Transformer** subsystem (`content_machine/humanize/`) executing as a **post-council polish pass** for LinkedIn comments and a **post-synthesis transform step** for LinkedIn posts. It couples a prompt-tier LLM rewrite with a deterministic regex sanitizer to enforce high burstiness, natural contractions, and a strict purge of AI fingerprint vocabulary while preserving author voice invariants.
+This specification establishes a unified, system-wide **Humanize Transformer** subsystem (`content_machine/humanize/`) executing as a **post-council polish pass** for LinkedIn comments and Council anchor drafts, and as a **post-synthesis transform step** for LinkedIn posts and cross-channel derivatives. It couples a prompt-tier LLM rewrite with a deterministic regex sanitizer to enforce high burstiness, natural contractions, and a strict purge of AI fingerprint vocabulary while strictly preserving author voice invariants.
 
 ---
 
-## 2. Core Linguistic Principles (The "Humanize" Skill)
+## 2. Empirical Research & The Mechanics of De-AI Craft
 
-Based on empirical LLM detector research, prompt engineering benchmarks, and Wikipedia's *Signs of AI Writing* catalog:
+Based on peer-reviewed detection benchmarks (e.g., the *Binoculars* cross-perplexity paper from ACL 2024, *Fast-DetectGPT*), stylometric corpora, and Wikipedia’s *Signs of AI Writing* catalog:
 
-1. **High Burstiness (Rhythmic Asymmetry):** Human prose varies wildly in sentence length (e.g. 4 words, then 26 words, then 9 words). The transformer explicitly forces sentence length variance, prohibiting consecutive sentences of uniform word counts.
-2. **High Perplexity & Conversational Nuance:** Eliminates high-probability cliché tokens in favor of conversational technical vocabulary, contractions (*it's, don't, we've*), and pragmatic qualifiers.
-3. **Deterministic Banned Vocabulary Purge:** Zero tolerance for AI tells:
-   - *Puffery:* `stands as a testament`, `serves as a reminder`, `pivotal moment`, `crucial role`, `evolving landscape`, `indelible mark`, `transformative journey`.
-   - *Words:* `delve`, `tapestry`, `beacon`, `cornerstone`, `robust`, `vibrant`, `realm`, `foster`, `harness`, `interplay`, `multifaceted`, `paramount`, `game-changer`.
-4. **Punctuation Hygiene:** Strips uncontrolled em-dashes (`—`) and converts them into natural colons, commas, or parentheses.
-5. **Strict Author Invariant Preservation:** Never leaks prohibited company names (Rocket Mortgage, London Computer Systems, EXFO, Tanish Infotech, etc.), never claims corporate employment, and maintains senior practitioner conviction.
+### 2.1 Statistical Pillars
+1. **High Burstiness (Rhythmic Asymmetry):** Human prose varies wildly in sentence length (e.g. 4 words, then 26 words, then 9 words). The transformer explicitly forces sentence length variance ($\sigma \ge 4.0$), prohibiting consecutive sentences of uniform word counts.
+2. **High Localized Perplexity:** Eliminates high-probability cliché tokens in favor of conversational technical vocabulary, contractions (*it's, don't, we've*), and pragmatic qualifiers (*"in practice"*, *"the catch is"*).
+3. **Organic Structural Asymmetry:** Breaks rigid 3-part bullet lists and balanced paragraphs. Replaces them with asymmetric blocks (e.g., a blunt 1-line hook, a dense 4-line mechanical explanation, and a 1-line takeaway).
+
+### 2.2 Canonical Blacklist of AI Tells (Deterministic Purge)
+- **Significance Inflation:** `stands as a testament`, `serves as a reminder`, `pivotal moment`, `crucial role`, `evolving landscape`, `indelible mark`, `transformative journey`, `focal point`, `deeply rooted`, `setting the stage for`.
+- **Banned Vocabulary:** `delve`, `tapestry`, `beacon`, `cornerstone`, `robust`, `vibrant`, `realm`, `foster`, `harness`, `interplay`, `multifaceted`, `paramount`, `game-changer`, `revolutionize`, `seamlessly`, `plethora`, `nuanced tapestry`.
+- **Canned Attribution / Meta-coverage:** `independent coverage`, `garnered significant attention`, `widely recognized`, `maintains an active social media presence`.
+- **Punctuation Hygiene:** Strips uncontrolled em-dashes (`—`) and converts them into natural colons, commas, or clean hyphens.
+
+### 2.3 Strict Author Invariant Preservation
+- **Zero Company Attribution:** Never cites past employers (Rocket Mortgage, London Computer Systems, EXFO, Tanish Infotech, etc.).
+- **No False Corporate Claims:** Never generates claims implying current employment at an organization.
+- **Job-Status Agnostic Senior Tone:** Speaks with senior authority, craftsmanship, and pragmatic conviction.
 
 ---
 
@@ -37,7 +46,7 @@ Based on empirical LLM detector research, prompt engineering benchmarks, and Wik
 ```
 content_machine/
 ├── humanize/
-│   ├── __init__.py           # Exports HumanizeTransformer, HumanizeTone, HumanizeResult
+│   ├── __init__.py           # Exports HumanizeTransformer, HumanizeTone, HumanizeChannel, HumanizeResult
 │   ├── constants.py          # Blacklisted AI tells, punctuation regexes, tone system prompts
 │   ├── sanitizer.py          # Deterministic scanner: word purge, em-dashes, burstiness metric
 │   └── transformer.py        # Core HumanizeTransformer: LLM tone rewrite + sanitizer pass
@@ -51,12 +60,27 @@ class HumanizeTone(str, Enum):
     PRAGMATIC_ARCHITECT = "pragmatic_architect" # Technical depth, trade-off focus, senior peer
     CONVERSATIONAL_PEER = "conversational_peer" # Warm, collegial, accessible, reflective
 
+class HumanizeChannel(str, Enum):
+    LINKEDIN_COMMENT = "linkedin_comment"    # Clamped to 2-3 punchy sentences
+    LINKEDIN_POST = "linkedin_post"          # Hook + asymmetric narrative spine + takeaway
+    X_THREAD = "x_thread"                    # Conversational tweet hooks, no thread clichés
+    VIDEO_SCRIPT = "video_script"            # Breathable spoken cadence with visual cues
+    GENERAL = "general"                      # Generic technical text de-AI pass
+
+class HumanizeRequest(BaseModel):
+    text: str = Field(..., min_length=10)
+    channel: HumanizeChannel = HumanizeChannel.LINKEDIN_POST
+    tone: HumanizeTone = HumanizeTone.PRAGMATIC_ARCHITECT
+    max_sentences: int | None = None
+
 class HumanizeResult(BaseModel):
     original_text: str
     humanized_text: str
+    channel: HumanizeChannel
     tone: HumanizeTone
     banned_words_purged: list[str] = Field(default_factory=list)
     burstiness_score: float = Field(0.0, description="Standard deviation of sentence word counts")
+    sentence_count: int
     was_modified: bool = True
 ```
 
@@ -74,83 +98,96 @@ class HumanizeTransformer:
         self.model = model
         self.voice_guide = voice_guide or ProfileManager().get_voice_guide_text()
 
+    def transform(
+        self,
+        text: str,
+        channel: HumanizeChannel = HumanizeChannel.LINKEDIN_POST,
+        tone: HumanizeTone = HumanizeTone.PRAGMATIC_ARCHITECT,
+        max_sentences: int | None = None,
+    ) -> HumanizeResult:
+        """Core multi-channel humanization engine with two-tier guardrails."""
+        ...
+
     def humanize_comment(
         self,
         comment: str,
         tone: HumanizeTone = HumanizeTone.PUNCHY_DIRECT,
         max_sentences: int = 3,
     ) -> HumanizeResult:
-        """Humanize a LinkedIn comment, enforcing 2-3 sentence limit and burstiness."""
-        ...
+        return self.transform(comment, channel=HumanizeChannel.LINKEDIN_COMMENT, tone=tone, max_sentences=max_sentences)
 
     def humanize_post(
         self,
         post: str,
         tone: HumanizeTone = HumanizeTone.PRAGMATIC_ARCHITECT,
     ) -> HumanizeResult:
-        """Humanize a LinkedIn long-form post, breaking robotic paragraph/sentence symmetry."""
-        ...
+        return self.transform(post, channel=HumanizeChannel.LINKEDIN_POST, tone=tone)
 ```
 
 ### 3.3 Deterministic Sanitizer (`content_machine/humanize/sanitizer.py`)
 
 - **`sanitize_text(text: str) -> tuple[str, list[str]]`**:
-  - Replaces em-dashes (`—`) with commas, colons, or standard hyphens.
+  - Replaces em-dashes (`—`) with commas, colons, or clean hyphens.
   - Scans for banned AI words using case-insensitive `\b` word boundaries; replaces or strips them.
   - Asserts author invariants (zero company mentions, no fake corporate claims).
 - **`calculate_burstiness(text: str) -> float`**:
   - Splits text into sentences, tokenizes words, and computes standard deviation:
     $$\sigma = \sqrt{\frac{1}{N} \sum_{i=1}^{N} (w_i - \bar{w})^2}$$
-  - Returns burstiness score (target $\ge 3.5$ for multi-sentence posts).
+  - Returns burstiness score (target $\ge 4.0$ for multi-sentence posts).
 
 ---
 
-## 4. Pipeline Hook Points
+## 4. Pipeline Hook Points & System Integration
 
 ### 4.1 LinkedIn Comments (`content_machine/commenting/engine.py`)
+- `GenerateCommentRequest` accepts `humanize: bool = True` and `tone: HumanizeTone = HumanizeTone.PUNCHY_DIRECT`.
+- In `generate_comment()`:
+  - Takes peak draft from Council loop.
+  - If `humanize=True`, invokes `HumanizeTransformer.humanize_comment()`.
+  - Enforces sentence clamping (2–3 sentences max) and saves to SQLite `comments`.
 
-1. `GenerateCommentRequest` updated with:
-   - `humanize: bool = True`
-   - `tone: HumanizeTone = HumanizeTone.PUNCHY_DIRECT`
-2. `CommentingEngine.generate_comment()`:
-   - Evaluates initial draft through Writer's Council loop (up to 2 iterations).
-   - If `humanize=True`: passes peak council draft to `HumanizeTransformer.humanize_comment()`.
-   - Clamps final output to at most 3 sentences.
-   - Saves final comment and metadata to SQLite `comments` table.
-3. `CommentRunResponse`: includes `humanized: bool`, `humanize_tone: str`, `burstiness_score: float`.
+### 4.2 Writer's Council & Anchor Posts (`content_machine/council/` & `api/app.py`)
+- Exposes `POST /api/humanize` standalone endpoint.
+- In the Council Tab UI: A dedicated **"🪄 Humanize Peak Draft"** button appears next to the approved Council draft, allowing the author to apply humanization to the master anchor post with 1 click.
 
-### 4.2 LinkedIn Posts (`content_machine/distribution/engine.py`)
+### 4.3 Derivative Channels (`content_machine/distribution/engine.py`)
+- `DistributionEngine` accepts `humanize: bool = True` and `tone: HumanizeTone = HumanizeTone.PRAGMATIC_ARCHITECT`.
+- `generate_linkedin_post`, `generate_x_thread`, and `generate_video_script_short` pass their outputs through `HumanizeTransformer.transform(..., channel=channel)`.
 
-1. `generate_linkedin_post(anchor_post: str, humanize: bool = True, tone: HumanizeTone = HumanizeTone.PRAGMATIC_ARCHITECT) -> str`:
-   - Synthesizes LinkedIn hook, spine, and takeaway.
-   - If `humanize=True`: applies `HumanizeTransformer.humanize_post(..., tone=tone)`.
-   - Returns polished text.
+### 4.4 Governed Lessons Synergy (`content_machine/lessons/`)
+- When the human edits or approves a humanized draft, purged tells are recorded.
+- Recurring patterns can be proposed into `03_content-lessons.md`.
 
 ---
 
-## 5. UI Controls (`ui/src/App.jsx`)
+## 5. UI Controls Across the Application (`ui/src/App.jsx`)
 
-1. **`CommentingTab`**:
+1. **Commenting Tab**:
    - Clean toggle pill: `🪄 Humanize Polish [ON / OFF]` (default: ON).
    - Tone selector pills: `⚡ Punchy & Direct` | `🏛️ Pragmatic Architect` | `☕ Conversational Peer`.
-   - Editorial Polish Card: displays `Humanized ✨` badge with tooltip showing burstiness score.
-2. **`DistributionTab`**:
-   - LinkedIn Post card includes identical toggle and tone selector before generation.
+   - Editorial Polish Card: displays `Humanized ✨` badge with burstiness score tooltip.
+2. **Council Tab**:
+   - Added **"🪄 Humanize Peak Draft"** action button in Council Deliberation view.
+   - Shows before/after side-by-side view with purged words highlighted.
+3. **Distribution Tab**:
+   - Tone selector and Humanize toggle for LinkedIn posts, X threads, and Video scripts.
 
 ---
 
 ## 6. Testing & Verification Strategy (Strict TDD)
 
 1. **`tests/test_humanize.py`**:
-   - Sanitizer tests: banned words purge, em-dash normalization, burstiness scoring, invariant checking.
-   - Transformer tests: mock router calls for comments (2-3 sentences max) and posts across all 3 tones.
-   - Fallback tests: graceful degradation to sanitizer on router error.
+   - Sanitizer tests: 35+ banned words purge, em-dash normalization, burstiness scoring, invariant checking.
+   - Transformer tests: mock router calls for comments (2-3 sentences max), posts, X threads, video scripts across all 3 tones.
+   - Fallback tests: graceful degradation to deterministic sanitizer if router call fails.
 2. **`tests/test_commenting.py`**:
    - End-to-end comment generation with `humanize=True` and `humanize=False`.
 3. **`tests/test_distribution.py`**:
-   - LinkedIn post generation with `humanize=True` and `humanize=False`.
+   - LinkedIn post, X thread, and video script generation with `humanize=True`.
 4. **`tests/test_api.py`**:
-   - API endpoints accepting `humanize` and `tone`.
+   - `POST /api/humanize` endpoint.
+   - `POST /api/comments/generate` with `humanize` and `tone`.
+   - `POST /api/distribute/run` with `humanize` and `tone`.
 5. **Frontend & Regression**:
    - `npm run build` in `ui/` (0 errors).
    - `python -m unittest discover -s tests` (100% passing).
