@@ -75,5 +75,70 @@ class TestHumanizeSchemasAndConstants(unittest.TestCase):
         self.assertIn(HumanizeChannel.LINKEDIN_COMMENT, CHANNEL_PROMPTS)
 
 
+class TestHumanizeSanitizer(unittest.TestCase):
+    def test_sanitize_text_purges_banned_words(self):
+        from content_machine.humanize.sanitizer import sanitize_text
+
+        text = (
+            "We must delve into this tapestry of ideas. "
+            "It stands as a testament to our robust architecture, marking a pivotal moment."
+        )
+        cleaned, purged = sanitize_text(text)
+        self.assertNotIn("delve", cleaned.lower())
+        self.assertNotIn("tapestry", cleaned.lower())
+        self.assertNotIn("stands as a testament", cleaned.lower())
+        self.assertIn("delve", purged)
+        self.assertIn("tapestry", purged)
+
+    def test_sanitize_text_normalizes_em_dashes(self):
+        from content_machine.humanize.sanitizer import sanitize_text
+
+        text = "This pattern — which is often overlooked — solves the issue."
+        cleaned, _ = sanitize_text(text)
+        self.assertNotIn("—", cleaned)
+        self.assertIn(",", cleaned)
+
+    def test_calculate_burstiness_variance(self):
+        from content_machine.humanize.sanitizer import calculate_burstiness
+
+        # Monotone AI text: every sentence is exactly 5 words
+        monotone = "One two three four five. Six seven eight nine ten. Eleven twelve thirteen fourteen fifteen."
+        score_monotone = calculate_burstiness(monotone)
+        self.assertEqual(score_monotone, 0.0)
+
+        # Bursty human text: 2 words, then 14 words, then 4 words
+        bursty = "It broke. The entire distributed cluster failed because the queue dropped partition messages under load. We fixed it."
+        score_bursty = calculate_burstiness(bursty)
+        self.assertTrue(score_bursty > 4.0)
+
+    def test_calculate_burstiness_edge_cases(self):
+        from content_machine.humanize.sanitizer import calculate_burstiness
+
+        self.assertEqual(calculate_burstiness(""), 0.0)
+        self.assertEqual(calculate_burstiness("Only one sentence here."), 0.0)
+
+    def test_check_author_invariants(self):
+        from content_machine.humanize.sanitizer import check_author_invariants
+
+        clean_text = "Kafka partition lag spikes when consumer threads block on database I/O."
+        self.assertEqual(check_author_invariants(clean_text), [])
+
+        # Prohibited company mention
+        dirty_text = "When I was building microservices at Rocket Mortgage, we used Kafka."
+        violations = check_author_invariants(dirty_text)
+        self.assertTrue(any("Rocket Mortgage" in v for v in violations))
+
+        # Prohibited current corporate employment claim
+        corp_text = "My team at work today just migrated our cluster."
+        violations_corp = check_author_invariants(corp_text)
+        self.assertTrue(any("team at work" in v for v in violations_corp))
+
+        # Other prohibited companies
+        for company in ["London Computer Systems", "EXFO", "Tanish Infotech"]:
+            v = check_author_invariants(f"I worked at {company} on backend services.")
+            self.assertTrue(any(company in msg for msg in v))
+
+
 if __name__ == "__main__":
     unittest.main()
+
