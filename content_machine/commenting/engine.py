@@ -14,11 +14,13 @@ from uuid import uuid4
 from ..config import AppConfig
 from ..council.loop import run_council
 from ..lessons.store import LessonsStore
+from ..profile.manager import ProfileManager
 from ..schemas import (
     CommentAngle,
     CommentHistoryItem,
     CommentRunResponse,
 )
+
 
 SYSTEM_PROMPT = (
     "You are an expert LinkedIn editorial contributor. Craft sharp, senior-level comments "
@@ -76,6 +78,15 @@ class CommentingEngine:
                 f"OPERATOR'S PERSPECTIVE / LIVED ANGLE (primary grounding):\n{perspective_text.strip()}"
             )
 
+        try:
+            prof_manager = ProfileManager()
+            voice_guide_text = prof_manager.get_voice_guide_text()
+        except Exception:
+            voice_guide_text = ""
+
+        if voice_guide_text:
+            sections.append(f"AUTHOR VOICE & PERSONA GUIDE (must follow):\n{voice_guide_text.strip()}")
+
         rules: list[str] = []
         if self.db_conn:
             try:
@@ -103,6 +114,7 @@ class CommentingEngine:
             "- Zero empty praise (e.g. 'Great post', 'Spot on', 'Thanks for sharing').\n"
             "- Zero emoji inflation (no emojis).\n"
             "- No hashtags, no bullet points, no markdown headers.\n"
+            "- CRITICAL: Strictly adhere to the voice guide invariants: NEVER mention prior company names (no Rocket Mortgage, London Computer Systems, EXFO, etc.), NEVER claim current corporate employment, and express thoughts as pure personal technical convictions.\n"
             "- Output ONLY the comment text itself. No preamble or meta commentary."
         )
 

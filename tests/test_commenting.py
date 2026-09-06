@@ -1,6 +1,9 @@
+import os
 import sqlite3
+import tempfile
 import unittest
 from pydantic import ValidationError
+
 
 from content_machine.schemas import (
     CommentAngle,
@@ -159,6 +162,10 @@ class TestCommentingEngine(unittest.TestCase):
         from unittest.mock import MagicMock
         from content_machine.config import AppConfig, ModelsConfig, ThresholdsConfig
 
+        self.orig_home = os.environ.get("CONTENT_MACHINE_HOME")
+        self.tmp_dir = tempfile.mkdtemp()
+        os.environ["CONTENT_MACHINE_HOME"] = self.tmp_dir
+
         self.conn = connect(":memory:")
         self.cfg = AppConfig(
             models=ModelsConfig(writer="qwen3.8-max", council={"perell": "m1", "puri": "m2"}),
@@ -167,7 +174,14 @@ class TestCommentingEngine(unittest.TestCase):
         self.router = MagicMock()
 
     def tearDown(self):
+        import shutil
         self.conn.close()
+        shutil.rmtree(self.tmp_dir, ignore_errors=True)
+        if self.orig_home is not None:
+            os.environ["CONTENT_MACHINE_HOME"] = self.orig_home
+        else:
+            os.environ.pop("CONTENT_MACHINE_HOME", None)
+
 
     def test_build_synthesis_prompt(self):
         from content_machine.commenting import CommentingEngine
@@ -388,7 +402,21 @@ class TestCommentingEngine(unittest.TestCase):
             row = cur.fetchone()
             self.assertEqual(row["final_comment"], "Sentence one. Sentence two! Sentence three?")
 
+    def test_build_synthesis_prompt_includes_author_voice_guide(self):
+        from content_machine.commenting import CommentingEngine
+
+        engine = CommentingEngine(router=self.router, cfg=self.cfg, db_conn=self.conn)
+        prompt = engine._build_synthesis_prompt(
+            post_content="A long enough post about system design and microservice resilience.",
+            angle=CommentAngle.INSIGHTFUL,
+        )
+        self.assertIn("AUTHOR VOICE & PERSONA GUIDE", prompt)
+        self.assertIn("Zero Company Attribution", prompt)
+        self.assertIn("No False Corporate Employment", prompt)
+        self.assertIn("CRITICAL: Strictly adhere to the voice guide invariants", prompt)
+
 
 if __name__ == "__main__":
+
     unittest.main()
 
