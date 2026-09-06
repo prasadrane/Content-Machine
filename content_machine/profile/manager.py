@@ -174,14 +174,14 @@ class ProfileManager:
             if re.search(r"^-\s*\*\*Current Operational Reality\*\*:\s*.*$", content, re.MULTILINE):
                 content = re.sub(
                     r"^-\s*\*\*Current Operational Reality\*\*:\s*.*$",
-                    new_focus_line,
+                    lambda _: new_focus_line,
                     content,
                     flags=re.MULTILINE,
                 )
             elif re.search(r"^##\s*1\.\s*Core Identity & Stance", content, re.MULTILINE):
                 content = re.sub(
                     r"(^##\s*1\.\s*Core Identity & Stance.*?\n)",
-                    rf"\1{new_focus_line}\n",
+                    lambda m: f"{m.group(1)}{new_focus_line}\n",
                     content,
                     flags=re.MULTILINE,
                 )
@@ -195,21 +195,21 @@ class ProfileManager:
             if re.search(r"^-\s*\*\*Technical Domains\*\*:\s*.*$", content, re.MULTILINE):
                 content = re.sub(
                     r"^-\s*\*\*Technical Domains\*\*:\s*.*$",
-                    new_domains_line,
+                    lambda _: new_domains_line,
                     content,
                     flags=re.MULTILINE,
                 )
             elif re.search(r"^-\s*\*\*Background\*\*:\s*.*$", content, re.MULTILINE):
                 content = re.sub(
                     r"(^-\s*\*\*Background\*\*:\s*.*$)",
-                    rf"\1\n{new_domains_line}",
+                    lambda m: f"{m.group(1)}\n{new_domains_line}",
                     content,
                     flags=re.MULTILINE,
                 )
             elif re.search(r"^-\s*\*\*Current Operational Reality\*\*:\s*.*$", content, re.MULTILINE):
                 content = re.sub(
                     r"(^-\s*\*\*Current Operational Reality\*\*:\s*.*$)",
-                    rf"{new_domains_line}\n\1",
+                    lambda m: f"{new_domains_line}\n{m.group(1)}",
                     content,
                     flags=re.MULTILINE,
                 )
@@ -223,7 +223,7 @@ class ProfileManager:
             if re.search(r"^##\s*(?:5\.\s*)?Custom Editorial Notes.*$", content, re.MULTILINE):
                 content = re.sub(
                     r"##\s*(?:5\.\s*)?Custom Editorial Notes.*?(?=\n##|\Z)",
-                    notes_section,
+                    lambda _: notes_section,
                     content,
                     flags=re.MULTILINE | re.DOTALL,
                 )
@@ -237,7 +237,7 @@ class ProfileManager:
             if re.search(r"##\s*2\.\s*Voice Invariants & Negative Constraints.*?(?=\n##|\Z)", content, re.DOTALL):
                 content = re.sub(
                     r"##\s*2\.\s*Voice Invariants & Negative Constraints.*?(?=\n##|\Z)",
-                    CANONICAL_NON_NEGOTIABLE_SECTION,
+                    lambda _: CANONICAL_NON_NEGOTIABLE_SECTION,
                     content,
                     flags=re.DOTALL,
                 )
@@ -247,7 +247,7 @@ class ProfileManager:
                 if sec3_match:
                     content = re.sub(
                         r"(^##\s*3\.)",
-                        rf"{CANONICAL_NON_NEGOTIABLE_SECTION}\n\n\1",
+                        lambda m: f"{CANONICAL_NON_NEGOTIABLE_SECTION}\n\n{m.group(1)}",
                         content,
                         flags=re.MULTILINE,
                     )

@@ -211,7 +211,32 @@ class TestProfileManager(unittest.TestCase):
         self.assertIn("Dev focus mirrored", seed_content)
 
 
+    def test_update_profile_handles_backslashes(self):
+        from content_machine.profile.manager import ProfileManager
+
+        manager = ProfileManager(home_root=self.home_root)
+
+        backslash_focus = r"Working with local paths like C:\Users\mamat\repos and regex \g<1> \1 \U patterns."
+        backslash_domains = [r"C:\Windows\System32", r"Path\With\Backslashes", r"Escaped\g<0>"]
+        backslash_notes = r"Notes with \n literal and \U \t \g<1> and C:\test\dir"
+
+        update_req = UpdateProfileRequest(
+            current_focus=backslash_focus,
+            technical_domains=backslash_domains,
+            custom_notes=backslash_notes,
+        )
+
+        updated_profile = manager.update_profile(update_req)
+        self.assertEqual(updated_profile.current_focus, backslash_focus)
+        self.assertEqual(updated_profile.technical_domains, backslash_domains)
+        self.assertIn(backslash_notes, updated_profile.full_markdown)
+
+        # Invariants preserved
+        self.assertEqual(len(updated_profile.hard_invariants), 5)
+
+
 if __name__ == "__main__":
     unittest.main()
+
 
 
