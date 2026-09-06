@@ -136,3 +136,36 @@ class UpdateProfileRequest(BaseModel):
     custom_notes: Optional[str] = None
 
 
+class HumanizeTone(str, Enum):
+    PUNCHY_DIRECT = "punchy_direct"
+    PRAGMATIC_ARCHITECT = "pragmatic_architect"
+    CONVERSATIONAL_PEER = "conversational_peer"
+
+
+class HumanizeChannel(str, Enum):
+    LINKEDIN_COMMENT = "linkedin_comment"
+    LINKEDIN_POST = "linkedin_post"
+    X_THREAD = "x_thread"
+    VIDEO_SCRIPT = "video_script"
+    GENERAL = "general"
+
+
+class HumanizeRequest(BaseModel):
+    text: str = Field(..., min_length=10, description="Draft text to humanize")
+    channel: HumanizeChannel = Field(default=HumanizeChannel.LINKEDIN_POST)
+    tone: HumanizeTone = Field(default=HumanizeTone.PRAGMATIC_ARCHITECT)
+    max_sentences: Optional[int] = Field(default=None, description="Optional hard sentence clamp")
+
+
+class HumanizeResult(BaseModel):
+    original_text: str
+    humanized_text: str
+    channel: HumanizeChannel
+    tone: HumanizeTone
+    banned_words_purged: list[str] = Field(default_factory=list)
+    burstiness_score: float = Field(default=0.0, description="Standard deviation of sentence word counts")
+    sentence_count: int = Field(default=0)
+    was_modified: bool = Field(default=True)
+
+
+
