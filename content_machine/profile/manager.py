@@ -129,7 +129,11 @@ class ProfileManager:
                 headline = candidate
 
         # Parse current focus
-        focus_match = re.search(r"^-\s*\*\*Current Operational Reality\*\*:\s*(.+)$", content, re.MULTILINE)
+        focus_match = re.search(
+            r"^-\s*\*\*Current Operational Reality\*\*:\s*(.*?)(?=\n-\s*\*\*|\n##|\Z)",
+            content,
+            re.MULTILINE | re.DOTALL,
+        )
         current_focus = focus_match.group(1).strip() if focus_match else DEFAULT_FOCUS
 
         # Parse technical domains
@@ -165,18 +169,19 @@ class ProfileManager:
         )
 
     def update_profile(self, req: UpdateProfileRequest) -> ProfileData:
-        """Update mutable fields in the voice guide while strictly preserving invariants."""
+        """Update profile fields and atomically write back to voice-guide.md."""
         content = self.get_voice_guide_text()
 
         # 1. Update current_focus
         if req.current_focus is not None:
             new_focus_line = f"- **Current Operational Reality**: {req.current_focus.strip()}"
-            if re.search(r"^-\s*\*\*Current Operational Reality\*\*:\s*.*$", content, re.MULTILINE):
+            focus_pattern = r"^-\s*\*\*Current Operational Reality\*\*:\s*.*?(?=\n-\s*\*\*|\n##|\Z)"
+            if re.search(focus_pattern, content, re.MULTILINE | re.DOTALL):
                 content = re.sub(
-                    r"^-\s*\*\*Current Operational Reality\*\*:\s*.*$",
+                    focus_pattern,
                     lambda _: new_focus_line,
                     content,
-                    flags=re.MULTILINE,
+                    flags=re.MULTILINE | re.DOTALL,
                 )
             elif re.search(r"^##\s*1\.\s*Core Identity & Stance", content, re.MULTILINE):
                 content = re.sub(

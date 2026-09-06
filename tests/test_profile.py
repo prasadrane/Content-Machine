@@ -234,6 +234,22 @@ class TestProfileManager(unittest.TestCase):
         # Invariants preserved
         self.assertEqual(len(updated_profile.hard_invariants), 5)
 
+    def test_get_profile_multi_line_focus(self):
+        from content_machine.profile.manager import ProfileManager
+
+        manager = ProfileManager(home_root=self.home_root)
+        multiline_focus = "Line 1: Hands-on agentic builder.\nLine 2: Multi-model router optimization."
+        manager.update_profile(UpdateProfileRequest(current_focus=multiline_focus))
+        fresh = manager.get_profile()
+        self.assertEqual(fresh.current_focus, multiline_focus)
+
+        # Overwrite with single-line focus and ensure no orphaned lines remain
+        single_focus = "Single line focus now."
+        manager.update_profile(UpdateProfileRequest(current_focus=single_focus))
+        overwritten = manager.get_profile()
+        self.assertEqual(overwritten.current_focus, single_focus)
+        self.assertNotIn("Line 2: Multi-model", overwritten.full_markdown)
+
 
 if __name__ == "__main__":
     unittest.main()
