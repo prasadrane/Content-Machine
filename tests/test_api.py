@@ -640,10 +640,68 @@ class TestCommentsAPI(unittest.TestCase):
             self.assertEqual(r_invalid.status_code, 422)
 
 
+# ---------------------------------------------------------------------------
+# Profile
+# ---------------------------------------------------------------------------
+
+class TestProfileAPI(unittest.TestCase):
+
+    def setUp(self):
+        import tempfile
+        self.temp_dir = tempfile.mkdtemp()
+        self.env_patch = patch.dict(os.environ, {"CONTENT_MACHINE_HOME": self.temp_dir})
+        self.env_patch.start()
+
+    def tearDown(self):
+        self.env_patch.stop()
+        import shutil
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    def test_get_profile(self):
+        """GET /api/profile returns 200 with ProfileData schema."""
+        client = _make_client()
+        r = client.get("/api/profile")
+        self.assertEqual(r.status_code, 200)
+        data = r.json()
+        self.assertEqual(data["name"], "Prasad Rane")
+        self.assertIsInstance(data["hard_invariants"], list)
+        self.assertGreater(len(data["hard_invariants"]), 0)
+
+    def test_post_profile_update(self):
+        """POST /api/profile updates profile and returns 200 with updated focus."""
+        client = _make_client()
+        r = client.post("/api/profile", json={"current_focus": "Fine-tuning agentic workflows"})
+        self.assertEqual(r.status_code, 200)
+        data = r.json()
+        self.assertEqual(data["current_focus"], "Fine-tuning agentic workflows")
+
+    def test_post_profile_update_mocked(self):
+        """POST /api/profile calls ProfileManager.update_profile."""
+        with patch("content_machine.api.app.ProfileManager") as MockManager:
+            mock_inst = MagicMock()
+            from content_machine.schemas import ProfileData
+            mock_inst.update_profile.return_value = ProfileData(
+                name="Prasad Rane",
+                headline="Senior Software & AI Systems Engineer",
+                current_focus="Fine-tuning agentic workflows",
+                technical_domains=[".NET Core", "Agentic AI"],
+                hard_invariants=["Zero Company Attribution"],
+                full_markdown="# Voice Guide",
+            )
+            MockManager.return_value = mock_inst
+
+            client = _make_client()
+            r = client.post("/api/profile", json={"current_focus": "Fine-tuning agentic workflows"})
+            self.assertEqual(r.status_code, 200)
+            data = r.json()
+            self.assertEqual(data["current_focus"], "Fine-tuning agentic workflows")
+            mock_inst.update_profile.assert_called_once()
+
+
 if __name__ == "__main__":
     loader = unittest.TestLoader()
     suite = unittest.TestSuite()
-    for cls in [TestHealth, TestOracleAPI, TestCouncilAPI, TestLessonsAPI, TestDistributeAPI, TestLinkedInAPI, TestCommentsAPI]:
+    for cls in [TestHealth, TestOracleAPI, TestCouncilAPI, TestLessonsAPI, TestDistributeAPI, TestLinkedInAPI, TestCommentsAPI, TestProfileAPI]:
         suite.addTests(loader.loadTestsFromTestCase(cls))
 
     runner = unittest.TextTestRunner(verbosity=0)

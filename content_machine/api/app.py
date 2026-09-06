@@ -28,6 +28,7 @@ from content_machine.oracle.oracle import OracleOrchestrator
 from content_machine.oracle.scorer import IdeaScorer
 from content_machine.interview.engine import InterviewEngine
 from content_machine.commenting.engine import CommentingEngine
+from content_machine.profile.manager import ProfileManager
 from content_machine.schemas import (
     TopicBriefRequest,
     TopicBriefing,
@@ -37,6 +38,8 @@ from content_machine.schemas import (
     CommentRunResponse,
     CommentHistoryResponse,
     CommentHistoryItem,
+    ProfileData,
+    UpdateProfileRequest,
 )
 
 # ---------------------------------------------------------------------------
@@ -923,6 +926,22 @@ def comments_history(limit: int = Query(default=50, ge=1, le=200)):
     engine = CommentingEngine(router=router, cfg=cfg, db_conn=db_conn)
     items = engine.get_history(limit=limit)
     return CommentHistoryResponse(items=items, total=len(items))
+
+
+# ---------------------------------------------------------------------------
+# Author Profile & Voice Grounding
+# ---------------------------------------------------------------------------
+
+@app.get("/api/profile", response_model=ProfileData)
+def profile_get():
+    manager = ProfileManager()
+    return manager.get_profile()
+
+
+@app.post("/api/profile", response_model=ProfileData)
+def profile_update(req: UpdateProfileRequest):
+    manager = ProfileManager()
+    return manager.update_profile(req)
 
 
 # Catch-all: serve index.html for SPA routing (only if UI is built)
