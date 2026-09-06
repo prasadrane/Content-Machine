@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -24,9 +24,9 @@ class CouncilScores(BaseModel):
 class IdeaScore(BaseModel):
     """One sampled scoring of a content idea (plan v2 §2.2)."""
 
-    pov: float = Field(ge=0, le=10, description="Point of view: falsifiable contrarian thesis")
-    lived_experience: float = Field(ge=0, le=10, description="Grounding in concrete operational reality")
-    specificity: float = Field(ge=0, le=10, description="Anecdotal specificity: metrics, dates, dialogue")
+    pov: float = Field(ge=0, le=10, description="Strong point of view: clear, opinionated stance rather than neutral information, with a falsifiable thesis")
+    lived_experience: float = Field(ge=0, le=10, description="Storytelling elements: personal anecdote or specific narrative grounded in concrete operational reality")
+    specificity: float = Field(ge=0, le=10, description="Specific examples: concrete details, use cases, or evidence (metrics, dates, dialogue) that support the argument")
     counter_intuitive: float = Field(ge=0, le=10, description="Disruption of standard industry assumptions")
     generic_penalty_applied: bool = Field(description="Concept is a known business cliche; -0.50 composite penalty")
     composite: float = Field(ge=0, le=10)
@@ -115,4 +115,24 @@ class CommentHistoryItem(BaseModel):
 class CommentHistoryResponse(BaseModel):
     items: list[CommentHistoryItem] = Field(default_factory=list)
     total: int
+
+
+class ProfileData(BaseModel):
+    """Codified author persona, voice profile, and domain invariants."""
+
+    name: str = "Prasad Rane"
+    headline: str = "Senior Software & AI Systems Engineer"
+    current_focus: str
+    technical_domains: list[str] = Field(default_factory=list)
+    hard_invariants: list[str] = Field(default_factory=list)
+    full_markdown: str = ""
+
+
+class UpdateProfileRequest(BaseModel):
+    """Payload for updating editable profile attributes."""
+
+    current_focus: Optional[str] = None
+    technical_domains: Optional[list[str]] = None
+    custom_notes: Optional[str] = None
+
 
