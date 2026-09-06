@@ -103,6 +103,9 @@ CREATE TABLE IF NOT EXISTS comments (
     peak_score REAL NOT NULL,
     verdict TEXT NOT NULL,
     judge_critiques TEXT,
+    humanized INTEGER NOT NULL DEFAULT 0,
+    humanize_tone TEXT,
+    burstiness_score REAL,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -178,6 +181,14 @@ def init_db(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE spikes ADD COLUMN topic_tag TEXT NOT NULL DEFAULT 'General Engineering'")
     if "source_url" not in spike_cols:
         conn.execute("ALTER TABLE spikes ADD COLUMN source_url TEXT")
+
+    comment_cols = [c[1] for c in conn.execute("PRAGMA table_info(comments)").fetchall()]
+    if "humanized" not in comment_cols:
+        conn.execute("ALTER TABLE comments ADD COLUMN humanized INTEGER NOT NULL DEFAULT 0")
+    if "humanize_tone" not in comment_cols:
+        conn.execute("ALTER TABLE comments ADD COLUMN humanize_tone TEXT")
+    if "burstiness_score" not in comment_cols:
+        conn.execute("ALTER TABLE comments ADD COLUMN burstiness_score REAL")
 
     rows_to_backfill = conn.execute(
         "SELECT id, hook_thesis FROM spikes WHERE topic_tag = 'General Engineering' OR topic_tag IS NULL"

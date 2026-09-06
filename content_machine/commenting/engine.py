@@ -13,7 +13,7 @@ from uuid import uuid4
 
 from ..config import AppConfig
 from ..council.loop import run_council
-from ..humanize import HumanizeTone, HumanizeTransformer
+from ..humanize import HumanizeTone, HumanizeTransformer, split_sentences
 from ..lessons.store import LessonsStore
 from ..profile.manager import ProfileManager
 from ..schemas import (
@@ -37,10 +37,9 @@ ANGLE_DIRECTIVES: dict[str, str] = {
 
 
 def _sanitize_sentences(text: str, max_sentences: int = 3) -> str:
-    import re
     if not text:
         return ""
-    sentences = re.split(r'(?<=[.!?])\s+', text.strip())
+    sentences = split_sentences(text)
     if len(sentences) > max_sentences:
         return " ".join(sentences[:max_sentences]).strip()
     return text.strip()
@@ -232,14 +231,17 @@ class CommentingEngine:
             elif hasattr(s, "required_actions") and s.required_actions:
                 judge_critiques[slot] = "; ".join(s.required_actions)
 
+        tone_str = str(tone_enum.value if hasattr(tone_enum, "value") else tone_enum)
+
         # Save to DB
         if self.db_conn:
             self.db_conn.execute(
                 """
                 INSERT INTO comments (
                     id, post_content, angle, perspective_text, initial_draft,
-                    final_comment, iteration_count, peak_score, verdict, judge_critiques
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    final_comment, iteration_count, peak_score, verdict, judge_critiques,
+                    humanized, humanize_tone, burstiness_score
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     comment_id,
@@ -252,6 +254,9 @@ class CommentingEngine:
                     peak_score,
                     verdict,
                     json.dumps(judge_critiques),
+                    1 if humanize else 0,
+                    tone_str,
+                    burstiness_score,
                 ),
             )
             self.db_conn.commit()
@@ -267,7 +272,7 @@ class CommentingEngine:
             judge_scores=judge_scores,
             judge_critiques=judge_critiques,
             humanized=humanize,
-            humanize_tone=str(tone_enum.value if hasattr(tone_enum, "value") else tone_enum),
+            humanize_tone=tone_str,
             burstiness_score=burstiness_score,
         )
 
@@ -277,7 +282,8 @@ class CommentingEngine:
         cursor = self.db_conn.execute(
             """
             SELECT id, post_content, angle, perspective_text, final_comment,
-                   iteration_count, peak_score, verdict, created_at
+                   iteration_count, peak_score, verdict, humanized, humanize_tone,
+                   burstiness_score, created_at
             FROM comments
             ORDER BY created_at DESC
             LIMIT ?
@@ -287,17 +293,42 @@ class CommentingEngine:
         rows = cursor.fetchall()
         items: list[CommentHistoryItem] = []
         for r in rows:
-            items.append(
-                CommentHistoryItem(
-                    id=r["id"] if isinstance(r, sqlite3.Row) else r[0],
-                    post_content=r["post_content"] if isinstance(r, sqlite3.Row) else r[1],
-                    angle=r["angle"] if isinstance(r, sqlite3.Row) else r[2],
-                    perspective_text=r["perspective_text"] if isinstance(r, sqlite3.Row) else r[3],
-                    final_comment=r["final_comment"] if isinstance(r, sqlite3.Row) else r[4],
-                    iteration_count=r["iteration_count"] if isinstance(r, sqlite3.Row) else r[5],
-                    peak_score=float(r["peak_score"] if isinstance(r, sqlite3.Row) else r[6]),
-                    verdict=r["verdict"] if isinstance(r, sqlite3.Row) else r[7],
-                    created_at=str(r["created_at"] if isinstance(r, sqlite3.Row) else r[8]),
+            if isinstance(r, sqlite3.Row):
+                h_val = bool(r["humanized"]) if "humanized" in r.keys() and r["humanized"] is not None else False
+                tone_val = r["humanize_tone"] if "humanize_tone" in r.keys() else None
+                burst_val = float(r["burstiness_score"]) if "burstiness_score" in r.keys() and r["burstiness_score"] is not None else 0.0
+                items.append(
+                    CommentHistoryItem(
+                        id=r["id"],
+                        post_content=r["post_content"],
+                        angle=r["angle"],
+                        perspective_text=r["perspective_text"],
+                        final_comment=r["final_comment"],
+                        iteration_count=r["iteration_count"],
+                        peak_score=float(r["peak_score"]),
+                        verdict=r["verdict"],
+                        humanized=h_val,
+                        humanize_tone=tone_val,
+                        burstiness_score=burst_val,
+                        created_at=str(r["created_at"]),
+                    )
                 )
-            )
+            else:
+                items.append(
+                    CommentHistoryItem(
+                        id=r[0],
+                        post_content=r[1],
+                        angle=r[2],
+                        perspective_text=r[3],
+                        final_comment=r[4],
+                        iteration_count=r[5],
+                        peak_score=float(r[6]),
+                        verdict=r[7],
+                        humanized=bool(r[8]) if len(r) > 8 and r[8] is not None else False,
+                        humanize_tone=str(r[9]) if len(r) > 9 and r[9] is not None else None,
+                        burstiness_score=float(r[10]) if len(r) > 10 and r[10] is not None else 0.0,
+                        created_at=str(r[11]) if len(r) > 11 else str(r[-1]),
+                    )
+                )
         return items
+

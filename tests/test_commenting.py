@@ -104,15 +104,22 @@ class TestCommentSchemasAndDB(unittest.TestCase):
             iteration_count=1,
             peak_score=9.1,
             verdict="pass",
+            humanized=True,
+            humanize_tone="punchy_direct",
+            burstiness_score=4.5,
             created_at="2026-09-06T00:00:00Z",
         )
         self.assertEqual(item.id, "comm-001")
         self.assertIsNone(item.perspective_text)
+        self.assertTrue(item.humanized)
+        self.assertEqual(item.humanize_tone, "punchy_direct")
+        self.assertEqual(item.burstiness_score, 4.5)
 
         history = CommentHistoryResponse(items=[item], total=1)
         self.assertEqual(history.total, 1)
         self.assertEqual(len(history.items), 1)
         self.assertEqual(history.items[0].id, "comm-001")
+        self.assertTrue(history.items[0].humanized)
 
     def test_db_init_comments_table(self):
         conn = sqlite3.connect(":memory:")
@@ -135,6 +142,9 @@ class TestCommentSchemasAndDB(unittest.TestCase):
             "peak_score": "REAL",
             "verdict": "TEXT",
             "judge_critiques": "TEXT",
+            "humanized": "INTEGER",
+            "humanize_tone": "TEXT",
+            "burstiness_score": "REAL",
             "created_at": "TEXT",
         }
         for col, col_type in expected_columns.items():
@@ -146,8 +156,9 @@ class TestCommentSchemasAndDB(unittest.TestCase):
             """
             INSERT INTO comments (
                 id, post_content, angle, perspective_text, initial_draft,
-                final_comment, iteration_count, peak_score, verdict, judge_critiques
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                final_comment, iteration_count, peak_score, verdict, judge_critiques,
+                humanized, humanize_tone, burstiness_score
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 "c-test-1",
@@ -160,6 +171,9 @@ class TestCommentSchemasAndDB(unittest.TestCase):
                 8.4,
                 "pass",
                 '{"perell": "Good"}',
+                1,
+                "punchy_direct",
+                3.5,
             ),
         )
         conn.commit()
@@ -167,6 +181,32 @@ class TestCommentSchemasAndDB(unittest.TestCase):
         cursor.execute("SELECT * FROM comments WHERE id = ?", ("c-test-1",))
         row = cursor.fetchone()
         self.assertIsNotNone(row)
+        conn.close()
+
+    def test_db_migration_adds_humanize_columns(self):
+        conn = sqlite3.connect(":memory:")
+        conn.execute(
+            """
+            CREATE TABLE comments (
+                id TEXT PRIMARY KEY,
+                post_content TEXT NOT NULL,
+                angle TEXT NOT NULL,
+                perspective_text TEXT,
+                initial_draft TEXT NOT NULL,
+                final_comment TEXT NOT NULL,
+                iteration_count INTEGER NOT NULL,
+                peak_score REAL NOT NULL,
+                verdict TEXT NOT NULL,
+                judge_critiques TEXT,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            """
+        )
+        init_db(conn)
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(comments)").fetchall()}
+        self.assertIn("humanized", cols)
+        self.assertIn("humanize_tone", cols)
+        self.assertIn("burstiness_score", cols)
         conn.close()
 
     def test_connect_creates_comments_table(self):
@@ -353,6 +393,9 @@ class TestCommentingEngine(unittest.TestCase):
             self.assertEqual(row["iteration_count"], 1)
             self.assertEqual(row["peak_score"], 9.25)
             self.assertEqual(row["verdict"], "PASS")
+            self.assertEqual(row["humanized"], 1)
+            self.assertEqual(row["humanize_tone"], "punchy_direct")
+            self.assertGreaterEqual(row["burstiness_score"], 0.0)
 
     def test_get_history(self):
         from content_machine.commenting import CommentingEngine
@@ -361,18 +404,20 @@ class TestCommentingEngine(unittest.TestCase):
         self.conn.execute(
             """
             INSERT INTO comments (id, post_content, angle, perspective_text, initial_draft,
-                                  final_comment, iteration_count, peak_score, verdict, judge_critiques, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                  final_comment, iteration_count, peak_score, verdict, judge_critiques,
+                                  humanized, humanize_tone, burstiness_score, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            ("c1", "Post 1 content here", "insightful", None, "Draft 1", "Comment 1", 1, 9.1, "PASS", "{}", "2026-09-06T00:00:00Z"),
+            ("c1", "Post 1 content here", "insightful", None, "Draft 1", "Comment 1", 1, 9.1, "PASS", "{}", 0, "punchy_direct", 0.0, "2026-09-06T00:00:00Z"),
         )
         self.conn.execute(
             """
             INSERT INTO comments (id, post_content, angle, perspective_text, initial_draft,
-                                  final_comment, iteration_count, peak_score, verdict, judge_critiques, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                  final_comment, iteration_count, peak_score, verdict, judge_critiques,
+                                  humanized, humanize_tone, burstiness_score, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            ("c2", "Post 2 content here", "contrarian", "My perspective", "Draft 2", "Comment 2", 2, 8.8, "REVISE", "{}", "2026-09-06T00:05:00Z"),
+            ("c2", "Post 2 content here", "contrarian", "My perspective", "Draft 2", "Comment 2", 2, 8.8, "REVISE", "{}", 1, "pragmatic_architect", 4.2, "2026-09-06T00:05:00Z"),
         )
         self.conn.commit()
 
@@ -382,8 +427,13 @@ class TestCommentingEngine(unittest.TestCase):
         self.assertEqual(history[0].id, "c2")
         self.assertEqual(history[0].angle, "contrarian")
         self.assertEqual(history[0].perspective_text, "My perspective")
+        self.assertTrue(history[0].humanized)
+        self.assertEqual(history[0].humanize_tone, "pragmatic_architect")
+        self.assertEqual(history[0].burstiness_score, 4.2)
         self.assertEqual(history[1].id, "c1")
         self.assertIsNone(history[1].perspective_text)
+        self.assertFalse(history[1].humanized)
+        self.assertEqual(history[1].burstiness_score, 0.0)
 
         # Test limit
         history_limited = engine.get_history(limit=1)

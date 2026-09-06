@@ -120,6 +120,9 @@ class CommentHistoryItem(BaseModel):
     iteration_count: int
     peak_score: float
     verdict: str
+    humanized: bool = False
+    humanize_tone: str | None = None
+    burstiness_score: float | None = 0.0
     created_at: str
 
 

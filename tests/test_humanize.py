@@ -98,6 +98,34 @@ class TestHumanizeSanitizer(unittest.TestCase):
         self.assertNotIn("—", cleaned)
         self.assertIn(",", cleaned)
 
+    def test_sanitize_text_preserves_cli_flags_and_markdown_rules(self):
+        from content_machine.humanize.sanitizer import sanitize_text
+
+        text = (
+            "Run python -m content_machine --verbose --flag --output=json\n"
+            "---\n"
+            "This pattern -- which was verified -- works with --dry-run."
+        )
+        cleaned, _ = sanitize_text(text)
+        self.assertIn("--verbose", cleaned)
+        self.assertIn("--flag", cleaned)
+        self.assertIn("--output=json", cleaned)
+        self.assertIn("--dry-run", cleaned)
+        self.assertIn("---", cleaned)
+        self.assertNotIn(" -- ", cleaned)
+
+    def test_split_sentences(self):
+        from content_machine.humanize.sanitizer import split_sentences
+
+        self.assertEqual(split_sentences(""), [])
+        self.assertEqual(split_sentences("   "), [])
+        sents = split_sentences("First sentence. Second sentence! Third sentence? \nFourth line sentence.")
+        self.assertEqual(len(sents), 4)
+        self.assertEqual(sents[0], "First sentence.")
+        self.assertEqual(sents[1], "Second sentence!")
+        self.assertEqual(sents[2], "Third sentence?")
+        self.assertEqual(sents[3], "Fourth line sentence.")
+
     def test_calculate_burstiness_variance(self):
         from content_machine.humanize.sanitizer import calculate_burstiness
 

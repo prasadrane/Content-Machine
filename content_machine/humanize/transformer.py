@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Optional
+from typing import Any, Optional
 
 from content_machine.profile.manager import ProfileManager
 from content_machine.schemas import (
@@ -17,6 +17,7 @@ from .sanitizer import (
     calculate_burstiness,
     check_author_invariants,
     sanitize_text,
+    split_sentences,
 )
 
 logger = logging.getLogger(__name__)
@@ -25,7 +26,7 @@ logger = logging.getLogger(__name__)
 class HumanizeTransformer:
     def __init__(
         self,
-        router: any,
+        router: Any,
         model: str = "qwen3.8-max",
         voice_guide: Optional[str] = None,
     ):
@@ -107,14 +108,13 @@ class HumanizeTransformer:
 
         # 4. Optional sentence clamping
         if max_sentences is not None and max_sentences > 0:
-            sentences = re.split(r"(?<=[.!?])\s+", cleaned)
-            sentences = [s.strip() for s in sentences if s.strip()]
+            sentences = split_sentences(cleaned)
             if len(sentences) > max_sentences:
                 cleaned = " ".join(sentences[:max_sentences])
 
         # 5. Metrics calculation
         burstiness = calculate_burstiness(cleaned)
-        sent_count = len([s for s in re.split(r"(?<=[.!?])\s+", cleaned) if s.strip()])
+        sent_count = len(split_sentences(cleaned))
 
         return HumanizeResult(
             original_text=original,

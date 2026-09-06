@@ -10,6 +10,7 @@ from content_machine.humanize.sanitizer import (
     calculate_burstiness,
     check_author_invariants,
     sanitize_text,
+    split_sentences,
 )
 from content_machine.humanize.transformer import HumanizeTransformer
 
@@ -22,5 +23,6 @@ __all__ = [
     "sanitize_text",
     "calculate_burstiness",
     "check_author_invariants",
+    "split_sentences",
 ]
 

@@ -55,7 +55,7 @@ BANNED_AI_PHRASES: list[str] = [
     "unlock value",
 ]
 
-EM_DASH_PATTERN = re.compile(r"\s*—\s*|\s*--\s*")
+EM_DASH_PATTERN = re.compile(r"\s*—\s*|(?<!-)(?:\s+--\s+|(?<=\w)--(?:(?=\w)|\s+))(?!-)")
 
 TONE_SYSTEM_PROMPTS: dict[HumanizeTone, str] = {
     HumanizeTone.PUNCHY_DIRECT: (
