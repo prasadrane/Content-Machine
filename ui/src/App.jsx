@@ -43,6 +43,8 @@ import {
 import { getTopicBadgeClass, formatTopicLabel } from './lib/topics'
 import { DIMENSION_LABELS, HUMANIZE_TONES, DISTRIBUTION_FORMATS, CORE_VOICE_INVARIANTS } from './lib/constants'
 import { getHealth } from './api/health'
+import { runOracleScan, getOracleHistory } from './api/oracle'
+import { getLinkedInStatus, syncLinkedIn } from './api/linkedin'
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('oracle')
@@ -1183,11 +1185,8 @@ function OracleTab({ onSendToCouncil, onSendToCouncilWithDraft }) {
 
   const fetchLinkedInStatus = async () => {
     try {
-      const res = await fetch('/api/linkedin/status')
-      if (res.ok) {
-        const data = await res.json()
-        setLinkedInStatus(data)
-      }
+      const data = await getLinkedInStatus()
+      setLinkedInStatus(data)
     } catch (err) {
       console.error('Failed to fetch LinkedIn status', err)
     }
@@ -1197,12 +1196,7 @@ function OracleTab({ onSendToCouncil, onSendToCouncilWithDraft }) {
     setSyncingLinkedIn(true)
     setSyncMsg('')
     try {
-      const res = await fetch('/api/linkedin/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ headless: true }),
-      })
-      const data = await res.json()
+      const data = await syncLinkedIn({ headless: true })
       setSyncMsg(data.message || (data.success ? 'Session synced successfully.' : 'Sync finished.'))
       await fetchLinkedInStatus()
     } catch (err) {
@@ -1251,18 +1245,15 @@ function OracleTab({ onSendToCouncil, onSendToCouncilWithDraft }) {
   const fetchArchive = async () => {
     setArchiveLoading(true)
     try {
-      const params = new URLSearchParams()
-      if (archiveTopic && archiveTopic !== 'All') params.append('topic', archiveTopic)
-      if (archiveVerdict && archiveVerdict !== 'All') params.append('verdict', archiveVerdict)
-      if (archiveSearch.trim()) params.append('search', archiveSearch.trim())
-      const res = await fetch(`/api/oracle/history?${params.toString()}`)
-      if (res.ok) {
-        const data = await res.json()
-        setArchiveItems(data.items || [])
-        setArchiveTotal(data.total || 0)
-        if (data.topics && data.topics.length > 0) {
-          setAvailableTopics(['All', ...data.topics])
-        }
+      const params = {}
+      if (archiveTopic && archiveTopic !== 'All') params.topic = archiveTopic
+      if (archiveVerdict && archiveVerdict !== 'All') params.verdict = archiveVerdict
+      if (archiveSearch.trim()) params.search = archiveSearch.trim()
+      const data = await getOracleHistory(params)
+      setArchiveItems(data.items || [])
+      setArchiveTotal(data.total || 0)
+      if (data.topics && data.topics.length > 0) {
+        setAvailableTopics(['All', ...data.topics])
       }
     } catch (e) {
       console.error('Failed to fetch oracle history', e)
@@ -1441,69 +1432,19 @@ function OracleTab({ onSendToCouncil, onSendToCouncilWithDraft }) {
       }
     }
 
+    const payload = {
+      rss_urls: rssList,
+      github_repos: ghList,
+      linkedin_profiles: liProfiles,
+      linkedin_li_at: linkedInLiAt.trim() || undefined,
+      max_age_days: maxAgeDays ? parseInt(maxAgeDays, 10) : undefined,
+      max_items_per_feed: maxItemsPerFeed ? parseInt(maxItemsPerFeed, 10) : 5,
+      limit: 15,
+      no_persist: false,
+    }
+
     try {
-      const res = await fetch('/api/oracle/scan-stream', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          rss_urls: rssList,
-          github_repos: ghList,
-          linkedin_profiles: liProfiles,
-          linkedin_li_at: linkedInLiAt.trim() || undefined,
-          max_age_days: maxAgeDays ? parseInt(maxAgeDays, 10) : undefined,
-          max_items_per_feed: maxItemsPerFeed ? parseInt(maxItemsPerFeed, 10) : 5,
-          limit: 15,
-          no_persist: false,
-        }),
-      })
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}))
-        throw new Error(errData.detail || `Server returned ${res.status}`)
-      }
-
-      if (!res.body) {
-        throw new Error('ReadableStream not supported by response')
-      }
-
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder('utf-8')
-      let buffer = ''
-      let currentEvent = null
-      let isComplete = false
-
-      while (!isComplete) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() || '' // keep uncompleted partial line
-
-        for (const line of lines) {
-          const trimmed = line.trim()
-          if (!trimmed) {
-            currentEvent = null
-            continue
-          }
-          if (trimmed.startsWith('event:')) {
-            currentEvent = trimmed.replace(/^event:\s*/, '').trim()
-          } else if (trimmed.startsWith('data:')) {
-            const jsonStr = trimmed.replace(/^data:\s*/, '').trim()
-            try {
-              const data = JSON.parse(jsonStr)
-              dispatchSSE(currentEvent, data)
-              if (currentEvent === 'complete') {
-                isComplete = true
-                reader.cancel().catch(() => {})
-                break
-              }
-            } catch (err) {
-              console.error('Failed to parse SSE JSON:', err, jsonStr)
-            }
-          }
-        }
-      }
+      await runOracleScan(payload, dispatchSSE)
 
       fetchArchive()
     } catch (err) {
