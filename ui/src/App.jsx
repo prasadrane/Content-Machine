@@ -42,7 +42,7 @@ import {
 } from 'lucide-react'
 import { getTopicBadgeClass, formatTopicLabel } from './lib/topics'
 import { DIMENSION_LABELS, HUMANIZE_TONES, DISTRIBUTION_FORMATS, CORE_VOICE_INVARIANTS } from './lib/constants'
-import { getHealth } from './api/health'
+import { useServerHealth } from './app/useServerHealth'
 import { runOracleScan, getOracleHistory } from './api/oracle'
 import { getLinkedInStatus, syncLinkedIn } from './api/linkedin'
 import { runCouncil, getCouncilHistory, getCouncilSpikes } from './api/council'
@@ -57,22 +57,7 @@ import { useVoiceRecording } from './hooks/useVoiceRecording'
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('oracle')
-  const [serverOnline, setServerOnline] = useState(false)
-
-  // Health polling
-  useEffect(() => {
-    const checkHealth = async () => {
-      try {
-        const data = await getHealth()
-        setServerOnline(data.status === 'ok')
-      } catch {
-        setServerOnline(false)
-      }
-    }
-    checkHealth()
-    const timer = setInterval(checkHealth, 10000)
-    return () => clearInterval(timer)
-  }, [])
+  const serverOnline = useServerHealth()
 
   // Shared state between Oracle, Council, and Distribute
   const [councilDraft, setCouncilDraft] = useState('')
