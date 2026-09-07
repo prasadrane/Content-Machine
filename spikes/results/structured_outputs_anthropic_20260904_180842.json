@@ -1,0 +1,121 @@
+{
+  "summary": {
+    "provider": "anthropic",
+    "tests": {
+      "T1": {
+        "n": 3,
+        "http_ok": 0,
+        "json_parsed": 0,
+        "pydantic_valid": 0,
+        "bound_violations": [],
+        "median_latency_s": 0.3
+      },
+      "T2": {
+        "n": 3,
+        "http_ok": 0,
+        "json_parsed": 0,
+        "pydantic_valid": 0,
+        "bound_violations": [],
+        "median_latency_s": 0.3
+      },
+      "T3": {
+        "n": 2,
+        "http_ok": 0,
+        "json_parsed": 0,
+        "pydantic_valid": 0,
+        "bound_violations": [],
+        "median_latency_s": 0.3
+      }
+    }
+  },
+  "trials": [
+    {
+      "test": "T1",
+      "mode": "messages.parse(output_format=CouncilScores), effort=low",
+      "http_ok": false,
+      "json_parsed": false,
+      "pydantic_valid": false,
+      "violations": [],
+      "raw": null,
+      "latency_s": 1.04,
+      "error": "BadRequestError: Error code: 400 - {'request_id': 'fcb860d8-56ee-40f3-90a3-bfec81c45a96', 'code': 'InvalidParameter', 'message': 'Model not exist.'}"
+    },
+    {
+      "test": "T1",
+      "mode": "messages.parse(output_format=CouncilScores), effort=low",
+      "http_ok": false,
+      "json_parsed": false,
+      "pydantic_valid": false,
+      "violations": [],
+      "raw": null,
+      "latency_s": 0.29,
+      "error": "BadRequestError: Error code: 400 - {'request_id': '694c5cce-7772-47e6-971e-e141bdccf51c', 'code': 'InvalidParameter', 'message': 'Model not exist.'}"
+    },
+    {
+      "test": "T1",
+      "mode": "messages.parse(output_format=CouncilScores), effort=low",
+      "http_ok": false,
+      "json_parsed": false,
+      "pydantic_valid": false,
+      "violations": [],
+      "raw": null,
+      "latency_s": 0.27,
+      "error": "BadRequestError: Error code: 400 - {'request_id': '1f4af8f1-db45-40c1-9167-8d2a2bcd7602', 'code': 'InvalidParameter', 'message': 'Model not exist.'}"
+    },
+    {
+      "test": "T2",
+      "mode": "messages.parse(output_format=CouncilScores), effort=low",
+      "http_ok": false,
+      "json_parsed": false,
+      "pydantic_valid": false,
+      "violations": [],
+      "raw": null,
+      "latency_s": 0.29,
+      "error": "BadRequestError: Error code: 400 - {'request_id': '2e4b48ad-b41f-425c-a265-eaa1b2306949', 'code': 'InvalidParameter', 'message': 'Model not exist.'}"
+    },
+    {
+      "test": "T2",
+      "mode": "messages.parse(output_format=CouncilScores), effort=low",
+      "http_ok": false,
+      "json_parsed": false,
+      "pydantic_valid": false,
+      "violations": [],
+      "raw": null,
+      "latency_s": 0.29,
+      "error": "BadRequestError: Error code: 400 - {'request_id': 'd91fb3be-59d0-4794-94ce-04b3e2184fee', 'code': 'InvalidParameter', 'message': 'Model not exist.'}"
+    },
+    {
+      "test": "T2",
+      "mode": "messages.parse(output_format=CouncilScores), effort=low",
+      "http_ok": false,
+      "json_parsed": false,
+      "pydantic_valid": false,
+      "violations": [],
+      "raw": null,
+      "latency_s": 0.3,
+      "error": "BadRequestError: Error code: 400 - {'request_id': 'cd0d14ca-59d9-4f98-8f9c-472a8c6854b8', 'code': 'InvalidParameter', 'message': 'Model not exist.'}"
+    },
+    {
+      "test": "T3",
+      "mode": "messages.parse(output_format=CouncilScores), effort=low",
+      "http_ok": false,
+      "json_parsed": false,
+      "pydantic_valid": false,
+      "violations": [],
+      "raw": null,
+      "latency_s": 0.27,
+      "error": "BadRequestError: Error code: 400 - {'request_id': '5f8ef730-621f-4573-a7eb-9782208912ea', 'code': 'InvalidParameter', 'message': 'Model not exist.'}"
+    },
+    {
+      "test": "T3",
+      "mode": "messages.parse(output_format=CouncilScores), effort=low",
+      "http_ok": false,
+      "json_parsed": false,
+      "pydantic_valid": false,
+      "violations": [],
+      "raw": null,
+      "latency_s": 0.36,
+      "error": "BadRequestError: Error code: 400 - {'request_id': 'e309eb91-c0b5-4ed3-b744-6143cc4a4761', 'code': 'InvalidParameter', 'message': 'Model not exist.'}"
+    }
+  ]
+}

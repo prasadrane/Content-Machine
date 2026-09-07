@@ -1,0 +1,210 @@
+{
+  "summary": {
+    "provider": "relay",
+    "tests": {
+      "T1": {
+        "n": 3,
+        "http_ok": 3,
+        "json_parsed": 3,
+        "pydantic_valid": 2,
+        "bound_violations": [
+          {
+            "raw_scores": {},
+            "violations": [
+              "ValidationError: 1 validation error for CouncilScores\n  Invalid JSON: EOF while parsing a string at line 16 column 28 [type=json_invalid, input_value='{\\n  \"narrative\": 7.5,\\n...41e\\\\u0431\\\\u043d\\\\u043', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.11/v/json_invalid"
+            ]
+          }
+        ],
+        "median_latency_s": 41.8
+      },
+      "T2": {
+        "n": 3,
+        "http_ok": 3,
+        "json_parsed": 3,
+        "pydantic_valid": 2,
+        "bound_violations": [
+          {
+            "raw_scores": {},
+            "violations": [
+              "ValidationError: 3 validation errors for CouncilScores\nnarrative\n  Input should be less than or equal to 10 [type=less_than_equal, input_value=26.93656390961187, input_type=float]\n    For further information visit https://errors.pydantic.dev/2.11/v/less_than_equal\nvelocity\n  Input should be less than or equal to 10 "
+            ]
+          }
+        ],
+        "median_latency_s": 31.3
+      },
+      "T3": {
+        "n": 2,
+        "http_ok": 2,
+        "json_parsed": 2,
+        "pydantic_valid": 2,
+        "bound_violations": [],
+        "median_latency_s": 45.6
+      }
+    }
+  },
+  "trials": [
+    {
+      "test": "T1",
+      "mode": "parse",
+      "http_ok": true,
+      "json_parsed": true,
+      "pydantic_valid": true,
+      "violations": [],
+      "raw": {
+        "narrative": 8.5,
+        "velocity": 7.5,
+        "depth": 9.5,
+        "slop_purity": 9.5,
+        "threshold_met": true,
+        "verdict": "pass",
+        "required_actions": [
+          "Consider clarifying whether dashboard retention or churn-survey selection bias was the decisive issue.",
+          "Optionally add one sentence on what replaced the dashboard or how the setup flow was improved after removal."
+        ]
+      },
+      "latency_s": 41.78,
+      "error": ""
+    },
+    {
+      "test": "T1",
+      "mode": "parse",
+      "http_ok": true,
+      "json_parsed": true,
+      "pydantic_valid": false,
+      "violations": [
+        "ValidationError: 1 validation error for CouncilScores\n  Invalid JSON: EOF while parsing a string at line 16 column 28 [type=json_invalid, input_value='{\\n  \"narrative\": 7.5,\\n...41e\\\\u0431\\\\u043d\\\\u043', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.11/v/json_invalid"
+      ],
+      "raw": null,
+      "latency_s": 45.81,
+      "error": "ValidationError: 1 validation error for CouncilScores\n  Invalid JSON: EOF while parsing a string at line 16 column 28 [type=json_invalid, input_value='{\\n  \"narrative\": 7.5,\\n...41e\\\\u0431\\\\u043d\\\\u043', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.11/v/json_invalid"
+    },
+    {
+      "test": "T1",
+      "mode": "parse",
+      "http_ok": true,
+      "json_parsed": true,
+      "pydantic_valid": true,
+      "violations": [],
+      "raw": {
+        "narrative": 7.9,
+        "velocity": 9.6,
+        "depth": 8.9,
+        "slop_purity": 1.5,
+        "threshold_met": true,
+        "verdict": "pass",
+        "required_actions": [
+          "Add a title to the draft."
+        ]
+      },
+      "latency_s": 36.22,
+      "error": ""
+    },
+    {
+      "test": "T2",
+      "mode": "parse",
+      "http_ok": true,
+      "json_parsed": true,
+      "pydantic_valid": true,
+      "violations": [],
+      "raw": {
+        "narrative": 10.0,
+        "velocity": 10.0,
+        "depth": 10.0,
+        "slop_purity": 10.0,
+        "threshold_met": true,
+        "verdict": "pass",
+        "required_actions": [
+          "Recommend immediate publication in a high-visibility venue.",
+          "Consider pairing with a practical implementation guide or case study to maximize institutional impact.",
+          "Flag for internal distribution to product, data science, and leadership teams as a reference example of insight density and rhetorical precision."
+        ]
+      },
+      "latency_s": 29.31,
+      "error": ""
+    },
+    {
+      "test": "T2",
+      "mode": "parse",
+      "http_ok": true,
+      "json_parsed": true,
+      "pydantic_valid": false,
+      "violations": [
+        "ValidationError: 3 validation errors for CouncilScores\nnarrative\n  Input should be less than or equal to 10 [type=less_than_equal, input_value=26.93656390961187, input_type=float]\n    For further information visit https://errors.pydantic.dev/2.11/v/less_than_equal\nvelocity\n  Input should be less than or equal to 10 "
+      ],
+      "raw": null,
+      "latency_s": 31.31,
+      "error": "ValidationError: 3 validation errors for CouncilScores\nnarrative\n  Input should be less than or equal to 10 [type=less_than_equal, input_value=26.93656390961187, input_type=float]\n    For further information visit https://errors.pydantic.dev/2.11/v/less_than_equal\nvelocity\n  Input should be less than or equal to 10 "
+    },
+    {
+      "test": "T2",
+      "mode": "parse",
+      "http_ok": true,
+      "json_parsed": true,
+      "pydantic_valid": true,
+      "violations": [],
+      "raw": {
+        "narrative": 10.0,
+        "velocity": 10.0,
+        "depth": 10.0,
+        "slop_purity": 10.0,
+        "threshold_met": true,
+        "verdict": "pass",
+        "required_actions": [
+          "publish",
+          "anthology",
+          "study"
+        ]
+      },
+      "latency_s": 46.22,
+      "error": ""
+    },
+    {
+      "test": "T3",
+      "mode": "parse",
+      "http_ok": true,
+      "json_parsed": true,
+      "pydantic_valid": true,
+      "violations": [],
+      "raw": {
+        "narrative": 1.0,
+        "velocity": 1.0,
+        "depth": 1.0,
+        "slop_purity": 1.0,
+        "threshold_met": false,
+        "verdict": "reject",
+        "required_actions": [
+          "This piece should not be submitted in its current form. It is a single anecdote with one concluding maxim and no meaningful structure. Expand or cut. If kept, develop at least two dimensions: the decision-making process, the team conflict, the risk of survivorship bias being misread, or what happened after Friday. Add a scene with tension, not just outcome.",
+          "Add one concrete artifact: an excerpt from the churn survey, a snippet of a support ticket, or the exact metric dashboard before/after. Without evidence, the numbers read as rhetorical.",
+          "Slow the cadence. The sentences are all roughly the same length and rhythm. Vary syntax. Let one sentence stretch. Let one sentence snap.",
+          "The final line is the only line that matters, and it is delivered as a punchline. Bury it earlier or complicate it. The piece should not exist solely to land that sentence."
+        ]
+      },
+      "latency_s": 50.22,
+      "error": ""
+    },
+    {
+      "test": "T3",
+      "mode": "parse",
+      "http_ok": true,
+      "json_parsed": true,
+      "pydantic_valid": true,
+      "violations": [],
+      "raw": {
+        "narrative": 8.0,
+        "velocity": 9.0,
+        "depth": 7.0,
+        "slop_purity": 9.0,
+        "threshold_met": true,
+        "verdict": "pass",
+        "required_actions": [
+          "Standardize percent notation: either use '%' consistently or spell out 'percent' throughout.",
+          "Verify and document the 61% attribution methodology for onboarding failures before publication.",
+          "Add one sentence acknowledging possible confounds in the Tuesday-to-Friday metrics, such as rollout scope, seasonality, or cohort differences.",
+          "Clarify whether the dashboard was fully killed, hidden, or replaced, so the outcome is not overgeneralized."
+        ]
+      },
+      "latency_s": 40.99,
+      "error": ""
+    }
+  ]
+}
