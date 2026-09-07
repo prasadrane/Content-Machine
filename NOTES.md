@@ -242,4 +242,9 @@ Resume: invoke superpowers:subagent-driven-development on `docs/superpowers/plan
   - Added test suite `ui/src/components/distribute/DistributeHistoryDrawer.test.jsx`.
   - Verification: 21/21 Vitest suites (64/64 tests) pass; 216/216 Python tests pass; Vite production build green.
 
-
+## Bugfix -- Oracle Source Cockpit Preset Selection State (2026-09-06)
+- Fixed issue where configured preset pills under RSS, GitHub, and LinkedIn panes in Oracle Source Cockpit did not reflect active/selected status.
+- Added visual indicator (`✓ {label}`) and active highlight (`bg-[#141413] text-[#faf9f5]`) when a preset URL/repo/handle is present in the source input.
+- Added toggle support on preset pills (clicking an already selected preset now cleanly removes it from the textarea).
+- Added unit test suite `ui/src/components/oracle/SourceCockpit.test.jsx`.
+- Verification: 22/22 Vitest test files (66/66 tests) pass; 216/216 Python tests pass; Vite production build succeeds cleanly.
