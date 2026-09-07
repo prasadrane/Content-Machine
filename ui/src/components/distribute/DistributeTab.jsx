@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { Sliders } from 'lucide-react'
-import { runDistribute } from '../../api/distribute'
+import { Sliders, History } from 'lucide-react'
+import { runDistribute, getDistributeHistory } from '../../api/distribute'
 import { DISTRIBUTION_FORMATS } from '../../lib/constants'
 import { useCopyToClipboard } from '../../hooks/useCopyToClipboard'
 import AnchorForm from './AnchorForm'
 import OutputPreviews from './OutputPreviews'
 import PlatformConfigModal from './PlatformConfigModal'
+import DistributeHistoryDrawer from './DistributeHistoryDrawer'
 
 export default function DistributeTab({ initialText, initialSlug }) {
   const [anchorText, setAnchorText] = useState(initialText || '')
@@ -16,6 +17,9 @@ export default function DistributeTab({ initialText, initialSlug }) {
   const [activeFormat, setActiveFormat] = useState('linkedin')
   const { copied, copy } = useCopyToClipboard()
   const [showConfigModal, setShowConfigModal] = useState(false)
+  const [showHistoryDrawer, setShowHistoryDrawer] = useState(false)
+  const [historyItems, setHistoryItems] = useState([])
+  const [historyLoading, setHistoryLoading] = useState(false)
   const [humanize, setHumanize] = useState(true)
   const [humanizeTone, setHumanizeTone] = useState('pragmatic_architect')
 
@@ -33,6 +37,41 @@ export default function DistributeTab({ initialText, initialSlug }) {
     if (initialText) setAnchorText(initialText)
     if (initialSlug) setSlug(initialSlug)
   }, [initialText, initialSlug])
+
+  const fetchHistory = async () => {
+    setHistoryLoading(true)
+    try {
+      const data = await getDistributeHistory()
+      setHistoryItems(data?.items || [])
+    } catch {
+      // ignore
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchHistory()
+  }, [])
+
+  const handleSelectHistoryItem = (item) => {
+    if (!item) return
+    if (item.anchor_text) {
+      setAnchorText(item.anchor_text)
+    }
+    if (item.slug) {
+      setSlug(item.slug)
+    }
+    if (item.has_bundle && item.bundle && Object.keys(item.bundle).length > 0) {
+      setBundle(item.bundle)
+      const priorityOrder = ['linkedin', 'x_thread', 'video_script_short', 'video_script', 'video_script_long', 'newsletter']
+      const firstAvailable = priorityOrder.find(k => item.bundle[k])
+      if (firstAvailable) {
+        setActiveFormat(firstAvailable)
+      }
+    }
+    setShowHistoryDrawer(false)
+  }
 
   const toggleFormat = (id) => {
     setEnabledFormats(prev => {
@@ -89,6 +128,7 @@ export default function DistributeTab({ initialText, initialSlug }) {
         tone: humanizeTone,
       })
       setBundle(data)
+      fetchHistory()
 
       const priorityOrder = ['linkedin', 'x_thread', 'video_script_short', 'video_script', 'video_script_long', 'newsletter']
       const firstAvailable = priorityOrder.find(k => data[k])
@@ -134,15 +174,26 @@ export default function DistributeTab({ initialText, initialSlug }) {
           </p>
         </div>
 
-        {/* Configuration Modal Trigger */}
-        <button
-          type="button"
-          onClick={() => setShowConfigModal(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-mono bg-[#f0eee6] border border-[#e3dacc] hover:border-[#b0aea5] text-[#141413] transition shadow-anthropic self-start sm:self-auto"
-        >
-          <Sliders className="w-3.5 h-3.5 text-[#c6613f]" />
-          <span>Platforms ({activeFormatKeys.length}/5)</span>
-        </button>
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
+          <button
+            type="button"
+            onClick={() => setShowHistoryDrawer(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-mono bg-[#faf9f5] border border-[#e3dacc] hover:border-[#b0aea5] hover:text-[#141413] text-[#87867f] transition shadow-anthropic"
+          >
+            <History className="w-3.5 h-3.5 text-[#c6613f]" />
+            <span>History ({historyItems.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowConfigModal(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-mono bg-[#f0eee6] border border-[#e3dacc] hover:border-[#b0aea5] text-[#141413] transition shadow-anthropic"
+          >
+            <Sliders className="w-3.5 h-3.5 text-[#c6613f]" />
+            <span>Platforms ({activeFormatKeys.length}/5)</span>
+          </button>
+        </div>
       </div>
 
       {/* Main Grid */}
@@ -185,6 +236,14 @@ export default function DistributeTab({ initialText, initialSlug }) {
         onToggleFormat={toggleFormat}
         onSelectAll={selectAllFormats}
         onResetDefaults={resetDefaultFormats}
+      />
+
+      <DistributeHistoryDrawer
+        show={showHistoryDrawer}
+        onClose={() => setShowHistoryDrawer(false)}
+        items={historyItems}
+        loading={historyLoading}
+        onSelect={handleSelectHistoryItem}
       />
     </div>
   )

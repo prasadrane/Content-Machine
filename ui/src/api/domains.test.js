@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { runCouncil, getCouncilHistory, getCouncilSpikes } from './council'
 import { getLessons, addCustomLesson, diffLessons, approveLesson, rejectLesson } from './lessons'
-import { runDistribute } from './distribute'
+import { runDistribute, getDistributeHistory } from './distribute'
 import { getBrief, synthesizeDraft, transcribeAudio } from './interview'
 import { generateComments, getCommentsHistory } from './comments'
 import { getProfile, saveProfile } from './profile'
@@ -35,7 +35,8 @@ describe('domain api modules hit exact endpoints', () => {
   it('distribute + humanize', async () => {
     stub()
     await runDistribute({ text: 't' }); expect(fetch.mock.calls[0][0]).toBe('/api/distribute/run')
-    await runHumanize({ text: 't' });   expect(fetch.mock.calls[1][0]).toBe('/api/humanize')
+    await getDistributeHistory();        expect(fetch.mock.calls[1][0]).toBe('/api/distribute/history')
+    await runHumanize({ text: 't' });   expect(fetch.mock.calls[2][0]).toBe('/api/humanize')
   })
   it('interview json endpoints', async () => {
     stub()

@@ -41,6 +41,8 @@ from content_machine.schemas import (
     ProfileData,
     UpdateProfileRequest,
     DistributeRunRequest,
+    DistributeHistoryItem,
+    DistributeHistoryResponse,
     HumanizeRequest,
     HumanizeResult,
 )
@@ -779,8 +781,167 @@ def distribute_run(req: DistributeRunRequest):
         tone=req.tone,
     )
     if req.project_slug:
-        engine.save_bundle(req.project_slug, bundle)
+        engine.save_bundle(req.project_slug, bundle, anchor_post=req.anchor_post)
     return DistributeRunResponse(**bundle)
+
+
+@app.get("/api/distribute/history", response_model=DistributeHistoryResponse)
+def distribute_history():
+    import datetime
+    from content_machine.storage.paths import home_root
+
+    root = home_root()
+    db_conn = _make_db()
+    items_by_slug: dict[str, DistributeHistoryItem] = {}
+
+    # 1. Query SQLite iterations grouped by spike_id
+    rows = db_conn.execute(
+        """
+        SELECT 
+            spike_id,
+            MAX(composite_raw) as peak_score,
+            MAX(created_at) as updated_at
+        FROM iterations
+        GROUP BY spike_id
+        ORDER BY updated_at DESC
+        """
+    ).fetchall()
+
+    for r in rows:
+        spike_id = r["spike_id"]
+        peak_score = round(float(r["peak_score"] or 0.0), 3)
+        updated_at = r["updated_at"]
+
+        peak_row = db_conn.execute(
+            """
+            SELECT draft_content, draft_path
+            FROM iterations
+            WHERE spike_id = ?
+            ORDER BY composite_raw DESC, id DESC
+            LIMIT 1
+            """,
+            (spike_id,),
+        ).fetchone()
+
+        anchor_text = ""
+        if peak_row:
+            anchor_text = peak_row["draft_content"] or ""
+            if not anchor_text and peak_row["draft_path"] and not str(peak_row["draft_path"]).startswith("(unsaved)"):
+                try:
+                    p = Path(peak_row["draft_path"])
+                    if p.is_file():
+                        anchor_text = p.read_text(encoding="utf-8")
+                except Exception:
+                    pass
+
+        title = None
+        spike_row = db_conn.execute(
+            "SELECT hook_thesis FROM spikes WHERE id = ? LIMIT 1",
+            (spike_id,),
+        ).fetchone()
+        if spike_row and spike_row["hook_thesis"]:
+            title = spike_row["hook_thesis"]
+
+        pdir = root / "projects" / spike_id / "distribution"
+        bundle_dict = {}
+        formats = []
+        if pdir.is_dir():
+            for f in pdir.glob("*.md"):
+                if f.stem == "anchor":
+                    if not anchor_text:
+                        try:
+                            anchor_text = f.read_text(encoding="utf-8")
+                        except Exception:
+                            pass
+                    continue
+                try:
+                    content = f.read_text(encoding="utf-8")
+                    bundle_dict[f.stem] = content
+                    formats.append(f.stem)
+                except Exception:
+                    pass
+
+        has_bundle = bool(bundle_dict)
+        source = "distributed" if has_bundle else "council"
+
+        if not title and anchor_text:
+            first_line = anchor_text.strip().split("\n")[0]
+            title = first_line[:120]
+
+        items_by_slug[spike_id] = DistributeHistoryItem(
+            slug=spike_id,
+            title=title,
+            anchor_text=anchor_text,
+            peak_score=peak_score,
+            has_bundle=has_bundle,
+            bundle=bundle_dict,
+            available_formats=formats,
+            updated_at=updated_at,
+            source=source,
+        )
+
+    # 2. Check disk for projects under ~/.content_machine/projects/ not in DB
+    projects_dir = root / "projects"
+    if projects_dir.is_dir():
+        for p in projects_dir.iterdir():
+            if not p.is_dir() or p.name.startswith("."):
+                continue
+            slug = p.name
+            if slug in items_by_slug:
+                continue
+
+            dist_dir = p / "distribution"
+            if not dist_dir.is_dir():
+                continue
+
+            bundle_dict = {}
+            formats = []
+            anchor_text = ""
+            anchor_file = dist_dir / "anchor.md"
+            if anchor_file.is_file():
+                try:
+                    anchor_text = anchor_file.read_text(encoding="utf-8")
+                except Exception:
+                    pass
+
+            for f in dist_dir.glob("*.md"):
+                if f.stem == "anchor":
+                    continue
+                try:
+                    content = f.read_text(encoding="utf-8")
+                    bundle_dict[f.stem] = content
+                    formats.append(f.stem)
+                    if not anchor_text:
+                        anchor_text = content
+                except Exception:
+                    pass
+
+            if not bundle_dict and not anchor_text:
+                continue
+
+            title = None
+            if anchor_text:
+                first_line = anchor_text.strip().split("\n")[0]
+                title = first_line[:120]
+
+            mtime = dist_dir.stat().st_mtime
+            updated_at = datetime.datetime.fromtimestamp(mtime, tz=datetime.timezone.utc).isoformat()
+
+            items_by_slug[slug] = DistributeHistoryItem(
+                slug=slug,
+                title=title,
+                anchor_text=anchor_text,
+                peak_score=None,
+                has_bundle=bool(bundle_dict),
+                bundle=bundle_dict,
+                available_formats=formats,
+                updated_at=updated_at,
+                source="distributed",
+            )
+
+    sorted_items = sorted(items_by_slug.values(), key=lambda x: x.updated_at, reverse=True)
+    return DistributeHistoryResponse(items=sorted_items, total=len(sorted_items))
+
 
 
 

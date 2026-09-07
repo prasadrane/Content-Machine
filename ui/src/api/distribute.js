@@ -3,3 +3,7 @@ import { fetchJson } from './client'
 export function runDistribute(payload) {
   return fetchJson('/api/distribute/run', { method: 'POST', body: payload })
 }
+
+export function getDistributeHistory() {
+  return fetchJson('/api/distribute/history')
+}

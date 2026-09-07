@@ -184,5 +184,23 @@ class DistributeRunRequest(BaseModel):
     tone: HumanizeTone = Field(default=HumanizeTone.PRAGMATIC_ARCHITECT)
 
 
+class DistributeHistoryItem(BaseModel):
+    slug: str
+    title: Optional[str] = None
+    anchor_text: str
+    peak_score: Optional[float] = None
+    has_bundle: bool = False
+    bundle: dict[str, str] = Field(default_factory=dict)
+    available_formats: list[str] = Field(default_factory=list)
+    updated_at: str
+    source: str = "council"
+
+
+class DistributeHistoryResponse(BaseModel):
+    items: list[DistributeHistoryItem]
+    total: int
+
+
+
 
 

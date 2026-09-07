@@ -250,11 +250,19 @@ class DistributionEngine:
         return bundle
 
 
-    def save_bundle(self, project_slug: str, bundle: dict[str, str]) -> Path:
+    def save_bundle(
+        self,
+        project_slug: str,
+        bundle: dict[str, str],
+        anchor_post: Optional[str] = None,
+    ) -> Path:
         """Save bundle assets to projects/{slug}/distribution/{channel}.md."""
         pdir = project_dir(project_slug, create=True)
         dist_dir = pdir / "distribution"
         dist_dir.mkdir(parents=True, exist_ok=True)
+
+        if anchor_post:
+            (dist_dir / "anchor.md").write_text(anchor_post, encoding="utf-8")
 
         for key, text in bundle.items():
             if not text:
