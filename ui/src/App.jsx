@@ -49,10 +49,11 @@ import { runCouncil, getCouncilHistory, getCouncilSpikes } from './api/council'
 import { runHumanize } from './api/humanize'
 import { getLessons, addCustomLesson, diffLessons, approveLesson, rejectLesson } from './api/lessons'
 import { runDistribute } from './api/distribute'
-import { getBrief, synthesizeDraft, transcribeAudio } from './api/interview'
+import { getBrief, synthesizeDraft } from './api/interview'
 import { generateComments, getCommentsHistory } from './api/comments'
 import { getProfile, saveProfile } from './api/profile'
 import { useCopyToClipboard } from './hooks/useCopyToClipboard'
+import { useVoiceRecording } from './hooks/useVoiceRecording'
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('oracle')
@@ -201,150 +202,28 @@ function InterviewModal({ item, onClose, onSynthesizeComplete, onSkipToCouncil }
   const [synthesizing, setSynthesizing] = useState(false)
   const [synthError, setSynthError] = useState('')
 
-  // Voice Input State (Web Speech API + MediaRecorder Fallback)
-  const [recordingTarget, setRecordingTarget] = useState(null)
-  const [recordingError, setRecordingError] = useState('')
-  const [isTranscribingAudio, setIsTranscribingAudio] = useState(false)
-  const recognitionRef = useRef(null)
-  const mediaRecorderRef = useRef(null)
-  const audioChunksRef = useRef([])
-
-  const stopVoiceRecording = () => {
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop()
-      } catch (e) {}
-      recognitionRef.current = null
-    }
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      try {
-        mediaRecorderRef.current.stop()
-      } catch (e) {}
-    }
-    setRecordingTarget(null)
-  }
-
-  const startVoiceRecording = async (target) => {
-    setRecordingError('')
-    if (recordingTarget === target) {
-      stopVoiceRecording()
-      return
-    }
-
-    if (recordingTarget !== null) {
-      stopVoiceRecording()
-    }
-
-    const SpeechRecognition = typeof window !== 'undefined' ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null
-    if (SpeechRecognition) {
-      try {
-        const recog = new SpeechRecognition()
-        recog.continuous = true
-        recog.interimResults = true
-        recog.lang = 'en-US'
-
-        recog.onstart = () => {
-          setRecordingTarget(target)
-        }
-
-        recog.onresult = (event) => {
-          let sessionFinal = ''
-          for (let i = event.resultIndex; i < event.results.length; ++i) {
-            if (event.results[i].isFinal) {
-              sessionFinal += event.results[i][0].transcript + ' '
-            }
+  // Voice Input (Web Speech dictation + backend transcribe fallback) — see hooks/useVoiceRecording
+  const {
+    startRecording: startVoiceRecording,
+    recordingTarget,
+    isTranscribing: isTranscribingAudio,
+    error: recordingError,
+    setError: setRecordingError,
+  } = useVoiceRecording({
+    onTranscript: (text, target) => {
+      if (target === 'raw') {
+        setRawNotes((prev) => (prev ? prev.trim() + ' ' + text : text))
+      } else {
+        setAnswers((prev) => {
+          const current = prev[target] || ''
+          return {
+            ...prev,
+            [target]: current ? current.trim() + ' ' + text : text,
           }
-          if (sessionFinal.trim()) {
-            const textToAdd = sessionFinal.trim()
-            if (target === 'raw') {
-              setRawNotes((prev) => (prev ? prev.trim() + ' ' + textToAdd : textToAdd))
-            } else {
-              setAnswers((prev) => {
-                const current = prev[target] || ''
-                return {
-                  ...prev,
-                  [target]: current ? current.trim() + ' ' + textToAdd : textToAdd,
-                }
-              })
-            }
-          }
-        }
-
-        recog.onerror = (event) => {
-          if (event.error !== 'no-speech') {
-            setRecordingError(`Voice input error: ${event.error}`)
-          }
-          setRecordingTarget(null)
-        }
-
-        recog.onend = () => {
-          setRecordingTarget((prev) => (prev === target ? null : prev))
-        }
-
-        recognitionRef.current = recog
-        recog.start()
-        return
-      } catch (err) {
-        console.warn('SpeechRecognition failed, falling back to MediaRecorder:', err)
+        })
       }
-    }
-
-    // Fallback: MediaRecorder + backend /api/interview/transcribe
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mediaRecorder = new MediaRecorder(stream)
-      mediaRecorderRef.current = mediaRecorder
-      audioChunksRef.current = []
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          audioChunksRef.current.push(e.data)
-        }
-      }
-
-      mediaRecorder.onstop = async () => {
-        stream.getTracks().forEach((track) => track.stop())
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
-        if (audioBlob.size === 0) return
-
-        setIsTranscribingAudio(true)
-        try {
-          const data = await transcribeAudio(audioBlob, 'recording.webm')
-          if (data.text) {
-            const textToAdd = data.text.trim()
-            if (target === 'raw') {
-              setRawNotes((prev) => (prev ? prev.trim() + ' ' + textToAdd : textToAdd))
-            } else {
-              setAnswers((prev) => {
-                const current = prev[target] || ''
-                return {
-                  ...prev,
-                  [target]: current ? current.trim() + ' ' + textToAdd : textToAdd,
-                }
-              })
-            }
-          }
-        } catch (err) {
-          setRecordingError(err.message || 'Failed to transcribe audio.')
-        } finally {
-          setIsTranscribingAudio(false)
-          setRecordingTarget(null)
-        }
-      }
-
-      mediaRecorder.start()
-      setRecordingTarget(target)
-    } catch (err) {
-      setRecordingError('Microphone access denied or audio recording unavailable.')
-      setRecordingTarget(null)
-    }
-  }
-
-  useEffect(() => {
-    return () => {
-      stopVoiceRecording()
-    }
-  }, [])
+    },
+  })
 
   useEffect(() => {
     if (!item) return
@@ -3574,18 +3453,6 @@ function CommentingTab() {
   const [historyLoading, setHistoryLoading] = useState(false)
   const [showHistory, setShowHistory] = useState(true)
 
-  // Voice recording state & refs
-  const [isRecording, setIsRecording] = useState(false)
-  const [recordingSeconds, setRecordingSeconds] = useState(0)
-  const [isTranscribing, setIsTranscribing] = useState(false)
-  const [recordingError, setRecordingError] = useState('')
-
-  const recognitionRef = useRef(null)
-  const mediaRecorderRef = useRef(null)
-  const audioChunksRef = useRef([])
-  const recordingTimerRef = useRef(null)
-  const recordingTimeoutRef = useRef(null)
-
   const ANGLES = [
     {
       id: 'insightful',
@@ -3647,166 +3514,18 @@ function CommentingTab() {
     fetchHistory()
   }, [])
 
-  const stopVoiceRecording = () => {
-    if (recordingTimeoutRef.current) {
-      clearTimeout(recordingTimeoutRef.current)
-      recordingTimeoutRef.current = null
-    }
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop()
-      } catch (e) {}
-      recognitionRef.current = null
-    }
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      try {
-        mediaRecorderRef.current.stop()
-      } catch (e) {}
-    }
-    if (recordingTimerRef.current) {
-      clearInterval(recordingTimerRef.current)
-      recordingTimerRef.current = null
-    }
-    setIsRecording(false)
-  }
-
-  const startVoiceRecording = async () => {
-    setRecordingError('')
-    if (isRecording) {
-      stopVoiceRecording()
-      return
-    }
-
-    setRecordingSeconds(0)
-
-    if (recordingTimeoutRef.current) {
-      clearTimeout(recordingTimeoutRef.current)
-      recordingTimeoutRef.current = null
-    }
-    // 120-second automatic recording stop timeout safeguard
-    recordingTimeoutRef.current = setTimeout(() => {
-      stopVoiceRecording()
-    }, 120000)
-
-    const SpeechRecognition = typeof window !== 'undefined'
-      ? (window.SpeechRecognition || window.webkitSpeechRecognition)
-      : null
-
-    if (SpeechRecognition) {
-      try {
-        const recog = new SpeechRecognition()
-        recog.continuous = true
-        recog.interimResults = true
-        recog.lang = 'en-US'
-
-        recog.onstart = () => {
-          setIsRecording(true)
-          recordingTimerRef.current = setInterval(() => {
-            setRecordingSeconds((prev) => {
-              if (prev + 1 >= 120) {
-                stopVoiceRecording()
-                return 120
-              }
-              return prev + 1
-            })
-          }, 1000)
-        }
-
-        recog.onresult = (event) => {
-          let sessionFinal = ''
-          for (let i = event.resultIndex; i < event.results.length; ++i) {
-            if (event.results[i].isFinal) {
-              sessionFinal += event.results[i][0].transcript + ' '
-            }
-          }
-          if (sessionFinal.trim()) {
-            const textToAdd = sessionFinal.trim()
-            setPerspectiveText((prev) => (prev ? prev.trim() + ' ' + textToAdd : textToAdd))
-          }
-        }
-
-        recog.onerror = (event) => {
-          if (event.error !== 'no-speech') {
-            setRecordingError(`Voice input error: ${event.error}`)
-          }
-          stopVoiceRecording()
-        }
-
-        recog.onend = () => {
-          stopVoiceRecording()
-        }
-
-        recognitionRef.current = recog
-        recog.start()
-        return
-      } catch (err) {
-        console.warn('SpeechRecognition failed, falling back to MediaRecorder:', err)
-      }
-    }
-
-    // Fallback: MediaRecorder + backend /api/interview/transcribe
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mediaRecorder = new MediaRecorder(stream)
-      mediaRecorderRef.current = mediaRecorder
-      audioChunksRef.current = []
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          audioChunksRef.current.push(e.data)
-        }
-      }
-
-      mediaRecorder.onstart = () => {
-        setIsRecording(true)
-        recordingTimerRef.current = setInterval(() => {
-          setRecordingSeconds((prev) => {
-            if (prev + 1 >= 120) {
-              stopVoiceRecording()
-              return 120
-            }
-            return prev + 1
-          })
-        }, 1000)
-      }
-
-      mediaRecorder.onstop = async () => {
-        stream.getTracks().forEach((track) => track.stop())
-        if (recordingTimerRef.current) {
-          clearInterval(recordingTimerRef.current)
-          recordingTimerRef.current = null
-        }
-        setIsRecording(false)
-
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
-        if (audioBlob.size === 0) return
-
-        setIsTranscribing(true)
-        try {
-          const data = await transcribeAudio(audioBlob, 'recording.webm')
-          if (data.text) {
-            const textToAdd = data.text.trim()
-            setPerspectiveText((prev) => (prev ? prev.trim() + ' ' + textToAdd : textToAdd))
-          }
-        } catch (err) {
-          setRecordingError(err.message || 'Failed to transcribe audio.')
-        } finally {
-          setIsTranscribing(false)
-        }
-      }
-
-      mediaRecorder.start()
-    } catch (err) {
-      setRecordingError('Microphone access denied or audio recording unavailable.')
-      stopVoiceRecording()
-    }
-  }
-
-  useEffect(() => {
-    return () => {
-      stopVoiceRecording()
-    }
-  }, [])
+  // Voice recording — see hooks/useVoiceRecording
+  const [recordingSeconds, setRecordingSeconds] = useState(0)
+  const {
+    startRecording: startVoiceRecording,
+    isRecording,
+    isTranscribing,
+    error: recordingError,
+    setError: setRecordingError,
+  } = useVoiceRecording({
+    onTranscript: (text) => setPerspectiveText((prev) => (prev ? prev.trim() + ' ' + text : text)),
+    onSecondTick: (seconds) => setRecordingSeconds(seconds),
+  })
 
   const formatTimer = (seconds) => {
     const mins = Math.floor(seconds / 60)
@@ -4001,7 +3720,7 @@ function CommentingTab() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={startVoiceRecording}
+                onClick={() => startVoiceRecording()}
                 disabled={isTranscribing}
                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono transition shadow-sm ${
                   isRecording
