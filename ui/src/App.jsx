@@ -54,6 +54,7 @@ import { generateComments, getCommentsHistory } from './api/comments'
 import { getProfile, saveProfile } from './api/profile'
 import { useCopyToClipboard } from './hooks/useCopyToClipboard'
 import { useVoiceRecording } from './hooks/useVoiceRecording'
+import TabBtn from './components/ui/TabBtn'
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('oracle')
@@ -155,21 +156,6 @@ export default function App() {
         <p>Content Machine</p>
       </footer>
     </div>
-  )
-}
-
-function TabBtn({ active, onClick, label }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-        active 
-          ? 'bg-[#e3dacc]/70 text-[#141413] font-semibold' 
-          : 'text-[#87867f] hover:text-[#141413] hover:bg-[#e3dacc]/30'
-      }`}
-    >
-      <span>{label}</span>
-    </button>
   )
 }
 
