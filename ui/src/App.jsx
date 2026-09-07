@@ -1,84 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { 
-  Compass, 
-  Users, 
-  BookOpen, 
-  Mic, 
-  ArrowRight, 
-  CheckCircle2, 
-  AlertCircle, 
-  XCircle, 
-  ExternalLink, 
-  RotateCw, 
-  Sparkles,
-  Layers,
-  ChevronRight,
-  ShieldAlert,
-  ShieldCheck,
-  Zap,
-  FileText,
-  Share2,
-  Copy,
-  Check,
-  History,
-  Trophy,
-  Clock,
-  Sliders,
-  Settings,
-  X,
-  Search,
-  Filter,
-  Tag,
-  Database,
-  Globe,
-  Flame,
-  MessageSquare,
-  ChevronDown,
-  ChevronUp,
-  User,
-  Save,
-  Plus
-} from 'lucide-react'
-import { getTopicBadgeClass, formatTopicLabel } from './lib/topics'
-import { DIMENSION_LABELS, HUMANIZE_TONES, DISTRIBUTION_FORMATS, CORE_VOICE_INVARIANTS } from './lib/constants'
-import { useServerHealth } from './app/useServerHealth'
-import OracleTab from './components/oracle/OracleTab'
+import React, { useState } from 'react'
 import TabBtn from './components/ui/TabBtn'
-import ProfileTab from './components/profile/ProfileTab'
-import CommentingTab from './components/commenting/CommentingTab'
-import AudioTab from './components/audio/AudioTab'
-import LessonsTab from './components/lessons/LessonsTab'
-import DistributeTab from './components/distribute/DistributeTab'
-import CouncilTab from './components/council/CouncilTab'
+import { TABS } from './app/tabs'
+import { useServerHealth } from './app/useServerHealth'
+import { useSharedFlow } from './app/useSharedFlow'
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('oracle')
   const serverOnline = useServerHealth()
-
-  // Shared state between Oracle, Council, and Distribute
-  const [councilDraft, setCouncilDraft] = useState('')
-  const [councilSpikeId, setCouncilSpikeId] = useState('spike-1')
-  const [distributeText, setDistributeText] = useState('')
-  const [distributeSlug, setDistributeSlug] = useState('post-1')
-
-  const handleSendToCouncil = (item) => {
-    setCouncilSpikeId(item.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 30))
-    const snippetBlock = item.body_snippet ? `> ${item.body_snippet}\n\n` : ''
-    setCouncilDraft(`# ${item.title}\n\n${item.url ? `Source: ${item.url}\n\n` : ''}${snippetBlock}Draft content goes here...`)
-    setActiveTab('council')
-  }
-
-  const handleSendToCouncilWithDraft = (draftText, slug) => {
-    setCouncilSpikeId(slug || 'spike-1')
-    setCouncilDraft(draftText)
-    setActiveTab('council')
-  }
-
-  const handleSendToDistribute = (text, slug) => {
-    setDistributeText(text)
-    setDistributeSlug(slug || 'published-post')
-    setActiveTab('distribute')
-  }
+  const shared = useSharedFlow(setActiveTab)
 
   return (
     <div className="min-h-screen w-full bg-[#faf9f5] text-[#141413] flex flex-col font-sans selection:bg-[#c6613f]/20 selection:text-[#c6613f]">
@@ -100,13 +29,14 @@ export default function App() {
 
           {/* Minimalist Navigation Bar */}
           <nav className="flex items-center gap-1 sm:gap-1.5" aria-label="Main Navigation">
-            <TabBtn active={activeTab === 'oracle'} onClick={() => setActiveTab('oracle')} label="Oracle" />
-            <TabBtn active={activeTab === 'council'} onClick={() => setActiveTab('council')} label="Council" />
-            <TabBtn active={activeTab === 'distribute'} onClick={() => setActiveTab('distribute')} label="Distribute" />
-            <TabBtn active={activeTab === 'lessons'} onClick={() => setActiveTab('lessons')} label="Lessons" />
-            <TabBtn active={activeTab === 'audio'} onClick={() => setActiveTab('audio')} label="Audio" />
-            <TabBtn active={activeTab === 'commenting'} onClick={() => setActiveTab('commenting')} label="Comments" />
-            <TabBtn active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} label="Profile" />
+            {TABS.map(({ id, label }) => (
+              <TabBtn
+                key={id}
+                active={activeTab === id}
+                onClick={() => setActiveTab(id)}
+                label={label}
+              />
+            ))}
           </nav>
 
           {/* Minimal Live Status */}
@@ -119,31 +49,11 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-8">
-        {activeTab === 'oracle' && (
-          <OracleTab 
-            onSendToCouncil={handleSendToCouncil} 
-            onSendToCouncilWithDraft={handleSendToCouncilWithDraft} 
-          />
+        {TABS.map(({ id, Component, getProps }) =>
+          activeTab === id ? (
+            <Component key={id} {...(getProps ? getProps(shared) : {})} />
+          ) : null
         )}
-        {activeTab === 'council' && (
-          <CouncilTab 
-            draft={councilDraft} 
-            setDraft={setCouncilDraft} 
-            spikeId={councilSpikeId} 
-            setSpikeId={setCouncilSpikeId}
-            onSendToDistribute={handleSendToDistribute}
-          />
-        )}
-        {activeTab === 'distribute' && (
-          <DistributeTab 
-            initialText={distributeText} 
-            initialSlug={distributeSlug} 
-          />
-        )}
-        {activeTab === 'profile' && <ProfileTab />}
-        {activeTab === 'commenting' && <CommentingTab />}
-        {activeTab === 'lessons' && <LessonsTab />}
-        {activeTab === 'audio' && <AudioTab />}
       </main>
 
       {/* Editorial Footer */}
@@ -153,8 +63,3 @@ export default function App() {
     </div>
   )
 }
-
-
-// ==========================================
-// 1. ORACLE TAB (Ingestion & Idea Scoring)
-// ==========================================\n
