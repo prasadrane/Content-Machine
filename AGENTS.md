@@ -66,7 +66,22 @@ Content-Machine/
 │   └── 03_content-lessons.md
 ├── tests/                        # Full test suite (129+ tests, 100% offline-capable)
 └── ui/                           # Minimalist React + Vite + Tailwind CSS SPA
-    ├── src/                      # App.jsx, components, style tokens
+    ├── src/
+    │   ├── App.jsx               # Declarative root shell (≤70 lines)
+    │   ├── main.jsx              # Vite entrypoint
+    │   ├── app/                  # App-level registry & orchestration (tabs, useServerHealth, useSharedFlow)
+    │   ├── api/                  # Dedicated API clients (oracle, council, distribute, profile, comments, etc.)
+    │   ├── hooks/                # Reusable UI hooks (useVoiceRecording, useCopyToClipboard)
+    │   ├── lib/                  # Shared domain constants & topic helpers (topics, constants)
+    │   └── components/           # Feature slices & presentational components
+    │       ├── ui/               # Presentational primitives (TabBtn)
+    │       ├── oracle/           # Subsystem 1: Cockpit, CandidateStream, HUD, Archive, Interview
+    │       ├── council/          # Subsystem 4: DraftingStudio, VerdictPanel, HistoryTimeline, HumanizedDraftCard
+    │       ├── distribute/       # Subsystem 6: AnchorForm, OutputPreviews, PlatformConfigModal
+    │       ├── commenting/       # InputPanel, PolishCard, CommentsHistory
+    │       ├── lessons/          # Subsystem 5: RulesLists, ProposalsQueue, DiffExtractor, CustomRuleCard
+    │       ├── audio/            # Subsystem 2: Voice intake, transcript recorder
+    │       └── profile/          # Author persona, core themes, voice invariants
     ├── package.json
     └── vite.config.js
 ```
@@ -129,7 +144,16 @@ python tests/test_api.py
 python tests/test_distribution.py
 python tests/test_linkedin_connector.py
 python tests/test_cli.py
+
+# Run frontend test suite (Vitest, 57+ tests offline)
+cd ui
+npm test          # or npx vitest run
 ```
+
+### UI Architectural Invariants
+- **No raw fetch() outside `ui/src/api/`**: All network calls must go through typed domain clients.
+- **Open-Closed Principle (OCP)**: New tabs are registered in `ui/src/app/tabs.js` without modifying `App.jsx`.
+- **Target ≤300 lines/file**: Hard cap 350 lines (orchestrators only). App.jsx target ≤120 lines.
 
 ### Live Smoke Verification
 To run the live council smoke test with actual LLM calls (requires active relay & credentials):
