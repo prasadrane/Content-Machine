@@ -46,23 +46,29 @@ export default function SourceCockpit({
     setRssUrls(viralRadarAllUrls.join('\n'))
   }
 
-  const handleAddPreset = (url) => {
+  const handleTogglePreset = (url) => {
     const current = rssUrls.split('\n').map(s => s.trim()).filter(Boolean)
-    if (!current.includes(url)) {
+    if (current.includes(url)) {
+      setRssUrls(current.filter(u => u !== url).join('\n'))
+    } else {
       setRssUrls(prev => prev.trim() ? `${prev.trim()}\n${url}` : url)
     }
   }
 
-  const handleAddGithubPreset = (repo) => {
+  const handleToggleGithubPreset = (repo) => {
     const current = githubRepos.split('\n').map(s => s.trim()).filter(Boolean)
-    if (!current.includes(repo)) {
+    if (current.includes(repo)) {
+      setGithubRepos(current.filter(r => r !== repo).join('\n'))
+    } else {
       setGithubRepos(prev => prev.trim() ? `${prev.trim()}\n${repo}` : repo)
     }
   }
 
-  const handleAddLinkedInPreset = (handle) => {
+  const handleToggleLinkedInPreset = (handle) => {
     const current = linkedInProfiles.split('\n').map(s => s.trim()).filter(Boolean)
-    if (!current.includes(handle)) {
+    if (current.includes(handle)) {
+      setLinkedInProfiles(current.filter(h => h !== handle).join('\n'))
+    } else {
       setLinkedInProfiles(prev => prev.trim() ? `${prev.trim()}\n${handle}` : handle)
     }
   }
@@ -144,7 +150,7 @@ export default function SourceCockpit({
             setRssUrls={setRssUrls}
             rssCount={rssCount}
             onLoadViralRadar={handleLoadViralRadar}
-            onAddPreset={handleAddPreset}
+            onAddPreset={handleTogglePreset}
             redditPresets={redditPresets}
             newsletterPresets={newsletterPresets}
             devFeedPresets={devFeedPresets}
@@ -160,7 +166,7 @@ export default function SourceCockpit({
             setGithubRepos={setGithubRepos}
             ghCount={ghCount}
             githubPresets={githubPresets}
-            onAddGithubPreset={handleAddGithubPreset}
+            onAddGithubPreset={handleToggleGithubPreset}
           />
         )}
 
@@ -175,7 +181,7 @@ export default function SourceCockpit({
             syncMsg={syncMsg}
             onSyncLinkedIn={onSyncLinkedIn}
             linkedInPresets={linkedInPresets}
-            onAddLinkedInPreset={handleAddLinkedInPreset}
+            onAddLinkedInPreset={handleToggleLinkedInPreset}
           />
         )}
       </div>

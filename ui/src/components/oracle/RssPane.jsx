@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { Flame } from 'lucide-react'
 
 export default function RssPane({
@@ -14,6 +14,37 @@ export default function RssPane({
   industryRadarPresets,
   podcastPresets,
 }) {
+  const selectedUrls = useMemo(() => {
+    return new Set(rssUrls.split('\n').map(s => s.trim()).filter(Boolean))
+  }, [rssUrls])
+
+  const renderPresetGroup = (title, presets) => (
+    <div>
+      <span className="text-[10px] text-[#87867f] font-mono block mb-1">{title}:</span>
+      <div className="flex flex-wrap gap-1.5">
+        {presets.map((preset) => {
+          const isSelected = selectedUrls.has(preset.url)
+          return (
+            <button
+              key={preset.url}
+              type="button"
+              onClick={() => onAddPreset(preset.url)}
+              className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full border transition duration-150 flex items-center gap-1 ${
+                isSelected
+                  ? 'bg-[#141413] text-[#faf9f5] border-[#141413] font-semibold shadow-xs'
+                  : 'bg-[#faf9f5] text-[#87867f] hover:text-[#141413] border-[#e3dacc] hover:border-[#b0aea5]'
+              }`}
+              title={isSelected ? `Remove ${preset.url}` : `Add ${preset.url}`}
+            >
+              <span>{isSelected ? '✓' : '+'}</span>
+              <span>{preset.label}</span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+
   return (
     <div className="space-y-3 animate-fadeIn">
       {/* 1-Click Top Viral Tech Radar Button */}
@@ -50,104 +81,14 @@ export default function RssPane({
         className="w-full text-xs font-mono bg-[#faf9f5] border border-[#e3dacc] rounded-xl p-3 text-[#141413] focus:outline-none focus:border-[#141413] focus:ring-1 focus:ring-[#141413] placeholder-[#b0aea5]"
       />
 
-      {/* Quick Presets */}
+      {/* Quick Presets with Visual Selection State */}
       <div className="space-y-2 pt-1">
-        <div>
-          <span className="text-[10px] text-[#87867f] font-mono block mb-1">Reddit Communities:</span>
-          <div className="flex flex-wrap gap-1.5">
-            {redditPresets.map((preset) => (
-              <button
-                key={preset.url}
-                type="button"
-                onClick={() => onAddPreset(preset.url)}
-                className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-[#faf9f5] hover:bg-[#141413] text-[#141413] hover:text-[#faf9f5] border border-[#e3dacc] transition duration-150"
-                title={`Add ${preset.url}`}
-              >
-                + {preset.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <span className="text-[10px] text-[#87867f] font-mono block mb-1">Top Newsletters:</span>
-          <div className="flex flex-wrap gap-1.5">
-            {newsletterPresets.map((preset) => (
-              <button
-                key={preset.url}
-                type="button"
-                onClick={() => onAddPreset(preset.url)}
-                className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-[#faf9f5] hover:bg-[#141413] text-[#141413] hover:text-[#faf9f5] border border-[#e3dacc] transition duration-150"
-                title={`Add ${preset.url}`}
-              >
-                + {preset.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <span className="text-[10px] text-[#87867f] font-mono block mb-1">Dev Community:</span>
-          <div className="flex flex-wrap gap-1.5">
-            {devFeedPresets.map((preset) => (
-              <button
-                key={preset.url}
-                type="button"
-                onClick={() => onAddPreset(preset.url)}
-                className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-[#faf9f5] hover:bg-[#141413] text-[#141413] hover:text-[#faf9f5] border border-[#e3dacc] transition duration-150"
-                title={`Add ${preset.url}`}
-              >
-                + {preset.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <span className="text-[10px] text-[#87867f] font-mono block mb-1">Company TechBlogs:</span>
-          <div className="flex flex-wrap gap-1.5">
-            {companyBlogPresets.map((preset) => (
-              <button
-                key={preset.url}
-                type="button"
-                onClick={() => onAddPreset(preset.url)}
-                className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-[#faf9f5] hover:bg-[#141413] text-[#141413] hover:text-[#faf9f5] border border-[#e3dacc] transition duration-150"
-                title={`Add ${preset.url}`}
-              >
-                + {preset.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <span className="text-[10px] text-[#87867f] font-mono block mb-1">Industry Radar:</span>
-          <div className="flex flex-wrap gap-1.5">
-            {industryRadarPresets.map((preset) => (
-              <button
-                key={preset.url}
-                type="button"
-                onClick={() => onAddPreset(preset.url)}
-                className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-[#faf9f5] hover:bg-[#141413] text-[#141413] hover:text-[#faf9f5] border border-[#e3dacc] transition duration-150"
-                title={`Add ${preset.url}`}
-              >
-                + {preset.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <span className="text-[10px] text-[#87867f] font-mono block mb-1">Podcasts:</span>
-          <div className="flex flex-wrap gap-1.5">
-            {podcastPresets.map((preset) => (
-              <button
-                key={preset.url}
-                type="button"
-                onClick={() => onAddPreset(preset.url)}
-                className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-[#faf9f5] hover:bg-[#141413] text-[#141413] hover:text-[#faf9f5] border border-[#e3dacc] transition duration-150"
-                title={`Add ${preset.url}`}
-              >
-                + {preset.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        {renderPresetGroup('Reddit Communities', redditPresets)}
+        {renderPresetGroup('Top Newsletters', newsletterPresets)}
+        {renderPresetGroup('Dev Community', devFeedPresets)}
+        {renderPresetGroup('Company TechBlogs', companyBlogPresets)}
+        {renderPresetGroup('Industry Radar', industryRadarPresets)}
+        {renderPresetGroup('Podcasts', podcastPresets)}
       </div>
     </div>
   )

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { Globe, RotateCw } from 'lucide-react'
 
 export default function LinkedinPane({
@@ -13,6 +13,10 @@ export default function LinkedinPane({
   linkedInPresets,
   onAddLinkedInPreset,
 }) {
+  const selectedHandles = useMemo(() => {
+    return new Set(linkedInProfiles.split('\n').map(s => s.trim()).filter(Boolean))
+  }, [linkedInProfiles])
+
   return (
     <div className="space-y-3 animate-fadeIn">
       <div className="flex items-center justify-between">
@@ -54,16 +58,25 @@ export default function LinkedinPane({
       <div className="space-y-1">
         <span className="text-[10px] text-[#87867f] font-mono block">Creator Presets:</span>
         <div className="flex flex-wrap gap-1.5">
-          {linkedInPresets.map((p) => (
-            <button
-              key={p.handle}
-              type="button"
-              onClick={() => onAddLinkedInPreset(p.handle)}
-              className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-[#faf9f5] hover:bg-[#141413] text-[#141413] hover:text-[#faf9f5] border border-[#e3dacc] transition duration-150"
-            >
-              + {p.label}
-            </button>
-          ))}
+          {linkedInPresets.map((p) => {
+            const isSelected = selectedHandles.has(p.handle)
+            return (
+              <button
+                key={p.handle}
+                type="button"
+                onClick={() => onAddLinkedInPreset(p.handle)}
+                className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full border transition duration-150 flex items-center gap-1 ${
+                  isSelected
+                    ? 'bg-[#141413] text-[#faf9f5] border-[#141413] font-semibold shadow-xs'
+                    : 'bg-[#faf9f5] text-[#87867f] hover:text-[#141413] border-[#e3dacc] hover:border-[#b0aea5]'
+                }`}
+                title={isSelected ? `Remove ${p.handle}` : `Add ${p.handle}`}
+              >
+                <span>{isSelected ? '✓' : '+'}</span>
+                <span>{p.label}</span>
+              </button>
+            )
+          })}
         </div>
       </div>
 
