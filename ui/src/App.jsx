@@ -52,6 +52,7 @@ import { runDistribute } from './api/distribute'
 import { getBrief, synthesizeDraft, transcribeAudio } from './api/interview'
 import { generateComments, getCommentsHistory } from './api/comments'
 import { getProfile, saveProfile } from './api/profile'
+import { useCopyToClipboard } from './hooks/useCopyToClipboard'
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('oracle')
@@ -868,7 +869,7 @@ function ScanProgressHUD({ progress, loading, onDismiss }) {
 }
 
 function CandidateCard({ candidate, onSendToCouncil, onOpenInterview, onDismiss }) {
-  const [copied, setCopied] = useState(false)
+  const { copied, copy, setCopied } = useCopyToClipboard()
 
   const handleCopySummary = async (e) => {
     e.stopPropagation()
@@ -880,15 +881,7 @@ function CandidateCard({ candidate, onSendToCouncil, onOpenInterview, onDismiss 
     ].filter(Boolean)
     const text = parts.join('\n')
 
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(text)
-      } else {
-        throw new Error('Clipboard API unavailable')
-      }
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
+    if (!(await copy(text))) {
       try {
         const textArea = document.createElement('textarea')
         textArea.value = text
@@ -2278,7 +2271,7 @@ function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onSendToDistribute }
   const [showHistory, setShowHistory] = useState(false)
   const [humanizing, setHumanizing] = useState(false)
   const [humanizedResult, setHumanizedResult] = useState(null)
-  const [humanizeCopied, setHumanizeCopied] = useState(false)
+  const { copied: humanizeCopied, copy: copyHumanized } = useCopyToClipboard()
   const [humanizeError, setHumanizeError] = useState('')
 
   const fetchHistory = async (slug) => {
@@ -2481,9 +2474,7 @@ function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onSendToDistribute }
               <button
                 type="button"
                 onClick={() => {
-                  navigator.clipboard.writeText(humanizedResult.humanized_text)
-                  setHumanizeCopied(true)
-                  setTimeout(() => setHumanizeCopied(false), 2000)
+                  copyHumanized(humanizedResult.humanized_text)
                 }}
                 className="px-3.5 py-1.5 rounded-full text-xs font-mono font-medium transition bg-[#faf9f5] hover:bg-[#e3dacc]/50 text-[#141413] border border-[#e3dacc] flex items-center gap-1.5 shadow-sm"
               >
@@ -2776,7 +2767,7 @@ function DistributeTab({ initialText, initialSlug }) {
   const [bundle, setBundle] = useState(null)
   const [error, setError] = useState('')
   const [activeFormat, setActiveFormat] = useState('linkedin')
-  const [copied, setCopied] = useState(false)
+  const { copied, copy } = useCopyToClipboard()
   const [showConfigModal, setShowConfigModal] = useState(false)
   const [humanize, setHumanize] = useState(true)
   const [humanizeTone, setHumanizeTone] = useState('pragmatic_architect')
@@ -2867,9 +2858,7 @@ function DistributeTab({ initialText, initialSlug }) {
 
   const handleCopy = (text) => {
     if (!text) return
-    navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    copy(text)
   }
 
   const getFormatContent = (fmt) => {
@@ -4459,7 +4448,7 @@ function ProfileTab() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [saveSuccess, setSaveSuccess] = useState(false)
-  const [copiedMarkdown, setCopiedMarkdown] = useState(false)
+  const { copied: copiedMarkdown, copy } = useCopyToClipboard()
 
   // Form state
   const [currentFocus, setCurrentFocus] = useState('')
@@ -4534,9 +4523,7 @@ function ProfileTab() {
 
   const handleCopyMarkdown = () => {
     if (!profile?.full_markdown) return
-    navigator.clipboard.writeText(profile.full_markdown)
-    setCopiedMarkdown(true)
-    setTimeout(() => setCopiedMarkdown(false), 2000)
+    copy(profile.full_markdown)
   }
 
   const hasChanges = profile && (
