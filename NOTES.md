@@ -229,3 +229,17 @@ Resume: invoke superpowers:subagent-driven-development on `docs/superpowers/plan
   - Configured `maxWorkers: 4` in `ui/vite.config.js` to ensure reliable parallel worker execution under Windows.
   - Verification: 20/20 test suites (60/60 tests) pass in Vitest; 212/212 unit tests pass in Python; Vite production build succeeds cleanly.
 
+## Distribute History Drawer & Past Posts Loading (2026-09-06)
+- Implemented `GET /api/distribute/history` backend endpoint in `content_machine/api/app.py`:
+  - Aggregates SQLite `iterations` (peak scores, drafts, timestamps) and disk-based project distribution bundles under `~/.content_machine/projects/{slug}/distribution/`.
+  - Updated `DistributionEngine.save_bundle` to persist `anchor.md` alongside derivatives.
+  - Added unit test suite `tests/test_distribute_history.py` (4 tests).
+- Added `DistributeHistoryDrawer.jsx` and integrated it into `DistributeTab.jsx`:
+  - Warm editorial paper palette (`#faf9f5`, `#f0eee6`, `#e3dacc`, `#141413`, `#c6613f`).
+  - Slide-over drawer with real-time keyword search and category filtering (`All`, `Distributed`, `Council Drafts`).
+  - Cards show spike slug, title, score badge (`Peak: 8.71`), available format badges (`LinkedIn`, `X Thread`, `Video`, `Newsletter`), and draft preview.
+  - 1-click loading populates the verified anchor text, slug, and any previously generated derivative formats directly into the editor and preview panels.
+  - Added test suite `ui/src/components/distribute/DistributeHistoryDrawer.test.jsx`.
+  - Verification: 21/21 Vitest suites (64/64 tests) pass; 216/216 Python tests pass; Vite production build green.
+
+
