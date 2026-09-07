@@ -27,10 +27,10 @@ vi.mock('./api/profile', () => ({
 }))
 
 describe('App shell', () => {
-  it('renders all 7 nav buttons from registry', async () => {
+  it('renders all 7 nav buttons from registry', () => {
     render(<App />)
     for (const label of ['Oracle', 'Council', 'Distribute', 'Lessons', 'Audio', 'Comments', 'Profile']) {
-      expect(await screen.findByRole('button', { name: new RegExp(label, 'i') })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: new RegExp(label, 'i') })).toBeInTheDocument()
     }
   })
   it('switches tabs on nav click', async () => {

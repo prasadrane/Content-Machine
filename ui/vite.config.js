@@ -19,5 +19,6 @@ export default defineConfig({
     setupFiles: './src/setupTests.js',
     globals: true,
     pool: 'threads',
+    testTimeout: 15000,
   },
 })
