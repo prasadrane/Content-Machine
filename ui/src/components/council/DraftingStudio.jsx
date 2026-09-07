@@ -8,6 +8,8 @@ export default function DraftingStudio({
   onSpikeChange,
   recentSpikes,
   onSelectSpike,
+  maxIterations = 1,
+  onMaxIterationsChange,
   loading,
   error,
   onSubmit,
@@ -54,6 +56,35 @@ export default function DraftingStudio({
         </div>
       )}
 
+      {/* Iteration Mode Selector */}
+      <div className="flex items-center justify-between gap-2 flex-wrap pt-0.5">
+        <span className="text-[10px] font-mono text-[#87867f] uppercase">Mode:</span>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => onMaxIterationsChange && onMaxIterationsChange(1)}
+            className={`text-[11px] font-mono px-2.5 py-0.5 rounded-full border transition ${
+              maxIterations === 1
+                ? 'bg-[#c6613f]/10 text-[#c6613f] border-[#c6613f]/30 font-semibold'
+                : 'bg-[#faf9f5] text-[#87867f] border-[#e3dacc] hover:border-[#b0aea5]'
+            }`}
+          >
+            ⚡ Single Pass (~30s)
+          </button>
+          <button
+            type="button"
+            onClick={() => onMaxIterationsChange && onMaxIterationsChange(3)}
+            className={`text-[11px] font-mono px-2.5 py-0.5 rounded-full border transition ${
+              maxIterations === 3
+                ? 'bg-[#c6613f]/10 text-[#c6613f] border-[#c6613f]/30 font-semibold'
+                : 'bg-[#faf9f5] text-[#87867f] border-[#e3dacc] hover:border-[#b0aea5]'
+            }`}
+          >
+            🔄 Full Loop (3 Iters)
+          </button>
+        </div>
+      </div>
+
       <textarea
         rows={18}
         value={draft}
@@ -75,7 +106,9 @@ export default function DraftingStudio({
         className="w-full py-2.5 px-4 bg-[#c6613f] hover:bg-[#b55535] disabled:opacity-50 text-[#faf9f5] rounded-full text-xs font-medium transition flex items-center justify-center gap-2 shadow-sm tracking-wide"
       >
         {loading ? <RotateCw className="w-3.5 h-3.5 animate-spin" /> : <Users className="w-3.5 h-3.5" />}
-        <span>{loading ? 'Council Deliberating & Revising...' : 'Submit to Council'}</span>
+        <span>
+          {loading ? 'Council Deliberating & Revising...' : (maxIterations === 1 ? 'Submit to Council (Single Pass ~30s)' : 'Submit to Council (Full Loop)')}
+        </span>
       </button>
     </form>
   )

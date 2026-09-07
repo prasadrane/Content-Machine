@@ -65,34 +65,49 @@ export default function VerdictPanel({
         </div>
       )}
 
-      <div className="pt-4 border-t border-[#e3dacc] flex items-center justify-between gap-3 flex-wrap">
-        {(result.verdict === 'pass' || best?.draft) && (
-          <button
-            type="button"
-            onClick={() => onHumanize(best?.draft || draft)}
-            disabled={humanizing}
-            className="px-4 py-2 bg-[#faf9f5] hover:bg-[#e3dacc]/50 text-[#c6613f] border border-[#c6613f]/40 hover:border-[#c6613f] rounded-full text-xs font-medium transition flex items-center gap-1.5 shadow-sm disabled:opacity-50"
-          >
-            {humanizing ? (
-              <RotateCw className="w-3.5 h-3.5 animate-spin text-[#c6613f]" />
-            ) : (
-              <Sparkles className="w-3.5 h-3.5 text-[#c6613f]" />
-            )}
-            <span>{humanizing ? 'Humanizing...' : '🪄 Humanize Peak Draft'}</span>
-          </button>
+        {/* Revised draft note */}
+        {result.draft && result.draft !== draft && (
+          <div className="p-3.5 bg-[#f0eee6] border border-[#e3dacc] rounded-xl flex items-center justify-between gap-3 text-xs">
+            <span className="text-[#141413]">Council revised this draft for iteration {result.iteration}.</span>
+            <button
+              type="button"
+              onClick={() => onLoadDraft(result.draft)}
+              className="text-[#c6613f] hover:underline font-mono font-medium text-[11px]"
+            >
+              Load Revised Draft
+            </button>
+          </div>
         )}
 
-        {onSendToDistribute && (
-          <button
-            type="button"
-            onClick={() => onSendToDistribute(draft, spikeId)}
-            className="px-5 py-2.5 bg-[#141413] hover:bg-[#252524] text-[#faf9f5] rounded-full text-xs font-medium transition flex items-center gap-2 shadow-sm ml-auto"
-          >
-            <span>Distribute Current Post</span>
-            <Share2 className="w-3.5 h-3.5 text-[#d97757]" />
-          </button>
-        )}
+        <div className="pt-4 border-t border-[#e3dacc] flex items-center justify-between gap-3 flex-wrap">
+          {(result.verdict === 'pass' || best?.draft) && (
+            <button
+              type="button"
+              onClick={() => onHumanize(best?.draft || draft)}
+              disabled={humanizing}
+              className="px-4 py-2 bg-[#faf9f5] hover:bg-[#e3dacc]/50 text-[#c6613f] border border-[#c6613f]/40 hover:border-[#c6613f] rounded-full text-xs font-medium transition flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+            >
+              {humanizing ? (
+                <RotateCw className="w-3.5 h-3.5 animate-spin text-[#c6613f]" />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5 text-[#c6613f]" />
+              )}
+              <span>{humanizing ? 'Humanizing...' : '🪄 Humanize Peak Draft'}</span>
+            </button>
+          )}
+
+          {onSendToDistribute && (
+            <button
+              type="button"
+              onClick={() => onSendToDistribute(draft, spikeId)}
+              className="px-5 py-2.5 bg-[#141413] hover:bg-[#252524] text-[#faf9f5] rounded-full text-xs font-medium transition flex items-center gap-2 shadow-sm ml-auto"
+            >
+              <span>Distribute Current Post</span>
+              <Share2 className="w-3.5 h-3.5 text-[#d97757]" />
+            </button>
+          )}
+        </div>
       </div>
-    </div>
-  )
-}
+    )
+  }
+

@@ -75,4 +75,28 @@ describe('DraftingStudio', () => {
     expect(screen.getByText('Council Deliberating & Revising...')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Council Deliberating/i })).toBeDisabled()
   })
+
+  it('handles iteration mode switching between single pass and full loop', () => {
+    const onMaxIterationsChange = vi.fn()
+    render(
+      <DraftingStudio
+        draft="Draft"
+        onDraftChange={vi.fn()}
+        spikeId=""
+        onSpikeChange={vi.fn()}
+        recentSpikes={[]}
+        onSelectSpike={vi.fn()}
+        maxIterations={1}
+        onMaxIterationsChange={onMaxIterationsChange}
+        loading={false}
+        error=""
+        onSubmit={vi.fn()}
+      />
+    )
+
+    expect(screen.getByRole('button', { name: /^⚡ Single Pass/i })).toBeInTheDocument()
+    const fullLoopBtn = screen.getByRole('button', { name: /^🔄 Full Loop/i })
+    fireEvent.click(fullLoopBtn)
+    expect(onMaxIterationsChange).toHaveBeenCalledWith(3)
+  })
 })

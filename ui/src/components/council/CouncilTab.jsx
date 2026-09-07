@@ -19,6 +19,7 @@ export default function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onSen
   const [humanizedResult, setHumanizedResult] = useState(null)
   const { copied: humanizeCopied, copy: copyHumanized } = useCopyToClipboard()
   const [humanizeError, setHumanizeError] = useState('')
+  const [maxIterations, setMaxIterations] = useState(1)
 
   const fetchHistory = async (slug) => {
     if (!slug) return
@@ -61,7 +62,7 @@ export default function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onSen
 
     try {
       const targetSlug = spikeId || 'council-ui'
-      const data = await runCouncil({ draft, spike_id: targetSlug })
+      const data = await runCouncil({ draft, spike_id: targetSlug, max_iterations: maxIterations })
       setResult(data)
       fetchHistory(targetSlug)
       fetchSpikes()
@@ -212,6 +213,8 @@ export default function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onSen
           onSpikeChange={setSpikeId}
           recentSpikes={recentSpikes}
           onSelectSpike={handleSelectSpike}
+          maxIterations={maxIterations}
+          onMaxIterationsChange={setMaxIterations}
           loading={loading}
           error={error}
           onSubmit={handleReview}

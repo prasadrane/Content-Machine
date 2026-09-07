@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --swatch--ivory-light: #faf9f5;
+  --swatch--ivory-medium: #f0eee6;
+  --swatch--slate-dark: #141413;
+  --swatch--cloud-medium: #b0aea5;
+  --swatch--cloud-dark: #87867f;
+  --swatch--oat: #e3dacc;
+  --swatch--accent: #c6613f;
+  --swatch--clay: #d97757;
+}
+
+html, body {
+  width: 100%;
+  min-height: 100%;
+  background-color: #faf9f5;
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #faf9f5;
+}
+
+@layer base {
+  body {
+    @apply bg-[#faf9f5] text-[#141413] font-sans antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    letter-spacing: -0.01em;
+  }
+
+  /* Refined Anthropic editorial headings */
+  h1, h2, h3 {
+    letter-spacing: -0.02em;
+  }
+}
+
+/* Custom warm stone scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #b0aea5;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #87867f;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

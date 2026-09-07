@@ -13,7 +13,10 @@ from fastapi import FastAPI, HTTPException, Query, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+import logging
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 # Subsystem imports (at module level so patch() works in tests)
 from content_machine.asr.batch import BatchTranscriber
@@ -156,6 +159,7 @@ class OracleHistoryResponse(BaseModel):
 class CouncilRunRequest(BaseModel):
     draft: str = Field(min_length=1)
     spike_id: str = "cli-session"
+    max_iterations: Optional[int] = 1
 
 
 class CouncilRunResponse(BaseModel):
@@ -166,6 +170,7 @@ class CouncilRunResponse(BaseModel):
     peak_score: Optional[float] = None
     peak_iteration: Optional[int] = None
     is_all_time_peak: bool = False
+    draft: Optional[str] = None
 
 
 class CouncilHistoryItem(BaseModel):
@@ -537,18 +542,36 @@ def get_oracle_history(
 
 @app.post("/api/council/run", response_model=CouncilRunResponse)
 def council_run(req: CouncilRunRequest):
+    import anthropic
     from content_machine.config import load_config
+    from content_machine.council.loop import CouncilError
+    from content_machine.router.base import AllRoutesFailed
+
     cfg = load_config()
     router = _make_router()
     db_conn = _make_db()
 
-    result = run_council(
-        draft=req.draft,
-        router=router,
-        cfg=cfg,
-        conn=db_conn,
-        spike_id=req.spike_id,
-    )
+    try:
+        result = run_council(
+            draft=req.draft,
+            router=router,
+            cfg=cfg,
+            conn=db_conn,
+            spike_id=req.spike_id,
+            max_iterations=req.max_iterations,
+        )
+    except CouncilError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    except AllRoutesFailed as e:
+        raise HTTPException(status_code=503, detail=f"Model routing failed: {e}") from e
+    except (anthropic.APITimeoutError, anthropic.APIConnectionError) as e:
+        raise HTTPException(status_code=504, detail="Upstream model relay timed out. Please try again.") from e
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Council run failed: %s", e)
+        raise HTTPException(status_code=500, detail=f"Council evaluation failed: {e}") from e
+
     score = result.composite_normalized if result.composite_normalized is not None else result.composite_raw
     score_val = round(float(score), 3)
 
@@ -574,6 +597,7 @@ def council_run(req: CouncilRunRequest):
         peak_score=peak_score,
         peak_iteration=peak_iter,
         is_all_time_peak=is_peak,
+        draft=result.draft if isinstance(getattr(result, "draft", None), str) else None,
     )
 
 

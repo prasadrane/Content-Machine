@@ -304,6 +304,77 @@ class TestCouncilAPI(unittest.TestCase):
         r = client.post("/api/council/run", json={"draft": "", "spike_id": "x"})
         self.assertEqual(r.status_code, 422)
 
+    def test_council_run_passes_max_iterations_and_returns_draft(self):
+        """POST /api/council/run forwards max_iterations and returns draft content."""
+        with patch("content_machine.api.app.run_council") as mock_rc, \
+             patch("content_machine.api.app._make_router"), \
+             patch("content_machine.api.app._make_db"):
+            mock_rc.return_value = MagicMock(
+                verdict="revise",
+                composite_normalized=0.75,
+                composite_raw=7.5,
+                required_actions=["Add metrics."],
+                iteration=1,
+                draft="Revised draft content.",
+            )
+            client = _make_client()
+            r = client.post("/api/council/run", json={
+                "draft": "Initial draft.",
+                "spike_id": "test-spike",
+                "max_iterations": 1,
+            })
+
+        self.assertEqual(r.status_code, 200)
+        data = r.json()
+        self.assertEqual(data["draft"], "Revised draft content.")
+        self.assertEqual(data["iteration"], 1)
+        mock_rc.assert_called_once()
+        _, kwargs = mock_rc.call_args
+        self.assertEqual(kwargs.get("max_iterations"), 1)
+
+    def test_council_run_translates_council_error_to_422(self):
+        """CouncilError raises HTTPException(422)."""
+        from content_machine.council.loop import CouncilError
+        with patch("content_machine.api.app.run_council", side_effect=CouncilError("Quorum not met")), \
+             patch("content_machine.api.app._make_router"), \
+             patch("content_machine.api.app._make_db"):
+            client = _make_client()
+            r = client.post("/api/council/run", json={
+                "draft": "Initial draft.",
+                "spike_id": "test-spike",
+            })
+        self.assertEqual(r.status_code, 422)
+        self.assertIn("Quorum not met", r.json()["detail"])
+
+    def test_council_run_translates_all_routes_failed_to_503(self):
+        """AllRoutesFailed raises HTTPException(503)."""
+        from content_machine.router.base import AllRoutesFailed
+        with patch("content_machine.api.app.run_council", side_effect=AllRoutesFailed([("m", "r", "timeout")])), \
+             patch("content_machine.api.app._make_router"), \
+             patch("content_machine.api.app._make_db"):
+            client = _make_client()
+            r = client.post("/api/council/run", json={
+                "draft": "Initial draft.",
+                "spike_id": "test-spike",
+            })
+        self.assertEqual(r.status_code, 503)
+        self.assertIn("Model routing failed", r.json()["detail"])
+
+    def test_council_run_translates_timeout_to_504(self):
+        """anthropic.APITimeoutError raises HTTPException(504)."""
+        import httpx
+        import anthropic
+        with patch("content_machine.api.app.run_council", side_effect=anthropic.APITimeoutError(request=httpx.Request("POST", "http://test"))), \
+             patch("content_machine.api.app._make_router"), \
+             patch("content_machine.api.app._make_db"):
+            client = _make_client()
+            r = client.post("/api/council/run", json={
+                "draft": "Initial draft.",
+                "spike_id": "test-spike",
+            })
+        self.assertEqual(r.status_code, 504)
+        self.assertIn("timed out", r.json()["detail"])
+
 
 # ---------------------------------------------------------------------------
 # Lessons

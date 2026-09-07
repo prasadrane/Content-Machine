@@ -12,3 +12,8 @@ node_modules/
 .pytest_cache/
 
 docs/superpowers/
+.superpowers/
+.graphify*
+graphify-out/
+scratch*
+*.log
