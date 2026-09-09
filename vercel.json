@@ -1,11 +1,12 @@
 {
+  "framework": null,
   "buildCommand": "npm --prefix ui install && npm --prefix ui run build",
   "outputDirectory": "ui/dist",
   "functions": {
     "api/index.py": { "maxDuration": 60 }
   },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index.py" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/api/:path*", "destination": "/api/index.py" },
+    { "source": "/:path*", "destination": "/index.html" }
   ]
 }
