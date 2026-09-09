@@ -18,6 +18,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional, TypedDict
 
+from content_machine.editorial import (
+    ANTI_FINGERPRINT_RULES,
+    VOICE_RULE,
+    WORD_COUNT_RULE,
+)
 from content_machine.humanize import (
     HumanizeChannel,
     HumanizeTone,
@@ -36,21 +41,21 @@ class DistributionBundle(TypedDict, total=False):
     newsletter: str
 
 
-_LINKEDIN_SYSTEM = """\
+_LINKEDIN_SYSTEM = f"""\
 You are an elite LinkedIn content creator and tech executive ghostwriter.
 Your goal is to transform the provided anchor post into a high-performing, authentic LinkedIn post.
 
 Rules:
 - Strictly anchor in the source text. NEVER invent facts, metrics, or anecdotes not in the text. NEVER fabricate corporate production crashes.
-- Length: Strictly between 120 and 280 words total. Never write long essays or walls of text.
-- Voice: Conversational senior practitioner field note ("I've started treating...", "What works better for me:").
+- Length: {WORD_COUNT_RULE}
+- Voice: {VOICE_RULE}
 - Lived specificity: Name concrete failure modes (HTTP 429s, partial responses, payload validation edge cases, schema drift) instead of generic phrases like "debugging edge cases".
 - Hook (first 1-2 lines): High impact opening that creates natural curiosity before the "...see more" cutoff. No cheesy clickbait.
-- Anti-fingerprint: Max 1 takeaway or summary line; NEVER stack consecutive quotable aphorisms. Ban rhetorical contrast formulas ('X feels fast until Y', 'The problem isn't X, it's how we Y'). Ban manufactured metaphors ('stops the bleeding').
-- Natural paragraphs (NO broetry): Group related premise, mechanics, and friction into cohesive mini-paragraphs (2–3 sentences). Avoid 1-sentence staccato lines unless presenting an operational checklist.
+- Anti-fingerprint:
+{ANTI_FINGERPRINT_RULES}
 - Body: Connect technical mechanics directly (e.g. explain why mocks fail and immediately position integration tests as the remedy).
-- Conclusion: Direct, honest operational statement. NEVER include cheesy engagement questions ("What do you think?", "Agree?"). NEVER use formulaic "X isn't Y, it's Z" fortune-cookie aphorisms.
-- Hashtags: End with exactly 2–3 hyper-relevant technical hashtags (e.g. #SoftwareEngineering #AIEngineering #TestDrivenDevelopment).
+- Conclusion: Direct, honest operational statement. Close on an unvarnished statement of technical reality.
+- Hashtags: End with exactly 2-3 hyper-relevant technical hashtags (e.g. #SoftwareEngineering #AIEngineering #TestDrivenDevelopment).
 - Return plain text.
 """.strip()
 

@@ -22,9 +22,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from ..config import AppConfig
+from ..editorial import ANTI_FINGERPRINT_RULES, VOICE_RULE, WORD_COUNT_RULE
 from ..knowledge.provider import get_editorial_context
 from ..router.base import AllRoutesFailed
 from ..schemas import CouncilScores
+from .gate import decide_threshold_met, within_margin
 from .normalize import DIMENSIONS, normalization_stats, z_normalize
 from .obfuscate import obfuscate
 
@@ -52,18 +54,20 @@ COUNCIL CRITIQUES (consolidated, address every item):
 {critiques}
 
 FORMATTING & BREVITY MANDATE:
-- Target length: strictly between 120 and 280 words. Address critiques concisely without bloating the draft.
-- Conversational practitioner note: write from direct experience ("I've started treating...", "What works better for me:").
-- Mechanical specificity: cite concrete failure modes (HTTP 429s, partial responses, payload validation edge cases) rather than generic phrases like "debugging edge cases".
-- Aphorism density cap: limit to at most ONE takeaway line; NEVER chain consecutive soundbites or epigrams.
-- Ban rhetorical contrast formulas: do NOT use "X feels fast until Y...", "You aren't saving X, you're Y...", or "The problem isn't X, it's how we Y...".
-- Ban manufactured metaphors: do NOT use "stops the bleeding" or "pure velocity".
-- Natural paragraphs (NO broetry): group related premise, mechanics, and friction into cohesive mini-paragraphs (2–3 sentences). Avoid 1-line staccato blocks.
-- No formulaic aphorisms or engagement bait: do NOT use the "X isn't Y, it's Z" fortune-cookie mic-drop template. Do not end with cheesy discussion questions.
-- Grounding: never fabricate corporate production crashes (no 3 AM payment outages). Keep grounded in authentic builder workflows and test suites.
-- Hashtags: exactly 2–3 hyper-relevant technical hashtags.
-
-Return the complete revised draft as plain text. No preamble, no commentary, no code fences."""
+""" + "\n".join([
+    f"- Target length: {WORD_COUNT_RULE} Address critiques concisely without bloating the draft.",
+    f"- {VOICE_RULE}",
+    "- Mechanical specificity: cite concrete failure modes (HTTP 429s, partial "
+    "responses, payload validation edge cases) rather than generic phrases like "
+    "\"debugging edge cases\".",
+    ANTI_FINGERPRINT_RULES,
+    "- Grounding: never fabricate corporate production crashes (no 3 AM payment "
+    "outages). Keep grounded in authentic builder workflows and test suites.",
+    "- Hashtags: exactly 2-3 hyper-relevant technical hashtags.",
+    "",
+    "Return the complete revised draft as plain text. No preamble, no commentary, "
+    "no code fences.",
+])
 
 
 class CouncilError(Exception):
@@ -300,7 +304,7 @@ def run_council(
         composite = _composites(judge_scores)
         resampled = False
 
-        if gate - margin <= composite < gate:
+        if within_margin(composite, gate, margin):
             # margin band: one fresh resample, average composites
             resample_scores, rnotes = _evaluate_once(
                 cfg=cfg, router=router, rubric_text=rubric_text, draft=draft
@@ -311,12 +315,13 @@ def run_council(
             resampled = True
 
         comp_norm = _normalized_composite(judge_scores, cfg, conn)
-        threshold_met = composite >= gate
+        threshold_met = decide_threshold_met(composite, comp_norm, th)
+        gate_basis = "raw" if (th.council_gate_mode == "raw" or comp_norm is None) else "normalized"
         required_actions = _consolidated_actions(judge_scores)
 
         decision: dict = {
             "threshold_met": threshold_met,
-            "gate_basis": "raw" if comp_norm is None else "normalized",
+            "gate_basis": gate_basis,
             "composite_raw": composite,
             "composite_normalized": comp_norm,
             "resampled": resampled,

@@ -3,6 +3,13 @@
 from __future__ import annotations
 
 import re
+
+from content_machine.editorial import (
+    ANTI_FINGERPRINT_RULES,
+    VOICE_RULE,
+    WORD_COUNT_MAX,
+    WORD_COUNT_MIN,
+)
 from content_machine.schemas import HumanizeChannel, HumanizeTone
 
 BANNED_AI_WORDS: set[str] = {
@@ -88,16 +95,12 @@ CHANNEL_PROMPTS: dict[HumanizeChannel, str] = {
         "Never exceed 3 sentences. High burstiness."
     ),
     HumanizeChannel.LINKEDIN_POST: (
-        "Transform this into an authentic, concise LinkedIn post (strictly 120-280 words) written as a senior engineer's personal field note. "
+        f"Transform this into an authentic, concise LinkedIn post (strictly {WORD_COUNT_MIN}-{WORD_COUNT_MAX} words) written as a senior engineer's personal field note. "
         "Ground in lived technical friction with specific failure modes (e.g., HTTP 429s, partial responses, payload validation, contract drift) rather than generic phrases like 'debugging edge cases'. "
-        "Use natural mini-paragraphs (2-3 sentences), avoiding 1-line 'broetry' cadence. "
-        "Tone: conversational, practitioner-first ('I've started treating...', 'What works better for me:'). "
-        "Anti-fingerprint rules: "
-        "- Max 1 takeaway or summary line; NEVER stack consecutive quotable aphorisms or soundbites. "
-        "- BAN rhetorical contrast formulas ('X feels fast until Y', 'You aren't saving X, you're Y', 'The problem isn't X, it's how we Y'). "
-        "- BAN manufactured metaphors ('stop the bleeding', 'pure velocity'). "
-        "- BAN 'X isn't Y, it's Z' fortune-cookie mic-drop outros. "
-        "- Zero engagement bait (no 'What do you think?' or 'Comment below'). Strictly 2-3 hashtags."
+        + VOICE_RULE
+        + " Anti-fingerprint rules:"
+        + "\n" + ANTI_FINGERPRINT_RULES
+        + " Strictly 2-3 hashtags."
     ),
     HumanizeChannel.X_THREAD: (
         "Transform this into a natural X/Twitter thread. "

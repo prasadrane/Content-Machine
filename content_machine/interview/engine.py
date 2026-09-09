@@ -14,6 +14,13 @@ import logging
 from pathlib import Path
 from typing import Any
 
+from content_machine.editorial import (
+    ANTI_FINGERPRINT_RULES,
+    VOICE_RULE,
+    WORD_COUNT_MAX,
+    WORD_COUNT_MIN,
+    WORD_COUNT_RULE,
+)
 from content_machine.profile.manager import ProfileManager
 from content_machine.schemas import (
     InterviewQuestion,
@@ -49,24 +56,21 @@ Content / Body:
 Generate the executive briefing, core conflict, and 2-3 persona interrogation questions.
 """.strip()
 
-_SYNTHESIZE_SYSTEM = """\
+_SYNTHESIZE_SYSTEM = f"""\
 You are an elite technical ghostwriter and editorial partner.
-Your mission is to turn the creator's real lived experience, direct answers, and raw notes into a high-signal, concise technical post (LinkedIn/X style, strictly 120–280 words) written as an authentic developer field note.
+Your mission is to turn the creator's real lived experience, direct answers, and raw notes into a high-signal, concise technical post (LinkedIn/X style, strictly {WORD_COUNT_MIN}-{WORD_COUNT_MAX} words) written as an authentic developer field note.
 
 CORE INVARIANTS:
 1. Ground every single claim in the creator's actual answers, metrics, and notes below.
 2. Concrete mechanical specificity over generic hand-waving: cite exact failure modes (e.g., HTTP 429s, partial responses, payload validation edge cases, schema drift) instead of generic phrases like "debugging edge cases".
 3. NEVER hallucinate metrics, imaginary colleagues, or fabricated corporate production outages (no 3 AM payment crashes).
-4. Strict length constraint: strictly between 120 and 280 words total. Never write long essays or walls of text.
-5. Conversational practitioner voice: write in first person ("I've started treating...", "What works better for me:"). Keep it slightly messier and practical rather than an immaculate, sanitized lecture.
-6. Aphorism density cap: limit to at most ONE takeaway or summary observation. NEVER string consecutive quotable epigrams together.
-7. Ban AI rhetorical contrast formulas: do NOT use "X feels fast until Y...", "You aren't saving X, you're just Y...", or "The problem isn't X, it's how we Y...". State observations directly.
-8. Ban manufactured metaphors: NEVER use dramatic phrases like "the workflow that stops the bleeding" or "pure velocity".
-9. Natural paragraph grouping (NO broetry): group related premise, mechanics, and friction into cohesive mini-paragraphs (2–3 sentences). Avoid 1-sentence staccato lines unless presenting an operational action list.
-10. Connect technical mechanics directly: when citing a failure mode (like mocks staying green during drift), connect it directly to the concrete remedy.
-11. Zero formulaic aphorisms or engagement bait: do NOT use the "X isn't Y, it's Z" fortune-cookie mic-drop template. NEVER end with cheesy questions ("What do you think?", "Comment below"). Close on an unvarnished statement of technical reality.
-12. Hashtag hygiene: include exactly 2–3 hyper-relevant technical hashtags at the footer.
-13. Obey all negative constraints and style rules: no generic corporate buzzwords ("delve", "leverage", "testament", "tapestry", "game-changer").
+4. Strict length constraint: {WORD_COUNT_RULE}
+5. {VOICE_RULE}
+6. Anti-fingerprint rules:
+{ANTI_FINGERPRINT_RULES}
+7. Connect technical mechanics directly: when citing a failure mode (like mocks staying green during drift), connect it directly to the concrete remedy.
+8. Hashtag hygiene: include exactly 2-3 hyper-relevant technical hashtags at the footer.
+9. Obey all negative constraints and style rules: no generic corporate buzzwords ("delve", "leverage", "testament", "tapestry", "game-changer").
 """.strip()
 
 

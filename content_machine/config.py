@@ -47,6 +47,14 @@ class ThresholdsConfig(BaseModel):
     council_margin: float = 0.3
     council_max_iterations: int = 3
     normalization_min_samples: int = 30
+    # council gate calibration (see council/gate.py): "raw" | "normalized" | "auto"
+    # Gate mode: "raw" (default, legacy absolute gate) | "normalized" (z-gate,
+    # falls back to raw until judges have normalization_min_samples history) |
+    # "auto" (normalized when available). Default stays "raw" deliberately:
+    # flipping to z>=0.0 would silently lower the pass bar to ~50th percentile
+    # once samples accumulate — opt in per council/gate.py after calibration.
+    council_gate_mode: str = "raw"
+    council_min_score_z: float = 0.0
     preferred_max_latency_s: float = 90.0
 
 
