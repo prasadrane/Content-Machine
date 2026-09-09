@@ -17,3 +17,5 @@ docs/superpowers/
 graphify-out/
 scratch*
 *.log
+NOTES.md
+tmp/
