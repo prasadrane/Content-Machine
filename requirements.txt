@@ -1,8 +1,10 @@
 anthropic==1.4.0
 # openai pin dropped 2026-09-09: gateway has no OpenAI-protocol path (spikes/RESULTS.md);
 # only consumer was spikes/spike_structured_outputs.py qwen_client() (function-local import, spike completed).
-pydantic==2.11.7
-pydantic-settings==2.14.1
+# >= pins (not ==): serverless runtimes may resolve newer pythons where
+# exact pins lack prebuilt wheels (pydantic-core maturin source builds).
+pydantic>=2.11.7
+pydantic-settings>=2.14.1
 requests>=2.32.0
 fastapi>=0.115.0
 uvicorn[standard]>=0.30.0
@@ -11,6 +13,7 @@ python-multipart>=0.0.9
 python-dotenv>=1.0.0
 numpy>=1.26
 openpyxl>=3.1
-# lazy imports (function-level) in connectors/linkedin_session.py + linkedin_public.py;
-# needed at runtime for browser session sync / zero-auth bridge: `playwright install chromium`
-playwright>=1.40
+# Optional, NOT installed by default (heavy; serverless never needs it):
+# lazy function-level imports in connectors/linkedin_session.py + linkedin_public.py.
+# For local browser session sync / zero-auth bridge:
+#   pip install playwright>=1.40 && playwright install chromium
