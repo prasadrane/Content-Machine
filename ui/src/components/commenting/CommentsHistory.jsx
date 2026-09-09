@@ -1,25 +1,7 @@
 import React from 'react'
 import { History, RotateCw, Copy, Check, ChevronUp, ChevronDown } from 'lucide-react'
-
-function getAnglePill(angleKey) {
-  switch (angleKey) {
-    case 'insightful':
-      return '💡 Nuanced Insight'
-    case 'contrarian':
-      return '⚖️ Respectful Contrarian'
-    case 'question':
-      return '❓ Senior Question'
-    default:
-      return angleKey
-  }
-}
-
-function countSentences(text) {
-  if (!text || !text.trim()) return 0
-  const matches = text.trim().match(/[^.!?]+[.!?]+(\s|$)/g)
-  if (matches) return matches.length
-  return text.trim().length > 0 ? 1 : 0
-}
+import { getAnglePill } from '../../lib/angles'
+import { countSentences } from '../../lib/textStats'
 
 export default function CommentsHistory({
   history,

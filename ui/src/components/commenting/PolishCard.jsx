@@ -1,5 +1,6 @@
 import React from 'react'
 import { CheckCircle2, AlertCircle, Sparkles, Copy, Check, Users, ChevronUp, ChevronDown, ChevronRight } from 'lucide-react'
+import { countSentences } from '../../lib/textStats'
 
 const COUNCIL_JUDGES = [
   {
@@ -51,13 +52,6 @@ function getVerdictBadge(peakScore, verdict) {
     classes: 'bg-rose-100 text-rose-900 border-rose-300/80',
     icon: AlertCircle,
   }
-}
-
-function countSentences(text) {
-  if (!text || !text.trim()) return 0
-  const matches = text.trim().match(/[^.!?]+[.!?]+(\s|$)/g)
-  if (matches) return matches.length
-  return text.trim().length > 0 ? 1 : 0
 }
 
 export default function PolishCard({ result, copied, onCopy, accordionOpen, onToggleAccordion }) {

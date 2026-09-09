@@ -1,5 +1,8 @@
 import React, { useMemo } from 'react'
 import { Flame } from 'lucide-react'
+import { PresetChipGroup, selectedSetFrom } from './PresetEditorPane'
+
+const GROUP_LABEL_CLASS = 'text-[10px] text-[#87867f] font-mono block mb-1'
 
 export default function RssPane({
   rssUrls,
@@ -14,36 +17,7 @@ export default function RssPane({
   industryRadarPresets,
   podcastPresets,
 }) {
-  const selectedUrls = useMemo(() => {
-    return new Set(rssUrls.split('\n').map(s => s.trim()).filter(Boolean))
-  }, [rssUrls])
-
-  const renderPresetGroup = (title, presets) => (
-    <div>
-      <span className="text-[10px] text-[#87867f] font-mono block mb-1">{title}:</span>
-      <div className="flex flex-wrap gap-1.5">
-        {presets.map((preset) => {
-          const isSelected = selectedUrls.has(preset.url)
-          return (
-            <button
-              key={preset.url}
-              type="button"
-              onClick={() => onAddPreset(preset.url)}
-              className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full border transition duration-150 flex items-center gap-1 ${
-                isSelected
-                  ? 'bg-[#141413] text-[#faf9f5] border-[#141413] font-semibold shadow-xs'
-                  : 'bg-[#faf9f5] text-[#87867f] hover:text-[#141413] border-[#e3dacc] hover:border-[#b0aea5]'
-              }`}
-              title={isSelected ? `Remove ${preset.url}` : `Add ${preset.url}`}
-            >
-              <span>{isSelected ? '✓' : '+'}</span>
-              <span>{preset.label}</span>
-            </button>
-          )
-        })}
-      </div>
-    </div>
-  )
+  const selectedUrls = useMemo(() => selectedSetFrom(rssUrls), [rssUrls])
 
   return (
     <div className="space-y-3 animate-fadeIn">
@@ -83,12 +57,54 @@ export default function RssPane({
 
       {/* Quick Presets with Visual Selection State */}
       <div className="space-y-2 pt-1">
-        {renderPresetGroup('Reddit Communities', redditPresets)}
-        {renderPresetGroup('Top Newsletters', newsletterPresets)}
-        {renderPresetGroup('Dev Community', devFeedPresets)}
-        {renderPresetGroup('Company TechBlogs', companyBlogPresets)}
-        {renderPresetGroup('Industry Radar', industryRadarPresets)}
-        {renderPresetGroup('Podcasts', podcastPresets)}
+        <PresetChipGroup
+          label="Reddit Communities:"
+          labelClass={GROUP_LABEL_CLASS}
+          presets={redditPresets}
+          valueKey="url"
+          selected={selectedUrls}
+          onAdd={onAddPreset}
+        />
+        <PresetChipGroup
+          label="Top Newsletters:"
+          labelClass={GROUP_LABEL_CLASS}
+          presets={newsletterPresets}
+          valueKey="url"
+          selected={selectedUrls}
+          onAdd={onAddPreset}
+        />
+        <PresetChipGroup
+          label="Dev Community:"
+          labelClass={GROUP_LABEL_CLASS}
+          presets={devFeedPresets}
+          valueKey="url"
+          selected={selectedUrls}
+          onAdd={onAddPreset}
+        />
+        <PresetChipGroup
+          label="Company TechBlogs:"
+          labelClass={GROUP_LABEL_CLASS}
+          presets={companyBlogPresets}
+          valueKey="url"
+          selected={selectedUrls}
+          onAdd={onAddPreset}
+        />
+        <PresetChipGroup
+          label="Industry Radar:"
+          labelClass={GROUP_LABEL_CLASS}
+          presets={industryRadarPresets}
+          valueKey="url"
+          selected={selectedUrls}
+          onAdd={onAddPreset}
+        />
+        <PresetChipGroup
+          label="Podcasts:"
+          labelClass={GROUP_LABEL_CLASS}
+          presets={podcastPresets}
+          valueKey="url"
+          selected={selectedUrls}
+          onAdd={onAddPreset}
+        />
       </div>
     </div>
   )

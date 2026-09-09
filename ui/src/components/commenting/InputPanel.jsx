@@ -1,24 +1,7 @@
 import React from 'react'
 import { AlertCircle, RotateCw, Sparkles, Mic, X } from 'lucide-react'
 import { HUMANIZE_TONES } from '../../lib/constants'
-
-const ANGLES = [
-  {
-    id: 'insightful',
-    label: '💡 Nuanced Insight',
-    desc: 'Adds a deeper dimension, nuance, or underlying operational mechanism.',
-  },
-  {
-    id: 'contrarian',
-    label: '⚖️ Respectful Contrarian',
-    desc: 'Respectfully challenges assumptions with practical production experience.',
-  },
-  {
-    id: 'question',
-    label: '❓ Senior Question',
-    desc: 'Poses an incisive, senior-level question that advances the discussion.',
-  },
-]
+import { ANGLES } from '../../lib/angles'
 
 export default function InputPanel({
   postContent,
