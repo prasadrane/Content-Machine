@@ -233,7 +233,7 @@ python -m content_machine distribute path/to/post.md --slug my-post
 3. **Governed Lessons Store**:
    - `03_content-lessons.md` must **never** be auto-appended directly without a human approval gate.
    - Proposed rules must be checked for semantic duplication/conflict using cosine similarity over embeddings.
-   - Hard cap of active rules (default: 50) is strictly enforced to prevent context bloat and rule drift.
+   - Hard cap of active rules (default: 150, `lessons/store.py` `DEFAULT_CAP`) is strictly enforced to prevent context bloat and rule drift.
 4. **Distribution Engine**:
    - All derivative assets (X threads, video scripts, newsletters) must be strictly grounded in the approved anchor post.
    - Scripts must include production visual markers (`[Visual Cue]`, `[Camera Zoom]`, `[Pause]`).

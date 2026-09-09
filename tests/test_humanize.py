@@ -90,6 +90,15 @@ class TestHumanizeSanitizer(unittest.TestCase):
         self.assertIn("delve", purged)
         self.assertIn("tapestry", purged)
 
+    def test_sanitize_text_purges_manufactured_metaphors(self):
+        from content_machine.humanize.sanitizer import sanitize_text
+
+        text = "The workflow that stops the bleeding when dealing with AI."
+        cleaned, purged = sanitize_text(text)
+        self.assertNotIn("stops the bleeding", cleaned.lower())
+        self.assertIn("fixes the issue", cleaned.lower())
+        self.assertIn("stops the bleeding", purged)
+
     def test_sanitize_text_normalizes_em_dashes(self):
         from content_machine.humanize.sanitizer import sanitize_text
 

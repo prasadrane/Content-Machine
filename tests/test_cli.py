@@ -88,6 +88,20 @@ class TestOracleCLI(unittest.TestCase):
         MockRSS.assert_called_once_with(url="https://example.com/feed", db_conn=ANY, max_age_days=None, max_items=25)
         mock_orch_inst.run.assert_called_once()
 
+    def test_oracle_with_idea_bank_calls_connector(self):
+        """oracle --idea-bank <path> instantiates IdeaBankConnector and runs OracleOrchestrator."""
+        with patch("content_machine.__main__.IdeaBankConnector") as MockIB, \
+             patch("content_machine.__main__.OracleOrchestrator") as MockOrch, \
+             patch("content_machine.__main__.IdeaScorer"):
+            mock_orch_inst = MagicMock()
+            mock_orch_inst.run.return_value = []
+            MockOrch.return_value = mock_orch_inst
+
+            _run_cli("oracle", "--idea-bank", "path/to/bank.xlsx")
+
+        MockIB.assert_called_once_with(file_path="path/to/bank.xlsx")
+        mock_orch_inst.run.assert_called_once()
+
 
     def test_oracle_from_config_loads_rss_feeds(self):
         """oracle --from-config instantiates RSSConnector for enabled feeds in config."""
@@ -598,11 +612,62 @@ class TestHumanizeCLI(unittest.TestCase):
         self.assertNotEqual(code, 0)
 
 
+# ---------------------------------------------------------------------------
+# idea-bank subcommand
+# ---------------------------------------------------------------------------
+
+class TestIdeaBankCLI(unittest.TestCase):
+
+    def test_idea_bank_list_calls_fetch(self):
+        """idea-bank list <file> calls IdeaBankConnector.fetch()."""
+        with patch("content_machine.__main__.IdeaBankConnector") as MockIB:
+            mock_inst = MagicMock()
+            mock_inst.fetch.return_value = MagicMock(items=[])
+            MockIB.return_value = mock_inst
+
+            code, out, err = _run_cli("idea-bank", "test.xlsx", "list")
+
+        self.assertEqual(code, 0)
+        MockIB.assert_called_once_with(file_path="test.xlsx")
+        mock_inst.fetch.assert_called_once()
+
+    def test_idea_bank_add_calls_append_idea(self):
+        """idea-bank add <file> --title <title> calls append_idea()."""
+        with patch("content_machine.__main__.IdeaBankConnector") as MockIB:
+            mock_inst = MagicMock()
+            mock_inst.append_idea.return_value = 5
+            MockIB.return_value = mock_inst
+
+            code, out, err = _run_cli("idea-bank", "test.xlsx", "add", "--title", "My Idea", "--brainstorm", "Notes")
+
+        self.assertEqual(code, 0)
+        self.assertIn("Added idea to row 5", out)
+        mock_inst.append_idea.assert_called_once_with(title="My Idea", brainstorm="Notes")
+
+    def test_idea_bank_pack_calls_append_packaging(self):
+        """idea-bank pack <file> --title <title> calls append_packaging()."""
+        with patch("content_machine.__main__.IdeaBankConnector") as MockIB:
+            mock_inst = MagicMock()
+            mock_inst.append_packaging.return_value = 4
+            MockIB.return_value = mock_inst
+
+            code, out, err = _run_cli("idea-bank", "test.xlsx", "pack", "--title", "Pack Title", "--template", "From X to Y")
+
+        self.assertEqual(code, 0)
+        self.assertIn("Added packaging entry to row 4", out)
+        mock_inst.append_packaging.assert_called_once_with(
+            final_title="Pack Title",
+            brainstorm="",
+            template_inspiration="From X to Y",
+            thumbnail_rec="",
+        )
+
+
 if __name__ == "__main__":
     loader = unittest.TestLoader()
     suite = unittest.TestSuite()
     for cls in [TestCLIHelp, TestOracleCLI, TestCouncilCLI,
-                TestTranscribeCLI, TestLessonsCLI, TestCommentCLI, TestHumanizeCLI]:
+                TestTranscribeCLI, TestLessonsCLI, TestCommentCLI, TestHumanizeCLI, TestIdeaBankCLI]:
         suite.addTests(loader.loadTestsFromTestCase(cls))
 
     runner = unittest.TextTestRunner(verbosity=0)

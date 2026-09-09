@@ -62,7 +62,7 @@ Subsystem 2 (FastAPI vs Node), 5 (Tauri/Electron/web), 6 (vector DB/embeddings),
 - `council/rubric_v1.md` frozen in repo. `content_machine/council/`: obfuscate.py (model-token + generation-header stripping), normalize.py (per-judge z from history, min_samples gate), loop.py (parallel panel via router, quorum 3, margin-band resample ±0.3, max iterations + break-with-best, revision via writer, full persistence).
 - Relay reality: catalog ≠ served. Live models: qwen3.8-max/3.8-flash/3.7-max/3.7-plus/3.6-flash. DEAD on relay: qwen3.7-flash, qwen3.6-plus (403), qwen3.6-max, qwen3.8-opensource ("Model not exist").
 - qwen3.6-flash lacks structured parse: relay translates to response_format=json_object and 400s. Adapter fix: degrade to explicit JSON prompting + Pydantic validation (messages_adapter._plain_json_mode). Rubric output contract now says JSON explicitly.
-- config.json council: perell=3.7-max, puri=3.8-flash, housel=3.7-plus, slop_allergist=3.6-flash; council_margin=0.3 added. Plan v2 §5.4 table updated to verified-live models.
+- config.json council: perell=3.7-max, puri=3.8-flash, housel=3.7-plus, slop_allergist=3.6-flash; council_margin=0.3 added. Plan v2 §5.4 table updated to verified-live models. *(SUPERSEDED 2026-09-09 audit: live config.json now perell/housel=qwen3.8-max, puri/slop_allergist=qwen3.8-flash — README table matches current state.)*
 - Tests: storage 3 + router 7 + council 7 ALL GREEN. Live council smoke 4/4 judges, composite 8.82, resample fired, break-with-best correct.
 
 ## Tomorrow — resume state
@@ -248,3 +248,88 @@ Resume: invoke superpowers:subagent-driven-development on `docs/superpowers/plan
 - Added toggle support on preset pills (clicking an already selected preset now cleanly removes it from the textarea).
 - Added unit test suite `ui/src/components/oracle/SourceCockpit.test.jsx`.
 - Verification: 22/22 Vitest test files (66/66 tests) pass; 216/216 Python tests pass; Vite production build succeeds cleanly.
+
+## Build -- Short-Form Post Calibration & Windmill Idea Bank Integration (2026-09-07)
+- Codified Prasad Rane's short-form, punchy, high-signal LinkedIn post style into `knowledge/01_style-guide.md`, embedding the Claude Code vs Google Antigravity benchmark as Golden Anchor #1.
+- Updated `knowledge/02_voice-guide.md` and `knowledge/03_content-lessons.md` with 120–280 word bounds, mobile-first spacing (1–2 sentences per block), developer psychology/cognitive flow grounding, and strict prohibition of engagement bait questions.
+- Calibrated generation and revision prompts across `content_machine/interview/engine.py`, `content_machine/council/loop.py`, `content_machine/distribution/engine.py`, and `content_machine/humanize/constants.py` to enforce the 120–280 word ceiling and purge comment-baiting questions.
+- Implemented `IdeaBankConnector` in `content_machine/connectors/idea_bank.py` with two-way sync for `Prasad Windmill Idea Bank.xlsx` (`IDEAS` and `PACKAGING` sheets).
+- Added `python -m content_machine oracle --idea-bank <path>` and `python -m content_machine idea-bank <list|add|pack>` CLI commands.
+- Added unit test suites `tests/test_idea_bank_connector.py` (6 tests) and CLI test additions (4 tests).
+- Seeded Golden Reference Post #2 ('The Hidden Cost of AI Code Churn') in `knowledge/01_style-guide.md` and Rule 4 in `knowledge/03_content-lessons.md` strictly banning fabricated corporate production/payment outage drama.
+- Appended approved ideas and packaging into rows 2 and 3 of `Prasad Windmill Idea Bank.xlsx`.
+- Verification: 230/230 unit tests pass offline in Python (<4.3s). Tested live operations with `Prasad Windmill Idea Bank.xlsx`.
+
+## Build -- AI Reviewer Feedback: Anti-Broetry & Anti-Aphorism Calibration (2026-09-07)
+- Codified 3 new rules from AI reviewer feedback into `knowledge/01_style-guide.md`, `knowledge/02_voice-guide.md`, and `knowledge/03_content-lessons.md`:
+  - Rule 5: Ban "Broetry" staccato cadence; use cohesive mini-paragraphs (2–3 sentences) grouping premise, mechanics, and friction.
+  - Rule 6: Ban "X isn't Y, it's Z" fortune-cookie mic-drop aphorisms; close on direct statements of technical reality/behavior.
+  - Rule 7: Strict 2–3 hashtags limit; purge hashtag clutter.
+- Connected technical mechanics directly (e.g. explain why mocks stay green during contract drift and immediately present integration tests as the remedy).
+- Updated Golden Reference Post #2 in `knowledge/01_style-guide.md` with the finalized polished post.
+- Propagated constraints across `interview/engine.py`, `council/loop.py`, `distribution/engine.py`, and `humanize/constants.py`.
+- Verification: 230/230 unit tests pass offline in Python (2.47s).
+
+## Build -- AI Reviewer Feedback 02: Eliminating AI Fingerprints & Lived Experience (2026-09-07)
+- Analyzed and codified critical stylistic critique eliminating subtle AI-writing fingerprints:
+  - **Lived Mechanical Specificity**: Ban generic drama like "debugging edge cases". Require concrete failure modes (HTTP 429s, partial responses, payload validation edge cases, contract drift).
+  - **Aphorism Density Cap**: Maximum 1 takeaway or summary line per post. Ban stacking consecutive LinkedIn epigrams and soundbites.
+  - **Ban Rhetorical Contrast Crutches**: Banned formulas ("X feels fast until Y...", "You aren't saving X, you're Y...", "The problem isn't X, it's how we Y...").
+  - **Ban Manufactured Drama Metaphors**: Added "stop the bleeding", "stops the bleeding", "the workflow that stops", and "pure velocity" to `BANNED_AI_PHRASES` with automatic phrase sanitizer replacements.
+  - **Conversational Practitioner Cadence**: First-person field note rhythm ("I've started treating...", "What works better for me:"), slightly messier and practical rather than an immaculate, sanitized lecture.
+- Updated `knowledge/01_style-guide.md` with refined Golden Reference Post #2 and 5 new structural specifications.
+- Updated `knowledge/02_voice-guide.md` and seeded Rules 9–13 into `knowledge/03_content-lessons.md`.
+- Updated system prompts across `interview/engine.py`, `council/loop.py`, `distribution/engine.py`, and `humanize/constants.py`.
+- Updated row 3 of `Prasad Windmill Idea Bank.xlsx` (`IDEAS` sheet) with the authentic practitioner draft.
+- Added unit test in `tests/test_humanize.py` verifying automated sanitization of manufactured metaphors.
+- Verification: 231/231 unit tests pass offline in Python (2.10s).
+
+## Build -- Full Editorial Context Injection for Council Writing Agents (2026-09-07)
+- Identified critical context gap: previously, the council revision writing agent (`revise()` in `council/loop.py`) and initial drafting agent (`synthesize_draft()` in `interview/engine.py`) were not receiving `01_style-guide.md` and only queried the SQLite `lessons` table (which lacked markdown-seeded rules if empty). Furthermore, `ensure_tree()` in `paths.py` was not refreshing outdated runtime knowledge files if placeholder files already existed.
+- Built centralized knowledge provider module `content_machine/knowledge/provider.py`:
+  - `get_style_guide()`: Retrieves and syncs `01_style-guide.md` (Golden Reference Posts #1 & #2, word count constraints, lived specificity, anti-contrast ban, aphorism density cap, anti-broetry, hashtags).
+  - `get_voice_guide()`: Retrieves and syncs `02_voice-guide.md` (author persona, 5 hard negative invariants, practitioner field note cadence).
+  - `get_governed_rules()`: Extracts governed Rules 1 through 13 from `03_content-lessons.md` and syncs them automatically into SQLite `lessons` table.
+  - `get_editorial_context()`: Builds formatted markdown blocks (`style_section`, `voice_section`, `rules_section`) for drafters.
+- Updated `content_machine/council/loop.py`:
+  - `REVISE_PROMPT` now injects `{style_section}`, `{voice_section}`, and `{rules_section}` alongside critiques and rubric.
+  - `revise()` and `run_council()` now supply full editorial context on every iteration.
+- Updated `content_machine/interview/engine.py`:
+  - `synthesize_draft()` now injects full style guide, voice guide, and governed rules bundle into initial drafting prompt.
+- Updated `content_machine/storage/paths.py`:
+  - `ensure_tree()` now automatically updates truncated or outdated runtime knowledge files from seeds.
+- Ran synchronization on runtime environment:
+  - `~/.content_machine/knowledge/` upgraded from 119-byte placeholders to full 6.7KB style guide, 5.7KB voice guide, and 4.2KB lessons.
+  - `content_machine.db` purged of outdated production-crash rules and populated with active Rules 1 to 13.
+- Created unit test suite `tests/test_editorial_context.py` (5 tests) and updated `tests/test_interview.py`.
+- Verification: 236/236 Python tests pass offline (<3.1s); 22/22 Vitest files (67/67 tests) pass.
+
+## Build -- Windmill Idea Bank Batch Population (Rows 4-11) (2026-09-07)
+- Added `export_packaging_batch()` method to `IdeaBankConnector` in `content_machine/connectors/idea_bank.py` with corresponding test in `tests/test_idea_bank_connector.py`.
+- Populated 8 new high-signal post ideas across Prasad's core architectural themes into `Prasad Windmill Idea Bank.xlsx` (`IDEAS` and `PACKAGING` sheets, rows 4 through 11):
+  - Row 4: Kafka Partition Rebalance Storms (*Why Your Rolling Deploys Trigger a 5-Minute Kafka Consumer Freeze*)
+  - Row 5: The .Result Deadlock Trap in Async Code (*How One .Result Call Silently Starves Your Entire Thread Pool*)
+  - Row 6: Modular Monolith First (*Modular Monolith vs Microservices: When Distributed Architecture Actually Makes Sense*)
+  - Row 7: Distributed Locks Without Heartbeats (*Why Fixed-TTL Distributed Locks Cause Silent Data Corruption*)
+  - Row 8: Poison Pills in Event Queues (*How a Single Malformed Event Can Crash Your Entire Event Consumer Loop*)
+  - Row 9: Cache Stampedes & Thundering Herds (*Why Hundreds of Cache Hits Instantly Become a Database Thundering Herd*)
+  - Row 10: Context Window Compaction in AI Coding (*Why 20-Turn AI Coding Sessions Make Your Agent Hallucinate*)
+  - Row 11: Evaluating System Design Takehomes (*The 4 Operational Flaws That Immediately Fail Senior System Design Reviews*)
+- Verification: 237/237 Python tests pass offline (3.72s).
+
+## Build -- 4-Step Batch Expansion: 25 Posts & Dev.to Technical Suite (2026-09-07)
+- **Step 1 (Audit & Rule 14)**: Audited existing 10 posts in `Prasad Windmill Idea Bank.xlsx`. Codified Rule 14 (Natural Conversational Closers without formulaic 'Lesson:' or 'Rule:' label prefixes) into `knowledge/01_style-guide.md`, `knowledge/02_voice-guide.md`, and `knowledge/03_content-lessons.md`. Updated `tests/test_editorial_context.py` following strict TDD. Synced active Rule 14 to SQLite `content_machine.db`. Cleaned Golden Post #1 hashtags to 3 tags.
+- **Step 2 (Existing Posts Polish)**: Updated `Prasad Windmill Idea Bank.xlsx` rows 2–11. Populated row 2 with full Golden Post #1 draft (156 words). Polished rows 4, 5, 6, and 11 to remove formulaic `Lesson:` / `Rule:` tags. Cleaned corrupted bullets in row 5.
+- **Step 3 (15 New Posts Batch Synthesis)**: Synthesized 15 new high-signal posts (rows 12–26) across distributed systems, .NET internals, database performance, FinOps, resilience, and agent architecture using `qwen3.8-max` via token plan relay with full editorial context. Populated both `IDEAS` and `PACKAGING` sheets. All 25 posts audited: 146–220 words, exactly 2–3 hashtags, 0 em-dashes, 0 formulaic headers, 0 company attributions.
+- **Step 4 (Dev.to Technical Suite)**: Generated 25 comprehensive, publication-ready Dev.to technical articles (12,766 words total) with Dev.to YAML frontmatter, failure mode logs, and complete runnable code snippets (C#, SQL, Kafka, Python). Stored as individual markdown files under `docs-and-tracking-sheet/devto-posts/` and as a consolidated single archive `docs-and-tracking-sheet/devto_all_posts.md` with an interactive Table of Contents.
+- Verification: 237/237 Python unit tests pass offline (0 failures); 22/22 Vitest test files (67/67 tests) pass; spreadsheet audit verifies all 25 rows 100% compliant.
+
+## Build -- Qwen 3.8-Max Highest-Effort Reasoning & 24 Posts Editorial Audit (2026-09-07)
+- Enabled chain-of-thought deep reasoning on `qwen3.8-max` via Anthropic Messages protocol relay: `thinking={"type": "enabled", "budget_tokens": 4096}` and `extra_body={"reasoning_effort": "high"}`. Tested support for up to 16,384 budget tokens with full relay confirmation.
+- Updated `content_machine/router/base.py` (`ModelRouter.complete()`) and `content_machine/router/messages_adapter.py` (`MessagesAdapter.complete()` and `_call()`) to forward `thinking`, `extra_body`, and arbitrary `**kwargs` through the router pipeline.
+- Added unit test `test_router_forwards_thinking_and_extra_params` in `tests/test_router.py` following strict TDD; verified 237/237 tests pass.
+- Executed high-effort editorial reviews across all 24 posts (Rows 3 to 26 in `Prasad Windmill Idea Bank.xlsx`) using parallel `ThreadPoolExecutor(max_workers=4)` with `qwen3.8-max` in deep-reasoning mode.
+- Generated 24 individual review markdown files and master report `docs-and-tracking-sheet/post-reviews/MASTER_EDITORIAL_REVIEW_24_POSTS.md`.
+- Automatically calibrated and updated all 24 posts in `IDEAS` and `PACKAGING` sheets with the polished final drafts.
+- Post-review audit verification: all 25 posts pass 100% (141–216 words, strictly 2–3 hashtags, 0 em-dashes, 0 formulaic headers, 0 company attributions).
+

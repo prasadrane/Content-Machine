@@ -90,6 +90,12 @@ PHRASE_REPLACEMENTS: dict[str, str] = {
     "it's important to remember": "remember that",
     "not only that, but": "also,",
     "unlock value": "deliver value",
+    "stop the bleeding": "fix the issue",
+    "stops the bleeding": "fixes the issue",
+    "stopping the bleeding": "fixing the issue",
+    "the workflow that stops": "what works",
+    "feels like pure velocity": "feels fast",
+    "feels fast until": "seems quick until",
 }
 
 PRECOMPILED_PHRASE_PATTERNS: list[tuple[str, re.Pattern[str], str]] = [

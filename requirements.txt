@@ -1,5 +1,6 @@
 anthropic==1.4.0
-openai==2.41.0
+# openai pin dropped 2026-09-09: gateway has no OpenAI-protocol path (spikes/RESULTS.md);
+# only consumer was spikes/spike_structured_outputs.py qwen_client() (function-local import, spike completed).
 pydantic==2.11.7
 pydantic-settings==2.14.1
 requests>=2.32.0

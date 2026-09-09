@@ -76,10 +76,21 @@ class MessagesAdapter:
         system: str | None = None,
         schema: type[BaseModel] | None = None,
         max_tokens: int | None = None,
+        thinking: dict | None = None,
+        extra_body: dict | None = None,
+        **kwargs: Any,
     ):
         try:
-            return self._call(model, prompt, system=system, schema=schema,
-                              max_tokens=max_tokens or self.max_tokens)
+            return self._call(
+                model,
+                prompt,
+                system=system,
+                schema=schema,
+                max_tokens=max_tokens or self.max_tokens,
+                thinking=thinking,
+                extra_body=extra_body,
+                **kwargs,
+            )
         except (ProviderError, ModelError):
             raise
         except anthropic.APIConnectionError as e:
@@ -90,13 +101,23 @@ class MessagesAdapter:
             exc = classify_status(getattr(e, "status_code", None), str(e))
             raise exc(f"{type(e).__name__}: {str(e)[:300]}") from e
 
-    def _call(self, model, prompt, *, system, schema, max_tokens):
+    def _call(self, model, prompt, *, system, schema, max_tokens, thinking=None, extra_body=None, **kwargs):
         messages = [{"role": "user", "content": prompt}]
-        extra = {"system": system} if system else {}
+        extra: dict = {"system": system} if system else {}
+        if extra_body:
+            extra["extra_body"] = extra_body
+        for k, v in kwargs.items():
+            extra[k] = v
 
         if schema is None:
             create_extra = dict(extra)
-            if "thinking" not in create_extra:
+            if thinking is not None:
+                create_extra["thinking"] = thinking
+                # If thinking budget exceeds max_tokens, adjust max_tokens
+                budget = thinking.get("budget_tokens", 0) if isinstance(thinking, dict) else 0
+                if budget and max_tokens <= budget:
+                    max_tokens = budget + 1024
+            elif "thinking" not in create_extra:
                 create_extra["thinking"] = {"type": "disabled"}
             try:
                 resp = self._client.messages.create(

@@ -26,9 +26,11 @@ class FakeAdapter:
     def __init__(self, outcomes: dict[str, object]):
         self.outcomes = outcomes
         self.calls: list[str] = []
+        self.last_kwargs: dict = {}
 
-    def complete(self, model, prompt, *, system=None, schema=None):
+    def complete(self, model, prompt, *, system=None, schema=None, **kwargs):
         self.calls.append(model)
+        self.last_kwargs = kwargs
         out = self.outcomes.get(model)
         if isinstance(out, Exception):
             raise out
@@ -198,6 +200,19 @@ def test_latency_cap_skips_when_alternative_available() -> None:
     assert "r1" not in [a for a in r.routes["r1"].adapter.calls]
 
 
+def test_router_forwards_thinking_and_extra_params() -> None:
+    fake = FakeAdapter({"m1": "reasoned-output"})
+    r = make_router({"r1": fake})
+    out = r.complete(
+        ["m1"], "p",
+        thinking={"type": "enabled", "budget_tokens": 4096},
+        extra_body={"reasoning_effort": "high"},
+    )
+    assert out == "reasoned-output"
+    assert fake.last_kwargs.get("thinking") == {"type": "enabled", "budget_tokens": 4096}
+    assert fake.last_kwargs.get("extra_body") == {"reasoning_effort": "high"}
+
+
 def live_smoke() -> None:
     from content_machine.config import load_config
     from content_machine.router import router_from_config
@@ -220,7 +235,8 @@ def main() -> None:
                test_model_error_advances_layer, test_all_fail, test_classify_status,
                test_parse_retry, test_plain_json_fallback,
                test_latency_cap_does_not_skip_sole_route,
-               test_latency_cap_skips_when_alternative_available):
+               test_latency_cap_skips_when_alternative_available,
+               test_router_forwards_thinking_and_extra_params):
         fn()
         print(f"PASS {fn.__name__}")
     if os.environ.get("CONTENT_MACHINE_LIVE") == "1":

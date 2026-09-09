@@ -171,6 +171,9 @@ class TestInterviewEngine(unittest.TestCase):
         self.assertIn("# Author Voice & Persona Guide", prompt_used)
         self.assertIn("Zero Company Attribution", prompt_used)
         self.assertIn("No False Corporate Employment", prompt_used)
+        self.assertIn("# Author Style Guide", prompt_used)
+        self.assertIn("Golden Reference Post #1", prompt_used)
+        self.assertIn("GOVERNED EDITORIAL RULES", prompt_used)
 
 
 class TestInterviewAPI(unittest.TestCase):

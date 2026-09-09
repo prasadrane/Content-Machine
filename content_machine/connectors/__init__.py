@@ -12,6 +12,7 @@ Blocked (need tokens/credentials):
 
 from content_machine.connectors.base import BaseConnector, ConnectorItem, ConnectorResult
 from content_machine.connectors.github import GitHubConnector
+from content_machine.connectors.idea_bank import IdeaBankConnector
 from content_machine.connectors.linkedin import LinkedInConnector
 from content_machine.connectors.rss import RSSConnector
 
@@ -22,4 +23,5 @@ __all__ = [
     "RSSConnector",
     "GitHubConnector",
     "LinkedInConnector",
+    "IdeaBankConnector",
 ]

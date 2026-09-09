@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from ..config import AppConfig
+from ..knowledge.provider import get_editorial_context
 from ..router.base import AllRoutesFailed
 from ..schemas import CouncilScores
 from .normalize import DIMENSIONS, normalization_stats, z_normalize
@@ -36,15 +37,31 @@ JUDGE_SYSTEM = (
     "Score only from the anonymous draft provided. Follow the rubric exactly."
 )
 REVISE_PROMPT = """You are the master drafter revising a draft after council review.
+You must adhere strictly to the author's voice, style specifications, and governed editorial rules.
 
+{style_section}
+{voice_section}
+{rules_section}
 RUBRIC (evaluation criteria, for reference):
 {rubric}
-{rules_section}
+
 CURRENT DRAFT:
 {draft}
 
 COUNCIL CRITIQUES (consolidated, address every item):
 {critiques}
+
+FORMATTING & BREVITY MANDATE:
+- Target length: strictly between 120 and 280 words. Address critiques concisely without bloating the draft.
+- Conversational practitioner note: write from direct experience ("I've started treating...", "What works better for me:").
+- Mechanical specificity: cite concrete failure modes (HTTP 429s, partial responses, payload validation edge cases) rather than generic phrases like "debugging edge cases".
+- Aphorism density cap: limit to at most ONE takeaway line; NEVER chain consecutive soundbites or epigrams.
+- Ban rhetorical contrast formulas: do NOT use "X feels fast until Y...", "You aren't saving X, you're Y...", or "The problem isn't X, it's how we Y...".
+- Ban manufactured metaphors: do NOT use "stops the bleeding" or "pure velocity".
+- Natural paragraphs (NO broetry): group related premise, mechanics, and friction into cohesive mini-paragraphs (2–3 sentences). Avoid 1-line staccato blocks.
+- No formulaic aphorisms or engagement bait: do NOT use the "X isn't Y, it's Z" fortune-cookie mic-drop template. Do not end with cheesy discussion questions.
+- Grounding: never fabricate corporate production crashes (no 3 AM payment outages). Keep grounded in authentic builder workflows and test suites.
+- Hashtags: exactly 2–3 hyper-relevant technical hashtags.
 
 Return the complete revised draft as plain text. No preamble, no commentary, no code fences."""
 
@@ -153,14 +170,26 @@ def revise(
     draft: str,
     critiques: list[str],
     rules: list[str] | None = None,
+    style_text: str | None = None,
+    voice_text: str | None = None,
 ) -> str:
+    if style_text is None or voice_text is None or rules is None:
+        ctx = get_editorial_context()
+        style_text = style_text if style_text is not None else ctx["style_guide"]
+        voice_text = voice_text if voice_text is not None else ctx["voice_guide"]
+        rules = rules if rules is not None else ctx["active_rules"]
+
+    style_section = f"\n# Author Style Guide\n{style_text}\n" if style_text else ""
+    voice_section = f"\n# Author Voice & Persona Guide\n{voice_text}\n" if voice_text else ""
     rules_section = ""
     if rules:
         rules_section = "\nGOVERNED EDITORIAL RULES (must obey every rule):\n" + "\n".join(f"- {r}" for r in rules) + "\n"
 
     prompt = REVISE_PROMPT.format(
-        rubric=rubric_text,
+        style_section=style_section,
+        voice_section=voice_section,
         rules_section=rules_section,
+        rubric=rubric_text,
         draft=draft,
         critiques="\n".join(f"- {c}" for c in critiques),
     )
@@ -263,6 +292,9 @@ def run_council(
     best: dict | None = None
     decision_obj: CouncilDecision | None = None
 
+    # Load full editorial context (styles, voice guide, governed rules) for writing agent
+    editorial_ctx = get_editorial_context(conn=conn)
+
     for iteration in range(1, max_iter + 1):
         judge_scores, notes = _evaluate_once(cfg=cfg, router=router, rubric_text=rubric_text, draft=draft)
         composite = _composites(judge_scores)
@@ -308,35 +340,35 @@ def run_council(
             best = (composite, decision_obj)
 
         if threshold_met:
+            from content_machine.humanize.sanitizer import sanitize_text
+            decision_obj.draft, _ = sanitize_text(decision_obj.draft)
             return decision_obj
         if iteration < max_iter:
             if not required_actions:
                 required_actions = ["no concrete actions returned; re-evaluate rubric compliance"]
-            
-            active_rules: list[str] = []
-            if conn:
-                try:
-                    rule_rows = conn.execute(
-                        "SELECT rule_text FROM lessons WHERE status='active' ORDER BY created_at"
-                    ).fetchall()
-                    active_rules = [r[0] for r in rule_rows]
-                except Exception:
-                    active_rules = []
 
             draft = revise(
-                cfg=cfg, router=router, rubric_text=rubric_text,
-                draft=draft, critiques=required_actions, rules=active_rules,
+                cfg=cfg,
+                router=router,
+                rubric_text=rubric_text,
+                draft=draft,
+                critiques=required_actions,
+                rules=editorial_ctx["active_rules"],
+                style_text=editorial_ctx["style_guide"],
+                voice_text=editorial_ctx["voice_guide"],
             )
 
     # max iterations exhausted: break with best draft + blocking issues
     best_comp, best_dec = best
+    from content_machine.humanize.sanitizer import sanitize_text
+    clean_draft, _ = sanitize_text(best_dec.draft)
     final = CouncilDecision(
         iteration=best_dec.iteration, threshold_met=False,
         gate_basis=best_dec.gate_basis, composite_raw=best_comp,
         composite_normalized=best_dec.composite_normalized,
         judge_scores=best_dec.judge_scores,
         required_actions=best_dec.required_actions,
-        draft=best_dec.draft, resampled=best_dec.resampled,
+        draft=clean_draft, resampled=best_dec.resampled,
         notes=best_dec.notes + [f"loop broken after {max_iter} iterations; best composite {best_comp:.2f}"],
     )
     return final

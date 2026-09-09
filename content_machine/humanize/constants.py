@@ -53,6 +53,12 @@ BANNED_AI_PHRASES: list[str] = [
     "not only that, but",
     "a testament to the power",
     "unlock value",
+    "stop the bleeding",
+    "stops the bleeding",
+    "stopping the bleeding",
+    "the workflow that stops",
+    "feels like pure velocity",
+    "feels fast until",
 ]
 
 EM_DASH_PATTERN = re.compile(r"\s*—\s*|(?<!-)(?:\s+--\s+|(?<=\w)--(?:(?=\w)|\s+))(?!-)")
@@ -82,9 +88,16 @@ CHANNEL_PROMPTS: dict[HumanizeChannel, str] = {
         "Never exceed 3 sentences. High burstiness."
     ),
     HumanizeChannel.LINKEDIN_POST: (
-        "Transform this into an authentic LinkedIn post. "
-        "Hook fast with a 1-line observation. Use asymmetric paragraph blocks (1 line, then 3 lines, then 1 line). "
-        "Close on a blunt operational takeaway. Zero decorative bullet emojis."
+        "Transform this into an authentic, concise LinkedIn post (strictly 120-280 words) written as a senior engineer's personal field note. "
+        "Ground in lived technical friction with specific failure modes (e.g., HTTP 429s, partial responses, payload validation, contract drift) rather than generic phrases like 'debugging edge cases'. "
+        "Use natural mini-paragraphs (2-3 sentences), avoiding 1-line 'broetry' cadence. "
+        "Tone: conversational, practitioner-first ('I've started treating...', 'What works better for me:'). "
+        "Anti-fingerprint rules: "
+        "- Max 1 takeaway or summary line; NEVER stack consecutive quotable aphorisms or soundbites. "
+        "- BAN rhetorical contrast formulas ('X feels fast until Y', 'You aren't saving X, you're Y', 'The problem isn't X, it's how we Y'). "
+        "- BAN manufactured metaphors ('stop the bleeding', 'pure velocity'). "
+        "- BAN 'X isn't Y, it's Z' fortune-cookie mic-drop outros. "
+        "- Zero engagement bait (no 'What do you think?' or 'Comment below'). Strictly 2-3 hashtags."
     ),
     HumanizeChannel.X_THREAD: (
         "Transform this into a natural X/Twitter thread. "

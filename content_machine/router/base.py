@@ -100,6 +100,7 @@ class ModelRouter:
         *,
         system: str | None = None,
         schema: type | None = None,
+        **kwargs: Any,
     ):
         """Try each model in order; per model, try its routes in order.
 
@@ -129,7 +130,7 @@ class ModelRouter:
                 t0 = time.time()
                 try:
                     result = route.adapter.complete(
-                        model=model, prompt=prompt, system=system, schema=schema
+                        model=model, prompt=prompt, system=system, schema=schema, **kwargs
                     )
                 except ModelError as e:
                     attempts.append((model, route_name, f"model-level: {e}"))

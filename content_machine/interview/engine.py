@@ -51,13 +51,22 @@ Generate the executive briefing, core conflict, and 2-3 persona interrogation qu
 
 _SYNTHESIZE_SYSTEM = """\
 You are an elite technical ghostwriter and editorial partner.
-Your mission is to turn the creator's real lived experience, direct answers, and raw notes into a high-signal anchor post (LinkedIn/X long-form style).
+Your mission is to turn the creator's real lived experience, direct answers, and raw notes into a high-signal, concise technical post (LinkedIn/X style, strictly 120–280 words) written as an authentic developer field note.
 
 CORE INVARIANTS:
 1. Ground every single claim in the creator's actual answers, metrics, and notes below.
-2. NEVER hallucinate metrics, imaginary colleagues, or fabricated scenarios.
-3. Obey all negative constraints and style rules: no generic corporate buzzwords ("delve", "leverage", "testament", "tapestry", "game-changer").
-4. Hook fast with the counter-intuitive observation or metric, develop the narrative spine, and close on an actionable operational takeaway.
+2. Concrete mechanical specificity over generic hand-waving: cite exact failure modes (e.g., HTTP 429s, partial responses, payload validation edge cases, schema drift) instead of generic phrases like "debugging edge cases".
+3. NEVER hallucinate metrics, imaginary colleagues, or fabricated corporate production outages (no 3 AM payment crashes).
+4. Strict length constraint: strictly between 120 and 280 words total. Never write long essays or walls of text.
+5. Conversational practitioner voice: write in first person ("I've started treating...", "What works better for me:"). Keep it slightly messier and practical rather than an immaculate, sanitized lecture.
+6. Aphorism density cap: limit to at most ONE takeaway or summary observation. NEVER string consecutive quotable epigrams together.
+7. Ban AI rhetorical contrast formulas: do NOT use "X feels fast until Y...", "You aren't saving X, you're just Y...", or "The problem isn't X, it's how we Y...". State observations directly.
+8. Ban manufactured metaphors: NEVER use dramatic phrases like "the workflow that stops the bleeding" or "pure velocity".
+9. Natural paragraph grouping (NO broetry): group related premise, mechanics, and friction into cohesive mini-paragraphs (2–3 sentences). Avoid 1-sentence staccato lines unless presenting an operational action list.
+10. Connect technical mechanics directly: when citing a failure mode (like mocks staying green during drift), connect it directly to the concrete remedy.
+11. Zero formulaic aphorisms or engagement bait: do NOT use the "X isn't Y, it's Z" fortune-cookie mic-drop template. NEVER end with cheesy questions ("What do you think?", "Comment below"). Close on an unvarnished statement of technical reality.
+12. Hashtag hygiene: include exactly 2–3 hyper-relevant technical hashtags at the footer.
+13. Obey all negative constraints and style rules: no generic corporate buzzwords ("delve", "leverage", "testament", "tapestry", "game-changer").
 """.strip()
 
 
@@ -154,29 +163,12 @@ class InterviewEngine:
         qa_text = "\n".join(qa_sections) if qa_sections else "No structured answers provided."
         notes_text = (raw_notes or "").strip() or "No additional freeform notes."
 
-        # Fetch governed rules if DB connection available
-        governed_rules = []
-        if self.db_conn:
-            try:
-                from content_machine.lessons.store import LessonsStore
-                store = LessonsStore(self.db_conn)
-                governed_rules = store.active_rules()
-            except Exception as e:
-                logger.warning("Failed to fetch active lessons: %s", e)
-
-        rules_prompt = ""
-        if governed_rules:
-            rules_prompt = "\nGOVERNED EDITORIAL RULES (must obey):\n" + "\n".join(f"- {r}" for r in governed_rules) + "\n"
-
-        voice_guide_prompt = ""
-        try:
-            from content_machine.profile.manager import ProfileManager
-            prof_manager = ProfileManager()
-            guide = prof_manager.get_voice_guide_text()
-            if guide:
-                voice_guide_prompt = f"\n# Author Voice & Persona Guide\n{guide.strip()}\n"
-        except Exception as e:
-            logger.warning("Failed to fetch voice guide: %s", e)
+        # Fetch full editorial context (styles, voice guide, governed rules)
+        from content_machine.knowledge.provider import get_editorial_context
+        editorial_ctx = get_editorial_context(conn=self.db_conn)
+        style_prompt = editorial_ctx["style_section"]
+        voice_guide_prompt = editorial_ctx["voice_section"]
+        rules_prompt = editorial_ctx["rules_section"]
 
         prompt = f"""\
 # Topic Context
@@ -188,7 +180,7 @@ Executive Summary: {topic_summary}
 
 # Operator's Freeform Notes & Observations
 {notes_text}
-{rules_prompt}{voice_guide_prompt}
+{style_prompt}{voice_guide_prompt}{rules_prompt}
 Write the initial draft based strictly on the above evidence. Return only the draft content in markdown format.
 """
 
@@ -204,6 +196,10 @@ Write the initial draft based strictly on the above evidence. Return only the dr
                             draft_content = "\n".join(lines[1:-1]).strip()
             except Exception as e:
                 logger.error("Router draft synthesis failed: %s", e)
+
+        if draft_content:
+            from content_machine.humanize.sanitizer import sanitize_text
+            draft_content, _ = sanitize_text(draft_content)
 
         if not draft_content:
             # Fallback draft template constructed directly from user input

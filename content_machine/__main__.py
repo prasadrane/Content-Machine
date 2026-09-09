@@ -32,6 +32,7 @@ from pathlib import Path
 from content_machine.asr.batch import BatchTranscriber
 from content_machine.commenting.engine import CommentingEngine
 from content_machine.connectors.github import GitHubConnector
+from content_machine.connectors.idea_bank import IdeaBankConnector
 from content_machine.connectors.linkedin import LinkedInConnector
 from content_machine.connectors.rss import RSSConnector
 from content_machine.council.loop import run_council
@@ -112,7 +113,9 @@ def _cmd_oracle(args: argparse.Namespace) -> int:
         li_cookie = getattr(args, "li_at", None) or os.environ.get("LINKEDIN_LI_AT", "")
         for target in args.linkedin:
             profile = None if target.lower() in ("feed", "home", "me") else target
-            connectors.append(LinkedInConnector(li_at=li_cookie, profile=profile))
+    if getattr(args, "idea_bank", None):
+        for path in args.idea_bank:
+            connectors.append(IdeaBankConnector(file_path=path))
     if getattr(args, "from_config", False):
         from content_machine.config import get_category_default_max_age_days
         for f in getattr(cfg, "rss_feeds", []):
@@ -133,7 +136,7 @@ def _cmd_oracle(args: argparse.Namespace) -> int:
 
 
     if not connectors:
-        print("error: provide at least one source: --rss <url>, --github <owner/repo>, --linkedin <profile/feed>, or --from-config",
+        print("error: provide at least one source: --rss <url>, --github <owner/repo>, --linkedin <profile/feed>, --idea-bank <path>, or --from-config",
               file=sys.stderr)
         return 1
 
@@ -213,7 +216,10 @@ def _cmd_council(args: argparse.Namespace) -> int:
 
     print(f"\nCouncil result — iteration {result.iteration}")
     print(f"  Verdict  : {result.verdict}")
-    print(f"  Score    : {result.composite_normalized:.3f} (normalized)")
+    if result.composite_normalized is not None:
+        print(f"  Score    : {result.composite_normalized:.3f} (normalized)")
+    else:
+        print(f"  Score    : {result.composite_raw:.2f} (raw)")
     if result.required_actions:
         print("  Actions  :")
         for action in result.required_actions:
@@ -465,6 +471,56 @@ def _cmd_humanize(args: argparse.Namespace) -> int:
 
 
 
+def _cmd_idea_bank(args: argparse.Namespace) -> int:
+    action = getattr(args, "idea_bank_action", None)
+    if not action:
+        print("Usage: python -m content_machine idea-bank <list|add|pack> ...", file=sys.stderr)
+        return 1
+
+    connector = IdeaBankConnector(file_path=args.file)
+    if action == "list":
+        try:
+            res = connector.fetch()
+        except Exception as e:
+            print(f"Error reading Idea Bank: {e}", file=sys.stderr)
+            return 1
+        if not res.items:
+            print("No ideas found in sheet 'IDEAS'.")
+            return 0
+        print(f"\n{'#':>3}  {'Title':35}  Brainstorm / Notes")
+        print("-" * 80)
+        for i, it in enumerate(res.items, 1):
+            print(f"{i:>3}  {it.title[:35]:35}  {it.body[:40]}")
+        print(f"\nTotal ideas: {len(res.items)}\n")
+        return 0
+
+    elif action == "add":
+        try:
+            row = connector.append_idea(title=args.title, brainstorm=getattr(args, "brainstorm", "") or "")
+            print(f"Added idea to row {row}: '{args.title}'")
+            return 0
+        except Exception as e:
+            print(f"Error appending idea: {e}", file=sys.stderr)
+            return 1
+
+    elif action == "pack":
+        try:
+            row = connector.append_packaging(
+                final_title=args.title,
+                brainstorm=getattr(args, "brainstorm", "") or "",
+                template_inspiration=getattr(args, "template", "") or "",
+                thumbnail_rec=getattr(args, "thumb", "") or "",
+            )
+            print(f"Added packaging entry to row {row}: '{args.title}'")
+            return 0
+        except Exception as e:
+            print(f"Error appending packaging: {e}", file=sys.stderr)
+            return 1
+
+    return 0
+
+
+
 def _build_parser() -> argparse.ArgumentParser:
 
     parser = argparse.ArgumentParser(
@@ -497,6 +553,8 @@ def _build_parser() -> argparse.ArgumentParser:
                           help="Filter out items older than this many days (default: category-aware).")
     p_oracle.add_argument("--max-items-per-feed", type=int, default=25,
                           help="Maximum items to ingest per RSS feed source (default: 25).")
+    p_oracle.add_argument("--idea-bank", metavar="XLSX_PATH", action="append",
+                          help="Path to Windmill Idea Bank Excel workbook (repeatable). Reads rows from IDEAS sheet.")
 
 
 
@@ -568,6 +626,23 @@ def _build_parser() -> argparse.ArgumentParser:
                             choices=["punchy_direct", "pragmatic_architect", "conversational_peer"],
                             help="Target tone: punchy_direct, pragmatic_architect, conversational_peer (default: pragmatic_architect).")
 
+    # idea-bank
+    p_ib = sub.add_parser("idea-bank", help="Interact with Prasad Windmill Idea Bank Excel.")
+    p_ib.add_argument("file", metavar="XLSX_PATH", help="Path to Windmill Idea Bank Excel workbook.")
+    ib_sub = p_ib.add_subparsers(dest="idea_bank_action")
+
+    ib_sub.add_parser("list", help="List all planned ideas from sheet IDEAS.")
+
+    p_ib_add = ib_sub.add_parser("add", help="Append a new idea to sheet IDEAS.")
+    p_ib_add.add_argument("--title", required=True, help="Idea title.")
+    p_ib_add.add_argument("--brainstorm", default="", help="Brainstorming notes or outline.")
+
+    p_ib_pack = ib_sub.add_parser("pack", help="Append a packaging entry to sheet PACKAGING.")
+    p_ib_pack.add_argument("--title", required=True, help="Final packaging title.")
+    p_ib_pack.add_argument("--brainstorm", default="", help="Brainstorming context.")
+    p_ib_pack.add_argument("--template", default="", help="Title template inspiration.")
+    p_ib_pack.add_argument("--thumb", default="", help="Thumbnail recommendation.")
+
     return parser
 
 
@@ -602,6 +677,7 @@ def main() -> None:
         "serve": _cmd_serve,
         "comment": _cmd_comment,
         "humanize": _cmd_humanize,
+        "idea-bank": _cmd_idea_bank,
     }
 
     handler = dispatch.get(args.command)
