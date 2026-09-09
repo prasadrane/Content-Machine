@@ -98,3 +98,50 @@ def test_make_router_builds_gemini_route_and_skips_without_key(monkeypatch, tmp_
     router = make_router(cfg)
     assert "gemini" in router.routes
     assert router.routes["gemini"].adapter.__class__.__name__ == "GeminiAdapter"
+
+
+def test_schema_returns_validated_model_and_sends_response_schema():
+    import json as _json
+    from unittest import mock
+
+    import httpx as _httpx
+
+    from content_machine.router.gemini import GeminiAdapter
+    from content_machine.schemas import CouncilScores
+
+    captured = {}
+    payload = _json.dumps({
+        "narrative": 9.0, "velocity": 8.5, "depth": 9.2, "slop_purity": 9.4,
+        "threshold_met": True, "verdict": "pass", "required_actions": ["none"],
+    })
+
+    def spy(url, **kw):
+        captured.update(kw)
+        return _httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": payload}]}}]})
+
+    with mock.patch.object(_httpx, "post", side_effect=spy):
+        out = GeminiAdapter(api_key="k").complete("m", "p", schema=CouncilScores)
+    assert isinstance(out, CouncilScores)
+    assert out.verdict == "pass"
+    gen = captured["json"]["generationConfig"]
+    assert gen["responseMimeType"] == "application/json"
+    assert gen["responseSchema"]["properties"]["threshold_met"]["type"] == "BOOLEAN"
+    assert gen["responseSchema"]["properties"]["verdict"]["enum"] == ["pass", "revise", "reject"]
+    assert gen["responseSchema"]["properties"]["required_actions"]["type"] == "ARRAY"
+
+
+def test_schema_invalid_json_maps_to_model_error():
+    from unittest import mock
+
+    import httpx as _httpx
+
+    from content_machine.router.base import ModelError
+    from content_machine.router.gemini import GeminiAdapter
+    from content_machine.schemas import CouncilScores
+
+    def spy(url, **kw):
+        return _httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": "{\"narrative\": "}]}}]})
+
+    with mock.patch.object(_httpx, "post", side_effect=spy):
+        with pytest.raises(ModelError):
+            GeminiAdapter(api_key="k").complete("m", "p", schema=CouncilScores)

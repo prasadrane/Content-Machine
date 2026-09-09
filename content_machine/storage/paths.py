@@ -47,7 +47,13 @@ def sync_seed(seed_file: Path, runtime_file: Path) -> None:
     The outgoing runtime copy is kept as ``<name>.bak``. The old size-half
     heuristic silently kept stale copies forever — a repo knowledge edit
     never reached the prompts that read the runtime copy.
+
+    Under ``DEMO_MODE=1`` syncing is skipped entirely: public demo homes
+    carry synthetic persona/knowledge files (see ``demo_seed``) that the
+    real-author seeds must never overwrite.
     """
+    if os.environ.get("DEMO_MODE") == "1":
+        return
     if not seed_file.is_file():
         return
     if not runtime_file.is_file():

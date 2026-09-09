@@ -11,6 +11,29 @@ from .base import ModelError, ProviderError
 API_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 _RETRYABLE = {429, 500, 502, 503, 504}
 
+_GEMINI_TYPES = {float: "NUMBER", int: "INTEGER", bool: "BOOLEAN", str: "STRING"}
+
+
+def _gemini_schema(model_cls) -> dict:
+    """Pydantic model -> Gemini responseSchema (OpenAPI subset, upper-case types)."""
+    from typing import Literal, get_args, get_origin
+
+    props: dict = {}
+    required: list[str] = []
+    for name, field in model_cls.model_fields.items():
+        ann = field.annotation
+        origin = get_origin(ann)
+        if origin is list:
+            props[name] = {"type": "ARRAY", "items": {"type": "STRING"}}
+        elif origin is Literal:
+            props[name] = {"type": "STRING", "enum": [str(a) for a in get_args(ann)]}
+        elif ann in _GEMINI_TYPES:  # exact type objects: bool != int here
+            props[name] = {"type": _GEMINI_TYPES[ann]}
+        else:
+            props[name] = {"type": "STRING"}
+        required.append(name)
+    return {"type": "OBJECT", "properties": props, "required": required}
+
 
 class GeminiAdapter:
     """Route adapter speaking Gemini's native protocol.
@@ -35,7 +58,8 @@ class GeminiAdapter:
         system: str | None = None,
         schema: Any = None,
         **kw: Any,
-    ) -> str:
+    ) -> Any:
+        """Return str, or a `schema` instance when structured output requested."""
         body: dict[str, Any] = {
             "contents": [{"role": "user", "parts": [{"text": prompt}]}],
         }
@@ -44,6 +68,9 @@ class GeminiAdapter:
         gen: dict[str, Any] = {}
         if kw.get("temperature") is not None:
             gen["temperature"] = kw["temperature"]
+        if schema is not None:
+            gen["responseMimeType"] = "application/json"
+            gen["responseSchema"] = _gemini_schema(schema)
         if gen:
             body["generationConfig"] = gen
         try:
@@ -64,4 +91,9 @@ class GeminiAdapter:
         text = "".join(p.get("text", "") for p in parts)
         if not text:
             raise ModelError("gemini returned no text")
+        if schema is not None:
+            try:
+                return schema.model_validate_json(text)
+            except ValueError as exc:
+                raise ModelError(f"gemini schema-invalid json: {exc}") from exc
         return text

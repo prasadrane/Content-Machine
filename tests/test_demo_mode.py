@@ -85,3 +85,34 @@ def test_seed_idempotent_on_second_cold_start(tmp_path, monkeypatch):
         assert n == 10
     finally:
         conn.close()
+
+
+def test_demo_seed_writes_synthetic_persona(tmp_path, monkeypatch):
+    monkeypatch.setenv("CONTENT_MACHINE_HOME", str(tmp_path))
+    monkeypatch.setenv("DEMO_MODE", "1")
+    from content_machine.demo_seed import seed_demo
+    from content_machine.profile.manager import ProfileManager
+    from content_machine.storage import db, paths
+
+    paths.ensure_tree()
+    conn = db.connect()
+    try:
+        seed_demo(conn)
+    finally:
+        conn.close()
+    profile = ProfileManager(home_root=tmp_path).get_profile()
+    assert profile.name == "Demo Author"
+    assert "Prasad" not in profile.full_markdown
+    assert len(profile.hard_invariants) >= 5
+
+
+def test_sync_seed_skipped_under_demo_mode(tmp_path, monkeypatch):
+    monkeypatch.setenv("DEMO_MODE", "1")
+    from content_machine.storage import paths as paths_mod
+
+    seed = tmp_path / "seed.md"
+    runtime = tmp_path / "runtime.md"
+    seed.write_text("REAL SEED", encoding="utf-8")
+    runtime.write_text("demo synthetic", encoding="utf-8")
+    paths_mod.sync_seed(seed, runtime)
+    assert runtime.read_text(encoding="utf-8") == "demo synthetic"

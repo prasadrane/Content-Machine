@@ -62,6 +62,7 @@ def _ts(days_ago: float) -> str:
 
 def seed_demo(conn: sqlite3.Connection) -> dict[str, int]:
     """Insert the synthetic showcase dataset. Idempotent: skips if already seeded."""
+    _write_demo_voice_guide()  # before the guard: cheap, content-identical rewrite
     existing = conn.execute("SELECT COUNT(*) FROM spikes WHERE id LIKE 'demo-%'").fetchone()[0]
     if existing:
         return {"spikes": 0, "lessons": 0, "iterations": 0, "comments": 0}
@@ -159,6 +160,33 @@ def seed_demo(conn: sqlite3.Connection) -> dict[str, int]:
         "iterations": 3,
         "comments": len(DEMO_COMMENTS),
     }
+
+
+DEMO_VOICE_GUIDE = """# Voice & Persona Guide — Demo Author
+
+Synthetic persona for the public demo. No real person's identity.
+
+- **Persona**: Demo Author - synthetic senior engineer persona for showcase environments
+- **Current Operational Reality**: Hands-on distributed-systems engineer running local
+  agent harnesses, eval suites, and homelab load tests.
+- **Technical Domains**: Distributed Systems, Database Performance, Observability, Resilience Engineering
+
+## 2. Voice Invariants & Negative Constraints
+
+1. Never cite previous employers or company attributions.
+2. No false corporate employment claims ("my company", "our team at work").
+3. Job-status agnostic senior tone with architectural authority.
+4. Zero generic praise, buzzwords, or emoji openers.
+5. No fabricated production or payment outages.
+"""
+
+
+def _write_demo_voice_guide() -> None:
+    """Replace the synced real-author voice guide with the synthetic persona."""
+    from content_machine.profile.manager import ProfileManager
+
+    manager = ProfileManager()
+    manager.runtime_path.write_text(DEMO_VOICE_GUIDE, encoding="utf-8")
 
 
 def _write_bundles() -> None:
