@@ -6,11 +6,12 @@ Local-first, multi-model AI editorial engine that turns real engineering signals
 ![Python 3.11](https://img.shields.io/badge/Python-3.11-blue)
 ![Node 22](https://img.shields.io/badge/Node-22-green)
 ![License MIT](https://img.shields.io/badge/License-MIT-blue)
-![tests](https://img.shields.io/badge/tests-360%20backend%20%C2%B7%2075%20UI%20passing-green)
+![tests](https://img.shields.io/badge/tests-378%20backend%20%C2%B7%2078%20UI%20passing-green)
+[![Live demo](https://img.shields.io/badge/live%20demo-vercel-black?logo=vercel)](https://content-machine-chi-lac.vercel.app)
 
 ## Live Demo
 
-Live demo: <!-- LIVE_DEMO_URL --> (public demo runs on free-tier Gemini quota - limited usage; service may degrade or stop mid-flight.)
+Live demo: **https://content-machine-chi-lac.vercel.app** (public demo runs on free-tier Gemini quota - limited usage; service may degrade or stop mid-flight.)
 
 ## Screenshots
 
