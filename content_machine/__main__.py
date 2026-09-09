@@ -52,34 +52,35 @@ from content_machine.schemas import HumanizeChannel, HumanizeTone
 
 def _make_router():
     """Build a ModelRouter from config.json / environment."""
+    from content_machine.bootstrap import make_router
     from content_machine.config import load_config
-    from content_machine.router.base import ModelRouter, Route
-    from content_machine.router.messages_adapter import MessagesAdapter
 
-    cfg = load_config()
-
-    routes: dict = {}
-    for name, rc in cfg.routes.items():
-        base_url = os.environ.get(rc.base_url_env, "") if rc.base_url_env else rc.base_url or ""
-        auth_token = os.environ.get(rc.auth_token_env, "") if rc.auth_token_env else rc.auth_token or ""
-        api_key = os.environ.get(rc.api_key_env, "") if rc.api_key_env else rc.api_key or ""
-        adapter = MessagesAdapter(
-            base_url=base_url,
-            auth_token=auth_token or api_key,
-        )
-        routes[name] = Route(name=name, protocol=rc.protocol, adapter=adapter)
-
-    return ModelRouter(
-        routes=routes,
-        route_models=cfg.route_models,
-        preferred_max_latency_s=cfg.thresholds.preferred_max_latency_s,
-    )
+    return make_router(load_config())
 
 
 def _make_db():
     """Open the live SQLite database."""
-    from content_machine.storage.db import connect
-    return connect()
+    from content_machine.bootstrap import make_db
+
+    return make_db()
+
+
+def _build_oracle_components(*, cfg, router, db_conn, connectors):
+    """Assemble IdeaScorer + OracleOrchestrator via the shared bootstrap.
+
+    Passes this module's top-level IdeaScorer / OracleOrchestrator names at
+    call time — tests monkeypatch those exact names.
+    """
+    from content_machine.bootstrap import build_oracle_components
+
+    return build_oracle_components(
+        cfg=cfg,
+        router=router,
+        db_conn=db_conn,
+        connectors=connectors,
+        scorer_cls=IdeaScorer,
+        orchestrator_cls=OracleOrchestrator,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -156,19 +157,11 @@ def _cmd_oracle(args: argparse.Namespace) -> int:
         print(f"\nTotal ingested items: {len(all_items)}\n")
         return 0
 
-    from content_machine.config import load_config
-    cfg = load_config()
     router = _make_router()
-
-    scorer = IdeaScorer(
-        router=router,
-        scanner_model=cfg.models.scanner,
-        n_samples=cfg.thresholds.idea_samples,
-        idea_gate=cfg.thresholds.idea_gate,
-        idea_margin=cfg.thresholds.idea_margin,
-    )
     db_conn = _make_db() if not args.no_persist else None
-    orch = OracleOrchestrator(connectors=connectors, scorer=scorer, db_conn=db_conn)
+    orch, _scorer = _build_oracle_components(
+        cfg=cfg, router=router, db_conn=db_conn, connectors=connectors,
+    )
 
     include_rejected = getattr(args, "all", False)
     limit = getattr(args, "limit", None)

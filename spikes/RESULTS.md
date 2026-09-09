@@ -14,7 +14,7 @@
 
 ## Spike 1+2 — Structured outputs (DONE, scope-limited)
 
-Script: `spike_structured_outputs.py`. Council schema: 4 float scores (0-10), bool, enum verdict, actions array. Tests: T1 reliability, T2 numeric-bound stress, T3 enum stress.
+Script: `archive/spike_structured_outputs.py` (archived 2026-09-09; CouncilScores replica superseded by `content_machine.schemas`). Council schema: 4 float scores (0-10), bool, enum verdict, actions array. Tests: T1 reliability, T2 numeric-bound stress, T3 enum stress.
 
 ### Relay (Anthropic SDK → gateway /apps/anthropic, model qwen3.8-max)
 

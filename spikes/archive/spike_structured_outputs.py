@@ -1,3 +1,4 @@
+# Archived 2026-09-09: spike complete. The CouncilScores replica in this script is superseded by the canonical schemas in content_machine.schemas.
 """Spike 1+2: structured-output parity across providers (Content Machine council schema).
 
 Tests the Writer's Council scoring schema against each provider's strongest

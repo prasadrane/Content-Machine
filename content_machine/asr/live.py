@@ -13,16 +13,11 @@ Install (when ready to use for real):
 
 from __future__ import annotations
 
-import re
 import subprocess
 from typing import Callable, Union
 from pathlib import Path
 
-_TIMESTAMP_RE = re.compile(r"\[\d{2}:\d{2}\.\d{3}\s*-->\s*\d{2}:\d{2}\.\d{3}\]\s*")
-
-
-def _strip_timestamps(line: str) -> str:
-    return _TIMESTAMP_RE.sub("", line).strip()
+from content_machine.asr.util import strip_timestamps
 
 
 class LiveMonitor:
@@ -82,7 +77,7 @@ class LiveMonitor:
 
         for raw_bytes in proc.stdout:
             line = raw_bytes.decode("utf-8", errors="replace")
-            cleaned = _strip_timestamps(line)
+            cleaned = strip_timestamps(line)
             if cleaned:
                 callback(cleaned)
 

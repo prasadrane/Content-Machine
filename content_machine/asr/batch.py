@@ -10,27 +10,12 @@ Install (when ready to use for real):
 
 from __future__ import annotations
 
-import re
 import subprocess
 from pathlib import Path
 from typing import Union
 
 from content_machine.asr.transcript import Transcript
-
-# Regex that matches faster-whisper / whisper.cpp timestamp lines, e.g.:
-#   [00:00.000 --> 00:03.000]  Some text
-#   [00:03.500 --> 00:06.000]  More text
-_TIMESTAMP_RE = re.compile(r"\[\d{2}:\d{2}\.\d{3}\s*-->\s*\d{2}:\d{2}\.\d{3}\]\s*")
-
-
-def _strip_timestamps(raw: str) -> str:
-    """Remove timestamp markers and return clean prose, one sentence per line."""
-    lines = []
-    for line in raw.splitlines():
-        cleaned = _TIMESTAMP_RE.sub("", line).strip()
-        if cleaned:
-            lines.append(cleaned)
-    return " ".join(lines)
+from content_machine.asr.util import strip_timestamps
 
 
 class BatchTranscriber:
@@ -85,7 +70,7 @@ class BatchTranscriber:
                 f"faster-whisper failed (exit {proc.returncode}): {proc.stderr.strip()}"
             )
 
-        text = _strip_timestamps(proc.stdout)
+        text = strip_timestamps(proc.stdout)
 
         return Transcript(
             text=text,
