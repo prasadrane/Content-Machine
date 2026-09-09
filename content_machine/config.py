@@ -89,9 +89,30 @@ class AppConfig(BaseModel):
 
 
 
+DEMO_FLASH_MODEL = "gemini-2.5-flash"
+
+
+def _apply_demo_overrides(cfg: "AppConfig") -> "AppConfig":
+    """DEMO_MODE=1 + GEMINI_API_KEY: gemini-only routes on flash models."""
+    import os
+
+    if os.environ.get("DEMO_MODE") != "1" or not os.environ.get("GEMINI_API_KEY"):
+        return cfg
+    cfg.routes = dict(cfg.routes)
+    cfg.routes.setdefault(
+        "gemini", RouteConfig(protocol="gemini", api_key_env="GEMINI_API_KEY")
+    )
+    cfg.route_models = {"*": ["gemini"]}
+    cfg.models.writer = DEMO_FLASH_MODEL
+    cfg.models.scanner = DEMO_FLASH_MODEL
+    cfg.models.video_long = DEMO_FLASH_MODEL
+    cfg.models.council = {slot: DEMO_FLASH_MODEL for slot in cfg.models.council}
+    return cfg
+
+
 def load_config(path: str | Path | None = None) -> AppConfig:
     p = Path(path) if path else DEFAULT_CONFIG_PATH
     if not p.exists():
-        return AppConfig()
+        return _apply_demo_overrides(AppConfig())
     data = json.loads(p.read_text(encoding="utf-8"))
-    return AppConfig.model_validate(data)
+    return _apply_demo_overrides(AppConfig.model_validate(data))

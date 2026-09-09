@@ -68,6 +68,14 @@ def _make_db():
     return make_db()
 
 
+def demo_council_max_iterations(requested: int | None) -> int:
+    import os
+
+    if os.environ.get("DEMO_MODE") == "1":
+        return 1
+    return requested or 1
+
+
 # ---------------------------------------------------------------------------
 # FastAPI app
 # ---------------------------------------------------------------------------
@@ -275,6 +283,14 @@ class TranscribeAudioResponse(BaseModel):
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/api/meta")
+def api_meta():
+    import os
+
+    demo = os.environ.get("DEMO_MODE") == "1"
+    return {"demo_mode": demo, "llm": "gemini" if demo else "relay"}
 
 
 def _clean_list(items: list[str]) -> list[str]:
@@ -546,7 +562,7 @@ def council_run(req: CouncilRunRequest):
             cfg=cfg,
             conn=db_conn,
             spike_id=req.spike_id,
-            max_iterations=req.max_iterations,
+            max_iterations=demo_council_max_iterations(req.max_iterations),
         )
     except CouncilError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
