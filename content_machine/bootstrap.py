@@ -18,6 +18,7 @@ preserved too.
 
 from __future__ import annotations
 
+import logging
 import os
 import sqlite3
 from pathlib import Path
@@ -27,6 +28,8 @@ from content_machine.config import AppConfig
 from content_machine.router.base import ModelRouter, Route
 from content_machine.router.messages_adapter import MessagesAdapter
 
+logger = logging.getLogger(__name__)
+
 
 def make_router(cfg: AppConfig) -> ModelRouter:
     """Build a ModelRouter from an already-loaded AppConfig / environment."""
@@ -35,10 +38,19 @@ def make_router(cfg: AppConfig) -> ModelRouter:
         base_url = os.environ.get(rc.base_url_env, "") if rc.base_url_env else rc.base_url or ""
         auth_token = os.environ.get(rc.auth_token_env, "") if rc.auth_token_env else rc.auth_token or ""
         api_key = os.environ.get(rc.api_key_env, "") if rc.api_key_env else rc.api_key or ""
-        adapter = MessagesAdapter(
-            base_url=base_url,
-            auth_token=auth_token or api_key,
-        )
+        if rc.protocol == "gemini":
+            key = api_key or auth_token
+            if not key:
+                logger.warning("route %s: gemini protocol without key; skipping", name)
+                continue
+            from content_machine.router.gemini import GeminiAdapter
+
+            adapter = GeminiAdapter(api_key=key)
+        else:
+            adapter = MessagesAdapter(
+                base_url=base_url,
+                auth_token=auth_token or api_key,
+            )
         routes[name] = Route(name=name, protocol=rc.protocol, adapter=adapter)
 
     return ModelRouter(

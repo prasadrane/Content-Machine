@@ -4,6 +4,10 @@
       "protocol": "messages",
       "base_url_env": "ANTHROPIC_BASE_URL",
       "auth_token_env": "ANTHROPIC_AUTH_TOKEN"
+    },
+    "gemini": {
+      "protocol": "gemini",
+      "api_key_env": "GEMINI_API_KEY"
     }
   },
   "route_models": {
