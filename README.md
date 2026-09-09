@@ -35,7 +35,7 @@ Comments history:
 
 ![Comments history](docs/screenshots/05-comments.jpg)
 
-Screenshots show the seeded synthetic demo dataset (`content_machine/demo_seed.py`), not production data.
+Screenshots show the seeded demo dataset (`content_machine/demo_seed.py`: public article metadata + synthetic scores, placeholder persona), not production data.
 
 ## Architecture
 

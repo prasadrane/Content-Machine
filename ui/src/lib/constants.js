@@ -66,7 +66,7 @@ export const CORE_VOICE_INVARIANTS = [
   {
     title: 'Zero Company Attribution',
     summary: 'No previous company names',
-    description: 'NEVER cite previous employers (e.g., Rocket Mortgage, London Computer Systems, EXFO, Tanish Infotech). Frame all insights as pure architectural observations and personal experience.',
+    description: 'NEVER cite previous employers by name. Frame all insights as pure architectural observations and personal experience.',
   },
   {
     title: 'No False Corporate Employment',

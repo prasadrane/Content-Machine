@@ -19,17 +19,21 @@ from pathlib import Path
 
 from content_machine.storage import paths
 
+# Realistic showcase feed: public article metadata snapshotted 2026-09-09 from
+# lobste.rs / HN / publisher RSS (titles, URLs, dates are real and public;
+# scores/verdicts are synthetic engine output). demo-cache-stampede stays
+# synthetic so the seeded council draft narrative matches its spike.
 DEMO_SPIKES = [
-    ("demo-cache-stampede", "Cache stampedes turn one expired key into a database firestorm", 9.3, "pass", "Distributed Systems"),
-    ("demo-pool-sizing", "Connection pool sizing is a core-count problem, not a load problem", 9.1, "pass", "Database Performance"),
-    ("demo-outbox-pattern", "The transactional outbox removes the dual-write guesswork", 8.9, "pass", "Distributed Systems"),
-    ("demo-guid-fragmentation", "Random GUIDs quietly tax every B-tree insert", 8.7, "pass", "Database Performance"),
-    ("demo-lease-renewal", "Fixed-TTL locks expire exactly when you need them most", 8.6, "candidate", "Resilience Engineering"),
-    ("demo-poison-pill", "One malformed event can stall an entire consumer group", 8.4, "candidate", "Event-Driven Architecture"),
-    ("demo-trace-context", "Trace context headers turn hours of log grepping into minutes", 8.2, "candidate", "Observability"),
-    ("demo-idempotency-keys", "Idempotency keys make retries boring, which is the point", 8.0, "candidate", "API Design"),
-    ("demo-cardinality", "A single user_id label can spawn a hundred thousand time series", 7.6, "reject", "Observability"),
-    ("demo-cold-starts", "Lambda cold starts are a packaging problem before a capacity problem", 7.2, "reject", "Serverless"),
+    ("demo-cache-stampede", "Cache stampedes turn one expired key into a database firestorm", 9.3, "pass", "Distributed Systems", "demo.example.com", 0.4),
+    ("demo-rustls-decade", "A decade of rustls", 9.1, "pass", "Security & Reliability", "rustls.dev", 0.6),
+    ("demo-primary-keys", "ID design and primary keys", 8.9, "pass", "Database Performance", "anchorsandlinks.com", 0.8),
+    ("demo-pool-sizing", "Connection pool sizing is a core-count problem, not a load problem", 8.7, "pass", "Database Performance", "demo.example.com", 1.0),
+    ("demo-dns-scams", "The purpose of DNS is to spread scams", 8.4, "candidate", "Security & Reliability", "shkspr.mobi", 1.2),
+    ("demo-stochastic-parrots", "I Don't Want to Interact With Stochastic Parrots", 8.2, "candidate", "AI & Machine Learning", "ploum.net", 1.4),
+    ("demo-tailwind-shopify", "Shopify acquires Tailwind", 8.0, "candidate", "General Engineering", "tailwindcss.com", 1.6),
+    ("demo-card-networks", "What do Visa and Mastercard do? An intro to card networks", 7.8, "candidate", "Systems & Architecture", "tautology.town", 1.8),
+    ("demo-autonomous-cars", "Growing proof that autonomous cars save lives", 7.5, "reject", "General Engineering", "spectrum.ieee.org", 2.0),
+    ("demo-outbox-pattern", "The transactional outbox removes the dual-write guesswork", 7.2, "reject", "Distributed Systems", "demo.example.com", 2.2),
 ]
 
 DEMO_LESSONS = [
@@ -55,6 +59,21 @@ DEMO_COMMENTS = [
 ]
 
 
+_REAL_URLS = {
+    "demo-rustls-decade": "https://rustls.dev/blog/2026-09-08-a-decade-of-rustls/",
+    "demo-primary-keys": "https://anchorsandlinks.com/posts/primary-keys/",
+    "demo-dns-scams": "https://shkspr.mobi/blog/2026/09/the-purpose-of-dns-is-to-spread-scams/",
+    "demo-stochastic-parrots": "https://ploum.net/2026-09-09-ai_policy.html",
+    "demo-tailwind-shopify": "https://tailwindcss.com/blog/tailwind-is-joining-shopify",
+    "demo-card-networks": "https://tautology.town/2026-06-01/card-networks.html",
+    "demo-autonomous-cars": "https://spectrum.ieee.org/are-self-driving-cars-safe",
+}
+
+
+def _real_url(sid: str, source: str) -> str:
+    return _REAL_URLS.get(sid, f"https://{source}/")
+
+
 def _ts(days_ago: float) -> str:
     dt = datetime(2026, 9, 9, 12, 0, 0, tzinfo=timezone.utc) - timedelta(days=days_ago)
     return dt.isoformat()
@@ -67,7 +86,7 @@ def seed_demo(conn: sqlite3.Connection) -> dict[str, int]:
     if existing:
         return {"spikes": 0, "lessons": 0, "iterations": 0, "comments": 0}
 
-    for i, (sid, thesis, score, status, topic) in enumerate(DEMO_SPIKES):
+    for i, (sid, thesis, score, status, topic, source, days_ago) in enumerate(DEMO_SPIKES):
         scores = {
             "median_composite": score,
             "verdict": status,
@@ -82,14 +101,14 @@ def seed_demo(conn: sqlite3.Connection) -> dict[str, int]:
             "VALUES (?,?,?,?,?,?,?,?,?)",
             (
                 sid,
-                _ts(1.0 + i * 0.3),
-                "demo.example.com",
+                _ts(days_ago),
+                source,
                 thesis,
-                json.dumps({"notes": "synthetic showcase signal"}),
+                json.dumps({"notes": "showcase signal; scores synthetic"}),
                 json.dumps(scores),
                 status,
                 topic,
-                f"https://demo.example.com/articles/{i + 1}",
+                f"https://{source}/" if source == "demo.example.com" else _real_url(sid, source),
             ),
         )
 
