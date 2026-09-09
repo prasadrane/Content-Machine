@@ -1,6 +1,6 @@
 """FastAPI backend for Content Machine (plan v2 §1, Step 8).
 
-Runs with: uvicorn content_machine.api.app:app --reload --port 8000
+Runs with: uvicorn content_machine.api.app:app --reload --port 8080
 Or via the CLI: python -m content_machine serve
 """
 

@@ -44,11 +44,12 @@ RANGE_SCAN_FILES = KNOWLEDGE_DOCS + [
 
 FORBIDDEN_RANGE_PATTERNS = ["120-250", "120–250", "120 and 250"]
 
-# README display name -> config.json models.council key
+# README display name -> config.json models.council key (slot ids are
+# machine keys and stay stable; display names are role-based)
 COUNCIL_JUDGE_KEYS = {
-    "David Perell": "perell",
-    "Sahil Puri": "puri",
-    "Morgan Housel": "housel",
+    "Narrative Judge": "perell",
+    "Punch Judge": "puri",
+    "Depth Judge": "housel",
     "Slop Allergist": "slop_allergist",
 }
 
@@ -225,10 +226,10 @@ def test_failure_logic_cap_drift_detected():
 
 
 def test_failure_logic_judge_model_drift_detected():
-    bad = "  - **David Perell** (`gpt-4o`): Narrative arc.\n"
-    assert parse_judge_model(bad, "David Perell") == "gpt-4o"
-    assert parse_judge_model(bad, "David Perell") != "qwen3.8-max"
-    assert parse_judge_model("nothing", "Sahil Puri") is None
+    bad = "  - **Narrative Judge** (`gpt-4o`): Narrative arc.\n"
+    assert parse_judge_model(bad, "Narrative Judge") == "gpt-4o"
+    assert parse_judge_model(bad, "Narrative Judge") != "qwen3.8-max"
+    assert parse_judge_model("nothing", "Punch Judge") is None
 
 
 def test_failure_logic_allowlist_excludes_blacklist():

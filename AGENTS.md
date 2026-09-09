@@ -97,7 +97,7 @@ Be aware of the local deployment realities before running code or suggesting mod
 - **Authentication Header**: Uses Bearer token via `ANTHROPIC_AUTH_TOKEN` (read from env or config). `ANTHROPIC_API_KEY` in env is often a placeholder and will fail with 401 if passed as `x-api-key`.
 - **Allowed Models**: Only specific models are active on the relay:
   - Writer: `qwen3.8-max`
-  - Council Judges: `qwen3.8-max` (Perell, Housel), `qwen3.8-flash` (Puri, Slop Allergist)
+  - Council Judges: `qwen3.8-max` (Narrative Judge, Depth Judge), `qwen3.8-flash` (Punch Judge, Slop Allergist)
   - Scanner: `qwen3.8-flash`
   - *Do NOT route to*: `qwen3.6-plus` (403), `qwen3.6-max`, `qwen3.7-plus`, `qwen3.6-flash`, or `qwen3.8-opensource`.
 - **Structured Outputs**:

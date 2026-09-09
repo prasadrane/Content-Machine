@@ -71,7 +71,7 @@ export default function CommentingTab() {
 
     const phases = [
       'Drafting candidate perspectives based on selected angle...',
-      "Writer's Council convening: Perell, Puri, Housel & Slop Allergist reviewing...",
+      "Writer's Council convening: Narrative Judge, Punch Judge, Depth Judge & Slop Allergist reviewing...",
       'Evaluating z-score consensus & zero-slop purity...',
       'Executing editorial polish and brevity calibration...',
     ]

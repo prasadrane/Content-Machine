@@ -5,19 +5,19 @@ import { countSentences } from '../../lib/textStats'
 const COUNCIL_JUDGES = [
   {
     id: 'perell',
-    name: 'David Perell',
+    name: 'Narrative Judge',
     role: 'Thesis & Signal',
     description: 'Originality, counter-intuitive insight, and compelling hook',
   },
   {
     id: 'puri',
-    name: 'Shaan Puri',
+    name: 'Punch Judge',
     role: 'Brevity & Punch',
     description: 'Fast velocity, high impact per word, zero conversational filler',
   },
   {
     id: 'housel',
-    name: 'Morgan Housel',
+    name: 'Depth Judge',
     role: 'Psychology & Timelessness',
     description: 'Deeper human and market dynamics, timeless principles',
   },
