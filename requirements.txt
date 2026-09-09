@@ -8,3 +8,9 @@ fastapi>=0.115.0
 uvicorn[standard]>=0.30.0
 httpx>=0.27.0
 python-multipart>=0.0.9
+python-dotenv>=1.0.0
+numpy>=1.26
+openpyxl>=3.1
+# lazy imports (function-level) in connectors/linkedin_session.py + linkedin_public.py;
+# needed at runtime for browser session sync / zero-auth bridge: `playwright install chromium`
+playwright>=1.40
