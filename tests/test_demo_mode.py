@@ -101,7 +101,7 @@ def test_demo_seed_writes_synthetic_persona(tmp_path, monkeypatch):
     finally:
         conn.close()
     profile = ProfileManager(home_root=tmp_path).get_profile()
-    assert profile.name == "Demo Author"
+    assert profile.name == "John Doe"
     assert "Prasad" not in profile.full_markdown
     assert len(profile.hard_invariants) >= 5
 

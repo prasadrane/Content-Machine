@@ -162,11 +162,11 @@ def seed_demo(conn: sqlite3.Connection) -> dict[str, int]:
     }
 
 
-DEMO_VOICE_GUIDE = """# Voice & Persona Guide — Demo Author
+DEMO_VOICE_GUIDE = """# Voice & Persona Guide — John Doe
 
 Synthetic persona for the public demo. No real person's identity.
 
-- **Persona**: Demo Author - synthetic senior engineer persona for showcase environments
+- **Persona**: John Doe - synthetic senior engineer persona for showcase environments
 - **Current Operational Reality**: Hands-on distributed-systems engineer running local
   agent harnesses, eval suites, and homelab load tests.
 - **Technical Domains**: Distributed Systems, Database Performance, Observability, Resilience Engineering
