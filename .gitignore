@@ -19,3 +19,5 @@ scratch*
 *.log
 NOTES.md
 tmp/
+.vercel/
+.playwright-mcp/

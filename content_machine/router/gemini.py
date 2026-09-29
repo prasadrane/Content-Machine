@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
 import httpx
@@ -17,20 +18,24 @@ _GEMINI_TYPES = {float: "NUMBER", int: "INTEGER", bool: "BOOLEAN", str: "STRING"
 def _gemini_schema(model_cls) -> dict:
     """Pydantic model -> Gemini responseSchema (OpenAPI subset, upper-case types)."""
     from typing import Literal, get_args, get_origin
+    from pydantic import BaseModel
+
+    def field_schema(annotation) -> dict:
+        origin = get_origin(annotation)
+        if origin is list:
+            return {"type": "ARRAY", "items": field_schema(get_args(annotation)[0])}
+        if origin is Literal:
+            return {"type": "STRING", "enum": [str(a) for a in get_args(annotation)]}
+        if isinstance(annotation, type) and issubclass(annotation, BaseModel):
+            return _gemini_schema(annotation)
+        if annotation in _GEMINI_TYPES:
+            return {"type": _GEMINI_TYPES[annotation]}
+        return {"type": "STRING"}
 
     props: dict = {}
     required: list[str] = []
     for name, field in model_cls.model_fields.items():
-        ann = field.annotation
-        origin = get_origin(ann)
-        if origin is list:
-            props[name] = {"type": "ARRAY", "items": {"type": "STRING"}}
-        elif origin is Literal:
-            props[name] = {"type": "STRING", "enum": [str(a) for a in get_args(ann)]}
-        elif ann in _GEMINI_TYPES:  # exact type objects: bool != int here
-            props[name] = {"type": _GEMINI_TYPES[ann]}
-        else:
-            props[name] = {"type": "STRING"}
+        props[name] = field_schema(field.annotation)
         required.append(name)
     return {"type": "OBJECT", "properties": props, "required": required}
 
@@ -66,6 +71,8 @@ class GeminiAdapter:
         if system:
             body["systemInstruction"] = {"parts": [{"text": system}]}
         gen: dict[str, Any] = {}
+        if os.environ.get("DEMO_MODE") == "1" and model.startswith("gemini-2.5-flash"):
+            gen["thinkingConfig"] = {"thinkingBudget": 0}
         if kw.get("temperature") is not None:
             gen["temperature"] = kw["temperature"]
         if schema is not None:

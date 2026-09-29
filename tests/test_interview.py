@@ -149,6 +149,31 @@ class TestInterviewEngine(unittest.TestCase):
         self.assertEqual(row["spike_id"], "spike-persist-test")
         self.assertTrue(os.path.exists(row["path"]))
 
+    def test_synthesize_draft_creates_spike_for_new_topic_transcript(self):
+        from content_machine.interview.engine import InterviewEngine
+        from content_machine.storage.db import connect
+
+        db_conn = connect()
+        router = MagicMock()
+        router.complete.return_value = "Grounded draft from the supplied notes."
+        engine = InterviewEngine(router=router, db_conn=db_conn)
+
+        engine.synthesize_draft(
+            topic_title="New topic from the demo",
+            topic_summary="A source article about contract tests.",
+            responses=[],
+            raw_notes="I added a contract test after a field rename.",
+            spike_id="new-demo-topic",
+        )
+
+        spike = db_conn.execute("SELECT id FROM spikes WHERE id=?", ("new-demo-topic",)).fetchone()
+        transcript = db_conn.execute(
+            "SELECT path FROM transcripts WHERE spike_id=?", ("new-demo-topic",)
+        ).fetchone()
+        self.assertIsNotNone(spike)
+        self.assertIsNotNone(transcript)
+        self.assertTrue(os.path.exists(transcript["path"]))
+
     def test_synthesize_draft_includes_voice_guide(self):
         """synthesize_draft includes author voice guide in prompt passed to router."""
         from content_machine.interview.engine import InterviewEngine

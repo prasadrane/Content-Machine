@@ -118,6 +118,14 @@ Rules:
 - Return clean Markdown.
 """.strip()
 
+_DEMO_FORMAT_RULES = {
+    "linkedin": _LINKEDIN_SYSTEM,
+    "x_thread": _X_THREAD_SYSTEM,
+    "video_script_short": _VIDEO_SCRIPT_SHORT_SYSTEM,
+    "video_script_long": _VIDEO_SCRIPT_LONG_SYSTEM,
+    "newsletter": _NEWSLETTER_SYSTEM,
+}
+
 
 class DistributionEngine:
     """Transforms published anchor content into platform-specific assets.
@@ -241,6 +249,10 @@ class DistributionEngine:
         if formats is None:
             formats = ["linkedin", "x_thread", "video_script", "newsletter"]
 
+        import os
+        if os.environ.get("DEMO_MODE") == "1":
+            return self._generate_demo_bundle(anchor_post, formats, humanize, tone)
+
         bundle: dict[str, str] = {}
         for fmt in formats:
             if fmt == "linkedin":
@@ -256,6 +268,47 @@ class DistributionEngine:
             elif fmt == "newsletter":
                 bundle["newsletter"] = self.generate_newsletter_digest(anchor_post)
 
+        return bundle
+
+    def _generate_demo_bundle(
+        self, anchor_post: str, formats: list[str], humanize: bool,
+        tone: str | HumanizeTone,
+    ) -> dict[str, str]:
+        """Use one model request for a public demo bundle to stay within free quota."""
+        from pydantic import Field, create_model
+
+        selected = list(dict.fromkeys(
+            "video_script_short" if fmt == "video_script" else fmt
+            for fmt in formats if fmt in _DEMO_FORMAT_RULES or fmt == "video_script"
+        ))
+        if not selected:
+            return {}
+        schema = create_model(
+            "DemoDistributionBundle",
+            **{fmt: (str, Field(min_length=1)) for fmt in selected},
+        )
+        format_rules = "\n\n".join(
+            f"## {fmt}\n{_DEMO_FORMAT_RULES[fmt]}" for fmt in selected
+        )
+        voice = f"Write in a {HumanizeTone(tone).value} voice. " if humanize else ""
+        out = self.router.complete(
+            [self.model],
+            prompt=f"Approved anchor post:\n{anchor_post.strip()}\n\nRequested formats:\n{format_rules}",
+            system=(
+                "Create each requested derivative from the approved anchor post only. "
+                "Do not add facts, metrics, anecdotes, or technical claims absent from it. "
+                + voice + "Return the requested fields as JSON."
+            ),
+            schema=schema,
+        )
+        if not isinstance(out, schema):
+            raise ValueError("Demo distribution model returned an invalid bundle")
+        bundle = out.model_dump()
+        if humanize:
+            from content_machine.humanize.sanitizer import sanitize_text
+            bundle = {key: sanitize_text(value)[0] for key, value in bundle.items()}
+        if "video_script_short" in bundle:
+            bundle["video_script"] = bundle["video_script_short"]
         return bundle
 
 

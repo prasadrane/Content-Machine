@@ -44,6 +44,33 @@ class TestDistributionEngine(unittest.TestCase):
         router = MagicMock()
         return DistributionEngine(router=router, model=model, model_long=model_long), router
 
+    def test_demo_formats_use_one_grounded_model_call(self):
+        engine, router = self._make_engine(model="gemini-2.5-flash")
+
+        def complete(*args, **kwargs):
+            self.assertIn(SAMPLE_ANCHOR_POST, kwargs["prompt"])
+            self.assertIn("[Visual Cue", kwargs["prompt"])
+            return kwargs["schema"](
+                linkedin="LinkedIn output",
+                x_thread="1/ X output",
+                video_script_short="[Visual Cue] Video output",
+                newsletter="## Newsletter output",
+            )
+
+        router.complete.side_effect = complete
+        with patch.dict(os.environ, {"DEMO_MODE": "1"}):
+            bundle = engine.generate_all(
+                SAMPLE_ANCHOR_POST,
+                formats=["linkedin", "x_thread", "video_script_short", "newsletter"],
+                humanize=False,
+            )
+
+        self.assertEqual(router.complete.call_count, 1)
+        self.assertEqual(bundle["linkedin"], "LinkedIn output")
+        self.assertEqual(bundle["x_thread"], "1/ X output")
+        self.assertEqual(bundle["video_script"], "[Visual Cue] Video output")
+        self.assertEqual(bundle["newsletter"], "## Newsletter output")
+
     def test_generate_x_thread_calls_router(self):
         """generate_x_thread calls router with anchor text and returns formatted thread."""
         engine, router = self._make_engine()
@@ -269,4 +296,3 @@ class TestDistributionEngine(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

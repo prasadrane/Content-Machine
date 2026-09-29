@@ -233,6 +233,10 @@ Write the initial draft based strictly on the above evidence. Return only the dr
             if self.db_conn:
                 try:
                     self.db_conn.execute(
+                        "INSERT OR IGNORE INTO spikes (id, category, hook_thesis) VALUES (?, ?, ?)",
+                        (spike_id, "interview", topic_title),
+                    )
+                    self.db_conn.execute(
                         "INSERT INTO transcripts (spike_id, path, word_count) VALUES (?, ?, ?)",
                         (spike_id, str(transcript_path), len(transcript_content.split())),
                     )

@@ -145,3 +145,34 @@ def test_schema_invalid_json_maps_to_model_error():
     with mock.patch.object(_httpx, "post", side_effect=spy):
         with pytest.raises(ModelError):
             GeminiAdapter(api_key="k").complete("m", "p", schema=CouncilScores)
+
+
+def test_topic_briefing_schema_preserves_nested_question_objects():
+    from content_machine.router.gemini import _gemini_schema
+    from content_machine.schemas import TopicBriefing
+
+    schema = _gemini_schema(TopicBriefing)
+    questions = schema["properties"]["questions"]
+    assert questions["type"] == "ARRAY"
+    assert questions["items"] == {
+        "type": "OBJECT",
+        "properties": {
+            "persona": {"type": "STRING"},
+            "focus": {"type": "STRING"},
+            "question": {"type": "STRING"},
+        },
+        "required": ["persona", "focus", "question"],
+    }
+
+
+def test_flash_request_disables_dynamic_thinking_for_demo_latency(monkeypatch):
+    monkeypatch.setenv("DEMO_MODE", "1")
+    captured = {}
+
+    def spy(url, **kw):
+        captured.update(kw)
+        return httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": "ok"}]}}]})
+
+    monkeypatch.setattr(httpx, "post", spy)
+    GeminiAdapter(api_key="k").complete("gemini-2.5-flash", "hello")
+    assert captured["json"]["generationConfig"]["thinkingConfig"] == {"thinkingBudget": 0}
