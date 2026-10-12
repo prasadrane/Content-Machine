@@ -461,10 +461,117 @@ class TestOracleOrchestrator(unittest.TestCase):
 
 
 
+class TestProgressEvents(unittest.TestCase):
+    """progress_cb contract: fetch/dedup/score transparency events (dicts)."""
+
+    def _make_orch(self, conn_items: list[tuple[str, list]]):
+        from content_machine.oracle.oracle import OracleOrchestrator
+        from content_machine.oracle.scorer import IdeaScorer
+
+        router = MagicMock()
+        router.complete.return_value = _score(9.0)
+        scorer = IdeaScorer(router=router, scanner_model="m", n_samples=1)
+
+        connectors = []
+        for url, items in conn_items:
+            conn = MagicMock()
+            conn.url = url
+            conn.fetch.return_value = ConnectorResult(source=url, items=items)
+            connectors.append(conn)
+        return OracleOrchestrator(connectors=connectors, scorer=scorer)
+
+    def _events_by_type(self, events, name):
+        return [e for e in events if e["event"] == name]
+
+    def test_fetch_start_and_done_per_connector(self):
+        orch = self._make_orch([
+            ("feed_a", [_make_item("A", 0)]),
+            ("feed_b", [_make_item("B", 1), _make_item("C", 2)]),
+        ])
+        events = []
+        orch.run(progress_cb=events.append)
+
+        starts = self._events_by_type(events, "fetch_start")
+        dones = self._events_by_type(events, "fetch_done")
+        self.assertEqual(len(starts), 2)
+        self.assertEqual(len(dones), 2)
+        self.assertEqual({s["label"] for s in starts}, {"feed_a", "feed_b"})
+        done_items = {d["label"]: d["items"] for d in dones}
+        self.assertEqual(done_items, {"feed_a": 1, "feed_b": 2})
+        # start events carry feed counter for progress display
+        self.assertEqual({s["index"] for s in starts}, {1, 2})
+        self.assertEqual(starts[0]["total"], 2)
+
+    def test_fetch_done_reports_error_without_killing_run(self):
+        orch = self._make_orch([("feed_ok", [_make_item("A", 0)])])
+        bad = MagicMock()
+        bad.url = "feed_bad"
+        bad.fetch.side_effect = RuntimeError("boom")
+        orch.connectors.append(bad)
+
+        events = []
+        results = orch.run(progress_cb=events.append)
+
+        dones = {d["label"]: d for d in self._events_by_type(events, "fetch_done")}
+        self.assertIn("error", dones["feed_bad"])
+        self.assertEqual(dones["feed_bad"]["items"], 0)
+        self.assertEqual(dones["feed_ok"]["items"], 1)
+        self.assertEqual(len(results), 1)
+
+    def test_dedup_event_reports_kept_and_dropped(self):
+        dup = _make_item("Dup", 5)
+        orch = self._make_orch([
+            ("feed_a", [_make_item("A", 0), dup]),
+            ("feed_b", [_make_item("Dup", 5)]),  # same URL -> dropped
+        ])
+        events = []
+        orch.run(progress_cb=events.append)
+
+        dedup = self._events_by_type(events, "dedup")
+        self.assertEqual(len(dedup), 1)
+        self.assertEqual(dedup[0]["kept"], 2)
+        self.assertEqual(dedup[0]["dropped"], 1)
+
+    def test_score_progress_events_indexed_with_status(self):
+        orch = self._make_orch([
+            ("feed_a", [_make_item("A", 0), _make_item("B", 1), _make_item("C", 2)]),
+        ])
+        events = []
+        orch.run(progress_cb=events.append)
+
+        prog = self._events_by_type(events, "score_progress")
+        self.assertEqual(len(prog), 3)
+        self.assertEqual([p["index"] for p in prog], [1, 2, 3])
+        self.assertEqual(prog[0]["total"], 3)
+        self.assertEqual(prog[0]["title"], "A")
+        self.assertEqual(prog[0]["status"], "pass")
+        self.assertAlmostEqual(prog[0]["median"], 9.0)
+
+    def test_done_event_reports_result_count(self):
+        orch = self._make_orch([("feed_a", [_make_item("A", 0)])])
+        events = []
+        orch.run(progress_cb=events.append)
+        done = self._events_by_type(events, "done")
+        self.assertEqual(len(done), 1)
+        self.assertEqual(done[0]["results"], 1)
+
+    def test_run_without_progress_cb_backward_compatible(self):
+        orch = self._make_orch([("feed_a", [_make_item("A", 0)])])
+        results = orch.run()  # no cb kwarg at all
+        self.assertEqual(len(results), 1)
+
+    def test_iter_run_accepts_progress_cb(self):
+        orch = self._make_orch([("feed_a", [_make_item("A", 0)])])
+        events = []
+        yielded = list(orch.iter_run(progress_cb=events.append))
+        self.assertEqual(len(yielded), 1)
+        self.assertTrue(any(e["event"] == "score_progress" for e in events))
+
+
 if __name__ == "__main__":
     loader = unittest.TestLoader()
     suite = unittest.TestSuite()
-    for cls in [TestScoredIdea, TestIdeaScorer, TestOracleOrchestrator]:
+    for cls in [TestScoredIdea, TestIdeaScorer, TestOracleOrchestrator, TestProgressEvents]:
         suite.addTests(loader.loadTestsFromTestCase(cls))
 
     runner = unittest.TextTestRunner(verbosity=0)

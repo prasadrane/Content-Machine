@@ -7,6 +7,7 @@ council     Run Writer's Council on a draft file.
 transcribe  Batch-transcribe an audio file with faster-whisper.
 lessons     Manage the governed lessons store.
 comment     Synthesize and vet senior-level LinkedIn comments.
+imageprompts  Generate per-post §28 image prompts for the Windmill Idea Bank.
 
 Examples
 --------
@@ -38,6 +39,11 @@ from content_machine.connectors.rss import RSSConnector
 from content_machine.council.loop import run_council
 from content_machine.distribution.engine import DistributionEngine
 from content_machine.humanize.transformer import HumanizeTransformer
+from content_machine.imaging.prompt_gen import (
+    ImagePromptGenerator,
+    export_markdown,
+    load_posts,
+)
 from content_machine.lessons.differ import LessonsDiffer
 from content_machine.lessons.store import LessonsStore
 from content_machine.oracle.oracle import OracleOrchestrator
@@ -86,6 +92,26 @@ def _build_oracle_components(*, cfg, router, db_conn, connectors):
 # ---------------------------------------------------------------------------
 # oracle
 # ---------------------------------------------------------------------------
+
+def _print_progress(ev: dict) -> None:
+    """Render one orchestrator progress event as a flushed CLI line."""
+    kind = ev.get("event")
+    if kind == "fetch_start":
+        print(f"[feed {ev['index']}/{ev['total']}] fetching {ev['label']} ...", flush=True)
+    elif kind == "fetch_done":
+        if ev.get("error"):
+            print(f"[feed] FAILED {ev['label']}: {ev['error'][:120]}", flush=True)
+        else:
+            print(f"[feed] done {ev['label']}: {ev['items']} items", flush=True)
+    elif kind == "dedup":
+        print(f"[dedup] kept {ev['kept']}, dropped {ev['dropped']}", flush=True)
+    elif kind == "score_progress":
+        median = ev.get("median")
+        med = f" {median:.2f}" if isinstance(median, (int, float)) else ""
+        print(f"[score {ev['index']}/{ev['total']}] {ev['status']}{med} — {ev['title']}", flush=True)
+    elif kind == "done":
+        print(f"[done] {ev['results']} result(s)", flush=True)
+
 
 def _cmd_oracle(args: argparse.Namespace) -> int:
     from content_machine.config import load_config
@@ -165,7 +191,8 @@ def _cmd_oracle(args: argparse.Namespace) -> int:
 
     include_rejected = getattr(args, "all", False)
     limit = getattr(args, "limit", None)
-    results = orch.run(include_rejected=include_rejected, max_items=limit)
+    results = orch.run(include_rejected=include_rejected, max_items=limit,
+                       progress_cb=_print_progress)
 
     if not results:
         print("No candidates found (all rejected or no items fetched).")
@@ -514,6 +541,83 @@ def _cmd_idea_bank(args: argparse.Namespace) -> int:
 
 
 
+def _cmd_imageprompts(args: argparse.Namespace) -> int:
+    """Generate per-post §28 image prompts for the Windmill Idea Bank."""
+    xlsx_path = Path(args.file)
+    if not xlsx_path.exists():
+        print(f"error: file not found: {xlsx_path}", file=sys.stderr)
+        return 1
+
+    first_row, last_row = 2, None
+    rows_spec = getattr(args, "rows", None)
+    if rows_spec:
+        try:
+            if "-" in rows_spec:
+                a, b = rows_spec.split("-", 1)
+                first_row, last_row = int(a), int(b)
+            else:
+                first_row = last_row = int(rows_spec)
+        except ValueError:
+            print(f"error: --rows must be N or N-M, got: {rows_spec}", file=sys.stderr)
+            return 1
+
+    try:
+        posts = load_posts(xlsx_path, first_row=first_row, last_row=last_row)
+    except Exception as e:
+        print(f"error reading workbook: {e}", file=sys.stderr)
+        return 1
+    if not posts:
+        print("No posts found in the given row range.")
+        return 1
+
+    from content_machine.config import load_config
+    cfg = load_config()
+    router = _make_router()
+    gen = ImagePromptGenerator(
+        router=router, model=cfg.models.writer, max_workers=args.max_workers
+    )
+
+    print(f"Generating §28 image prompts for {len(posts)} post(s) with {cfg.models.writer}...")
+    try:
+        results = gen.generate_all(posts)
+    except Exception as e:
+        print(f"error: generation failed: {e}", file=sys.stderr)
+        return 1
+
+    warn_count = sum(1 for r in results if r.warnings)
+
+    if args.dry_run:
+        for r in results:
+            print("\n" + "=" * 70)
+            print(f"Row {r.row} — {r.final_title}")
+            if r.warnings:
+                print("WARNINGS: " + "; ".join(r.warnings))
+            print("=" * 70)
+            print(r.text)
+        print(f"\nDry run: {len(results)} prompt(s), {warn_count} with warnings. Nothing written.")
+        return 0
+
+    connector = IdeaBankConnector(file_path=xlsx_path)
+    backup_path = connector.write_image_prompts({r.row: r.text for r in results})
+    print(f"Wrote {len(results)} prompt(s) to PACKAGING column F.")
+    if backup_path:
+        print(f"Backup: {backup_path}")
+
+    if not args.no_export:
+        export_path = Path(args.export) if args.export else (
+            xlsx_path.parent.parent / "image-prompts" / "all_image_prompts.md"
+        )
+        export_markdown(results, export_path)
+        print(f"Export: {export_path}")
+
+    if warn_count:
+        print(f"\n⚠ {warn_count} prompt(s) carry fabrication-review warnings:")
+        for r in results:
+            for w in r.warnings:
+                print(f"  Row {r.row}: {w}")
+    return 0
+
+
 def _build_parser() -> argparse.ArgumentParser:
 
     parser = argparse.ArgumentParser(
@@ -636,6 +740,22 @@ def _build_parser() -> argparse.ArgumentParser:
     p_ib_pack.add_argument("--template", default="", help="Title template inspiration.")
     p_ib_pack.add_argument("--thumb", default="", help="Thumbnail recommendation.")
 
+    # imageprompts
+    p_img = sub.add_parser("imageprompts",
+                           help="Generate per-post §28 image prompts for the Windmill Idea Bank.")
+    p_img.add_argument("file", metavar="XLSX_PATH",
+                       help="Path to Windmill Idea Bank Excel workbook.")
+    p_img.add_argument("--rows", metavar="N-M", default=None,
+                       help="Row range in the sheets (default: all rows from 2).")
+    p_img.add_argument("--dry-run", action="store_true",
+                       help="Print prompts; write nothing to xlsx or disk.")
+    p_img.add_argument("--no-export", action="store_true",
+                       help="Skip the consolidated markdown export.")
+    p_img.add_argument("--export", metavar="PATH", default=None,
+                       help="Export markdown path (default: <xlsx>/../image-prompts/all_image_prompts.md).")
+    p_img.add_argument("--max-workers", type=int, default=4,
+                       help="Parallel LLM calls (default: 4).")
+
     return parser
 
 
@@ -671,6 +791,7 @@ def main() -> None:
         "comment": _cmd_comment,
         "humanize": _cmd_humanize,
         "idea-bank": _cmd_idea_bank,
+        "imageprompts": _cmd_imageprompts,
     }
 
     handler = dispatch.get(args.command)

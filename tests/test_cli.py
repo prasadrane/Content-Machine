@@ -13,7 +13,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
@@ -221,7 +221,9 @@ class TestOracleCLI(unittest.TestCase):
 
             _run_cli("oracle", "--rss", "https://example.com/feed", "--limit", "5")
 
-        mock_orch_inst.run.assert_called_once_with(include_rejected=False, max_items=5)
+        mock_orch_inst.run.assert_called_once_with(
+            include_rejected=False, max_items=5, progress_cb=ANY
+        )
 
 
     def test_oracle_with_github_calls_github_connector(self):
@@ -663,11 +665,90 @@ class TestIdeaBankCLI(unittest.TestCase):
         )
 
 
+# ---------------------------------------------------------------------------
+# imageprompts subcommand
+# ---------------------------------------------------------------------------
+
+class TestImagePromptsCLI(unittest.TestCase):
+
+    def setUp(self):
+        import openpyxl
+
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.xlsx_path = Path(self.temp_dir.name) / "Test_Idea_Bank.xlsx"
+        wb = openpyxl.Workbook()
+        ws_ideas = wb.active
+        ws_ideas.title = "IDEAS"
+        ws_ideas.append(["Idea Title", "Idea Brainstorm", None, "Check", "Idea Checklist:"])
+        ws_pack = wb.create_sheet(title="PACKAGING")
+        ws_pack.append(["Final Title", "Idea Brainstorm", None,
+                        "Title Template Inspiration", "Thumbnail Recommendation"])
+        ws_ideas.append(["Idea A", "Draft A about 429 errors"])
+        ws_pack.append(["Final A", "desc", None, "tpl", "thumb"])
+        wb.save(self.xlsx_path)
+
+        from content_machine.imaging.prompt_gen import GeneratedImagePrompt
+        self.result = GeneratedImagePrompt(
+            row=2, final_title="Final A",
+            text="## POST TITLE\nFinal A\n\n## TRIGGER\n429 burst", warnings=[],
+        )
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
+
+    def test_dry_run_prints_prompt_and_writes_nothing(self):
+        import openpyxl
+
+        with patch("content_machine.__main__._make_router"), \
+             patch("content_machine.__main__.ImagePromptGenerator") as MockGen:
+            MockGen.return_value.generate_all.return_value = [self.result]
+            code, out, err = _run_cli("imageprompts", str(self.xlsx_path), "--dry-run")
+
+        self.assertEqual(code, 0)
+        self.assertIn("## POST TITLE", out)
+        wb = openpyxl.load_workbook(self.xlsx_path)
+        self.assertIsNone(wb["PACKAGING"].cell(row=1, column=6).value)
+
+    def test_run_writes_column_f_and_export(self):
+        import openpyxl
+
+        export_path = Path(self.temp_dir.name) / "export" / "all_image_prompts.md"
+        with patch("content_machine.__main__._make_router"), \
+             patch("content_machine.__main__.ImagePromptGenerator") as MockGen:
+            MockGen.return_value.generate_all.return_value = [self.result]
+            code, out, err = _run_cli(
+                "imageprompts", str(self.xlsx_path), "--export", str(export_path)
+            )
+
+        self.assertEqual(code, 0)
+        wb = openpyxl.load_workbook(self.xlsx_path)
+        self.assertEqual(wb["PACKAGING"].cell(row=1, column=6).value, "Image Prompt")
+        self.assertIn("## POST TITLE", wb["PACKAGING"].cell(row=2, column=6).value)
+        self.assertTrue(export_path.exists())
+        self.assertIn("Final A", export_path.read_text(encoding="utf-8"))
+
+    def test_rows_flag_forwarded_to_load_posts(self):
+        with patch("content_machine.__main__._make_router"), \
+             patch("content_machine.__main__.load_posts", return_value=[]) as mock_load:
+            code, out, err = _run_cli(
+                "imageprompts", str(self.xlsx_path), "--rows", "5-9", "--dry-run"
+            )
+
+        _, kwargs = mock_load.call_args
+        self.assertEqual(kwargs.get("first_row"), 5)
+        self.assertEqual(kwargs.get("last_row"), 9)
+
+    def test_missing_file_exits_nonzero(self):
+        code, out, err = _run_cli("imageprompts", str(Path(self.temp_dir.name) / "nope.xlsx"))
+        self.assertNotEqual(code, 0)
+
+
 if __name__ == "__main__":
     loader = unittest.TestLoader()
     suite = unittest.TestSuite()
     for cls in [TestCLIHelp, TestOracleCLI, TestCouncilCLI,
-                TestTranscribeCLI, TestLessonsCLI, TestCommentCLI, TestHumanizeCLI, TestIdeaBankCLI]:
+                TestTranscribeCLI, TestLessonsCLI, TestCommentCLI, TestHumanizeCLI, TestIdeaBankCLI,
+                TestImagePromptsCLI]:
         suite.addTests(loader.loadTestsFromTestCase(cls))
 
     runner = unittest.TextTestRunner(verbosity=0)

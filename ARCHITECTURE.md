@@ -182,7 +182,7 @@ route or UI tab — grep of `content_machine/`, `tests/`, `ui/src/` shows only
   editorial context from runtime copies plus the lessons DB.
 - **Frozen rubric**: [council/rubric_v1.md](council/rubric_v1.md).
 - **Tests**: [tests/](tests/) — 29 `test_*.py` files; counted by `grep -c "def test_"`:
-  369 backend test functions (matches the README badge). UI: 86 vitest
+  396 backend test functions (matches the README badge). UI: 86 vitest
   `it(`/`test(` occurrences under [ui/src/](ui/src/).
   Live checks are opt-in and excluded from collection
   ([tests/live_council_smoke.py](tests/live_council_smoke.py) does not match

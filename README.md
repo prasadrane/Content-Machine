@@ -12,7 +12,7 @@ Local-first editorial pipeline that turns an engineer's own signals (feeds, repo
 ![Python 3.11](https://img.shields.io/badge/Python-3.11-blue)
 ![Node 22](https://img.shields.io/badge/Node-22-green)
 ![License MIT](https://img.shields.io/badge/License-MIT-blue)
-![tests](https://img.shields.io/badge/tests-369%20backend%20%C2%B7%2086%20UI%20passing-green)
+![tests](https://img.shields.io/badge/tests-396%20backend%20%C2%B7%2086%20UI%20passing-green)
 [![Live demo](https://img.shields.io/badge/live%20demo-vercel-black?logo=vercel)](https://content-machine-chi-lac.vercel.app)
 
 ## Live Demo
@@ -84,7 +84,7 @@ Content-Machine/
 │   ├── storage/         # SQLite State, Audit Log, Migrations & Local Paths
 │   └── api/             # FastAPI REST Server & Static SPA Serving
 ├── ui/                  # Modular React + Vite + Tailwind CSS Editorial Cockpit
-└── tests/               # 100% Offline-Capable Test Suite (369 backend, 86 UI)
+└── tests/               # 100% Offline-Capable Test Suite (396 backend, 86 UI)
 ```
 
 ## Core Capabilities
@@ -217,7 +217,7 @@ python -m content_machine imageprompts "path/to/Prasad Windmill Idea Bank.xlsx" 
 
 ## Quality Gates
 
-- **Offline test suite**: 100% offline-capable, zero live network access or API calls — 369 backend tests, 86 UI tests. Scope and run details: [docs/testing.md](docs/testing.md).
+- **Offline test suite**: 100% offline-capable, zero live network access or API calls — 396 backend tests, 86 UI tests. Scope and run details: [docs/testing.md](docs/testing.md).
   ```bash
   python -m pytest tests -q   # backend (also: python -m unittest discover -s tests)
   cd ui && npx vitest run     # frontend
