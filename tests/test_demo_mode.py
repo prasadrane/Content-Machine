@@ -116,3 +116,69 @@ def test_sync_seed_skipped_under_demo_mode(tmp_path, monkeypatch):
     runtime.write_text("demo synthetic", encoding="utf-8")
     paths_mod.sync_seed(seed, runtime)
     assert runtime.read_text(encoding="utf-8") == "demo synthetic"
+
+
+# --- Quota-exhausted replay ---------------------------------------------------
+
+def _seed_home(tmp_path, monkeypatch):
+    monkeypatch.setenv("CONTENT_MACHINE_HOME", str(tmp_path))
+    from content_machine.demo_seed import seed_demo
+    from content_machine.storage import db, paths
+
+    paths.ensure_tree()
+    conn = db.connect()
+    try:
+        seed_demo(conn)
+    finally:
+        conn.close()
+
+
+def test_council_replays_seed_when_live_run_fails_in_demo(tmp_path, monkeypatch, demo_env):
+    _seed_home(tmp_path, monkeypatch)
+    from content_machine.api import app as app_mod
+
+    def boom(**_kw):
+        raise RuntimeError("429 RESOURCE_EXHAUSTED")
+
+    monkeypatch.setattr(app_mod, "run_council", boom)
+    monkeypatch.setattr(app_mod, "_make_router", lambda: object())
+    with TestClient(app_mod.app) as client:
+        r = client.post("/api/council/run", json={"draft": "my draft", "spike_id": "mine"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["replayed"] is True
+    assert body["score"] == 9.3
+    assert body["draft"] is None  # never overwrite the user's draft with a replay
+
+
+def test_council_failure_still_errors_outside_demo(tmp_path, monkeypatch):
+    _seed_home(tmp_path, monkeypatch)
+    monkeypatch.delenv("DEMO_MODE", raising=False)
+    from content_machine.api import app as app_mod
+
+    def boom(**_kw):
+        raise RuntimeError("upstream down")
+
+    monkeypatch.setattr(app_mod, "run_council", boom)
+    monkeypatch.setattr(app_mod, "_make_router", lambda: object())
+    with TestClient(app_mod.app, raise_server_exceptions=False) as client:
+        r = client.post("/api/council/run", json={"draft": "my draft", "spike_id": "mine"})
+    assert r.status_code == 500
+
+
+def test_distribute_replays_seed_when_live_run_fails_in_demo(tmp_path, monkeypatch, demo_env):
+    _seed_home(tmp_path, monkeypatch)
+    from content_machine.api import app as app_mod
+    from content_machine.distribution import engine as engine_mod
+
+    def boom(self, *a, **k):
+        raise RuntimeError("quota")
+
+    monkeypatch.setattr(engine_mod.DistributionEngine, "generate_all", boom)
+    monkeypatch.setattr(app_mod, "_make_router", lambda: object())
+    with TestClient(app_mod.app) as client:
+        r = client.post("/api/distribute/run", json={"anchor_post": "a long enough anchor post", "project_slug": "mine"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["replayed"] is True
+    assert body["linkedin"]

@@ -63,4 +63,26 @@ describe('DistributeTab', () => {
     // The output preview should display the loaded derivative format
     expect(screen.getByText('LinkedIn derivative for Redis')).toBeInTheDocument()
   })
+
+  it('blocks generation until the exact text is approved', async () => {
+    distributeApi.getDistributeHistory.mockResolvedValue({ items: [], total: 0 })
+    distributeApi.runDistribute.mockResolvedValue({ linkedin: 'LI out' })
+    render(<DistributeTab initialText="Unapproved draft" initialSlug="p" />)
+    const generate = await screen.findByRole('button', { name: /generate platform bundle/i })
+    expect(generate).toBeDisabled()
+    fireEvent.click(screen.getByRole('checkbox'))
+    fireEvent.click(screen.getByRole('button', { name: /approve this text/i }))
+    expect(generate).toBeEnabled()
+    fireEvent.click(generate)
+    await waitFor(() => expect(distributeApi.runDistribute).toHaveBeenCalledTimes(1))
+  })
+
+  it('is enabled for text approved upstream, and re-locks when edited', async () => {
+    distributeApi.getDistributeHistory.mockResolvedValue({ items: [], total: 0 })
+    render(<DistributeTab initialText="Approved text" initialSlug="p" approvedText="Approved text" />)
+    const generate = await screen.findByRole('button', { name: /generate platform bundle/i })
+    expect(generate).toBeEnabled()
+    fireEvent.change(screen.getByDisplayValue('Approved text'), { target: { value: 'Approved text, tweaked' } })
+    expect(generate).toBeDisabled()
+  })
 })

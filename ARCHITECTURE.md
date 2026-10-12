@@ -182,7 +182,7 @@ route or UI tab — grep of `content_machine/`, `tests/`, `ui/src/` shows only
   editorial context from runtime copies plus the lessons DB.
 - **Frozen rubric**: [council/rubric_v1.md](council/rubric_v1.md).
 - **Tests**: [tests/](tests/) — 29 `test_*.py` files; counted by `grep -c "def test_"`:
-  366 backend test functions (matches the README badge). UI: 78 vitest
+  369 backend test functions (matches the README badge). UI: 86 vitest
   `it(`/`test(` occurrences under [ui/src/](ui/src/).
   Live checks are opt-in and excluded from collection
   ([tests/live_council_smoke.py](tests/live_council_smoke.py) does not match
@@ -683,3 +683,18 @@ records that the repository has no formal ADR history and that entries are
 **Candidate** status until the project owner confirms their rationale. The
 tradeoffs in section 16 are the best available reconstruction from code; consult
 the ADR directory for the curated list and its promotion status.
+
+## Human approval gate and demo replay
+
+- **Approval gate (UI-level).** Distribute only generates derivatives for text the
+  operator explicitly approved: via the Council approval dialog
+  ([ApprovalGate.jsx](ui/src/components/approval/ApprovalGate.jsx)) or by confirming the
+  exact text in the Distribute tab. Approval is bound to the exact text; editing it
+  re-locks generation. Approving a non-`pass` verdict is allowed and shown as an
+  override. **Scope caveat:** this is enforced in the UI, not on the server;
+  `/api/distribute/run` and the CLI do not check approval. Nothing in the system
+  publishes to any external service.
+- **Demo replay.** With `DEMO_MODE=1`, if a live council or distribute call fails
+  (e.g. free-tier quota), the API returns a seeded result with `replayed: true`
+  ([demo_seed.py](content_machine/demo_seed.py) `replay_council` / `replay_bundle`).
+  The UI labels it as a stored sample, never as a review of the user's draft.

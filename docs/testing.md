@@ -54,7 +54,7 @@ Backend:
 python -m pytest tests -q
 ```
 
-Result: **366 passed**, exit code 0, ~66 s (2026-10-12, Windows, Python 3.11). One non-failing `PytestDeprecationWarning` appears locally because `pytest-asyncio` is installed in the local environment; that package is not in `requirements.txt` and the suite does not depend on it (all tests are synchronous `unittest` style).
+Result: **369 passed**, exit code 0, ~12-66 s (2026-10-12, Windows, Python 3.11). One non-failing `PytestDeprecationWarning` appears locally because `pytest-asyncio` is installed in the local environment; that package is not in `requirements.txt` and the suite does not depend on it (all tests are synchronous `unittest` style).
 
 UI:
 
@@ -63,7 +63,7 @@ cd ui
 npx vitest run
 ```
 
-Result: **78 tests passed across 25 test files**, exit code 0, ~47 s. A benign jsdom notice ("Not implemented: Window's scrollTo() method") is printed; it does not affect any assertion.
+Result: **86 tests passed across 26 test files**, exit code 0, ~47 s. A benign jsdom notice ("Not implemented: Window's scrollTo() method") is printed; it does not affect any assertion.
 
 If `ui/node_modules` is absent, install first with `npm --prefix ui install` (or `npm ci` inside `ui/`).
 

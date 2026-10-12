@@ -68,6 +68,12 @@ def _make_db():
     return make_db()
 
 
+def _is_demo() -> bool:
+    import os
+
+    return os.environ.get("DEMO_MODE") == "1"
+
+
 def demo_council_max_iterations(requested: int | None) -> int:
     import os
 
@@ -166,6 +172,7 @@ class CouncilRunResponse(BaseModel):
     peak_iteration: Optional[int] = None
     is_all_time_peak: bool = False
     draft: Optional[str] = None
+    replayed: bool = False
 
 
 class CouncilHistoryItem(BaseModel):
@@ -248,6 +255,7 @@ class DistributeRunResponse(BaseModel):
     video_script_short: Optional[str] = None
     video_script_long: Optional[str] = None
     newsletter: Optional[str] = None
+    replayed: bool = False
 
 
 class LinkedInStatusResponse(BaseModel):
@@ -566,13 +574,32 @@ def council_run(req: CouncilRunRequest):
         )
     except CouncilError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
-    except AllRoutesFailed as e:
-        raise HTTPException(status_code=503, detail=f"Model routing failed: {e}") from e
-    except (anthropic.APITimeoutError, anthropic.APIConnectionError) as e:
-        raise HTTPException(status_code=504, detail="Upstream model relay timed out. Please try again.") from e
     except HTTPException:
         raise
     except Exception as e:
+        # Public demo: free-tier quota can run out. Serve the seeded result,
+        # explicitly flagged as replayed, instead of an opaque error.
+        if _is_demo():
+            from content_machine.demo_seed import replay_council
+
+            logger.warning("Demo council run failed (%s); replaying seeded result", e)
+            replay = replay_council(db_conn)
+            if replay:
+                return CouncilRunResponse(
+                    verdict=replay["verdict"],
+                    score=replay["score"],
+                    iteration=replay["iteration"],
+                    actions=replay["actions"],
+                    peak_score=replay["score"],
+                    peak_iteration=replay["iteration"],
+                    is_all_time_peak=False,
+                    draft=None,
+                    replayed=True,
+                )
+        if isinstance(e, AllRoutesFailed):
+            raise HTTPException(status_code=503, detail=f"Model routing failed: {e}") from e
+        if isinstance(e, (anthropic.APITimeoutError, anthropic.APIConnectionError)):
+            raise HTTPException(status_code=504, detail="Upstream model relay timed out. Please try again.") from e
         logger.exception("Council run failed: %s", e)
         raise HTTPException(status_code=500, detail=f"Council evaluation failed: {e}") from e
 
@@ -802,12 +829,23 @@ def distribute_run(req: DistributeRunRequest):
         model=cfg.models.scanner,
         model_long=getattr(cfg.models, "video_long", "qwen3.8-max"),
     )
-    bundle = engine.generate_all(
-        req.anchor_post,
-        formats=req.enabled_formats,
-        humanize=req.humanize,
-        tone=req.tone,
-    )
+    try:
+        bundle = engine.generate_all(
+            req.anchor_post,
+            formats=req.enabled_formats,
+            humanize=req.humanize,
+            tone=req.tone,
+        )
+    except Exception as e:
+        if not _is_demo():
+            raise
+        from content_machine.demo_seed import replay_bundle
+
+        logger.warning("Demo distribute run failed (%s); replaying seeded bundle", e)
+        sample = replay_bundle()
+        if not sample:
+            raise
+        return DistributeRunResponse(**sample, replayed=True)
     if req.project_slug:
         engine.save_bundle(req.project_slug, bundle, anchor_post=req.anchor_post)
     return DistributeRunResponse(**bundle)

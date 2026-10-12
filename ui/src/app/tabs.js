@@ -25,7 +25,7 @@ export const TABS = [
       setDraft: s.setCouncilDraft,
       spikeId: s.councilSpikeId,
       setSpikeId: s.setCouncilSpikeId,
-      onSendToDistribute: s.handleSendToDistribute,
+      onApprove: s.handleApprove,
     }),
   },
   {
@@ -35,6 +35,8 @@ export const TABS = [
     getProps: (s) => ({
       initialText: s.distributeText,
       initialSlug: s.distributeSlug,
+      approvedText: s.approvedText,
+      onApprove: s.setApprovedText,
     }),
   },
   { id: 'lessons', label: 'Lessons', Component: LessonsTab },

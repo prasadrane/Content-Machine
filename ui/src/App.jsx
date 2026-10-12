@@ -4,6 +4,9 @@ import DemoBanner from './components/DemoBanner'
 import { TABS } from './app/tabs'
 import { useServerHealth } from './app/useServerHealth'
 import { useSharedFlow } from './app/useSharedFlow'
+import { getCouncilHistory } from './api/council'
+
+const DEMO_SPIKE = 'demo-cache-stampede'
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('oracle')
@@ -12,7 +15,17 @@ export default function App() {
 
   return (
     <div className="min-h-screen w-full bg-[#faf9f5] text-[#141413] flex flex-col font-sans selection:bg-[#c6613f]/20 selection:text-[#c6613f]">
-      <DemoBanner />
+      <DemoBanner
+        activeTab={activeTab}
+        approved={Boolean(shared.approvedText)}
+        onGoto={setActiveTab}
+        onStart={async () => {
+          const data = await getCouncilHistory(DEMO_SPIKE)
+          const draft = data?.best?.draft
+          if (!draft) throw new Error('Sample draft is not available on this server.')
+          shared.handleSendToCouncilWithDraft(draft, DEMO_SPIKE)
+        }}
+      />
       {/* Minimalist Editorial Navigation Header */}
       <header className="border-b border-[#e3dacc]/70 bg-[#faf9f5]/85 backdrop-blur-md sticky top-0 z-40 transition-colors w-full">
         <div className="max-w-7xl w-full mx-auto px-6 h-14 flex items-center justify-between">
