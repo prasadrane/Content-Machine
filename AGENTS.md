@@ -21,8 +21,7 @@ The codebase is organized under `content_machine/` with companion UI, tests, and
 ```
 Content-Machine/
 ├── AGENTS.md                     # Agent guide & operational instructions (this file)
-├── NOTES.md                      # Chronological research, spike logs, and build log
-├── "Content Machine Plan v2.md"  # Full architectural specification & evidence register
+├── ARCHITECTURE.md               # Subsystem deep-dive, data flow, state model
 ├── config.json                   # Router routes, model mappings, thresholds, RSS feeds
 ├── requirements.txt              # Backend dependencies
 ├── content_machine/              # Core Python package
@@ -247,7 +246,7 @@ python -m content_machine distribute path/to/post.md --slug my-post
 
 Before beginning work:
 1. **Codebase Orientation**: Query `codebase-memory` MCP (`list_projects`, `get_architecture`) to inspect the current graph.
-2. **Consult History**: Check `NOTES.md` for recent build states, verified findings, or known roadblocks.
+2. **Consult History**: Check `ARCHITECTURE.md`, `docs/`, and `spikes/RESULTS.md` for design context and verified findings (a local, git-ignored `NOTES.md` may also exist).
 3. **Strict TDD**: Write or update tests in `tests/` before modifying implementation code.
 4. **Preserve Documentation**: Keep comments, docstrings, and plan alignments intact.
 5. **Regression Verification**: Run `python -m unittest discover -s tests` and verify 0 failures before reporting task completion.

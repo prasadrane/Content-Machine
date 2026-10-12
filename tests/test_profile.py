@@ -216,7 +216,7 @@ class TestProfileManager(unittest.TestCase):
 
         manager = ProfileManager(home_root=self.home_root)
 
-        backslash_focus = r"Working with local paths like C:\Users\mamat\repos and regex \g<1> \1 \U patterns."
+        backslash_focus = r"Working with local paths like C:\Users\someone\repos and regex \g<1> \1 \U patterns."
         backslash_domains = [r"C:\Windows\System32", r"Path\With\Backslashes", r"Escaped\g<0>"]
         backslash_notes = r"Notes with \n literal and \U \t \g<1> and C:\test\dir"
 

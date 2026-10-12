@@ -21,3 +21,4 @@ NOTES.md
 tmp/
 .vercel/
 .playwright-mcp/
+.claude/

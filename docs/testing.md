@@ -54,7 +54,7 @@ Backend:
 python -m pytest tests -q
 ```
 
-Result: **389 passed**, exit code 0, ~19.5 s. One non-failing `PytestDeprecationWarning` appears locally because `pytest-asyncio` is installed in the local environment; that package is not in `requirements.txt` and the suite does not depend on it (all tests are synchronous `unittest` style).
+Result: **366 passed**, exit code 0, ~66 s (2026-10-12, Windows, Python 3.11). One non-failing `PytestDeprecationWarning` appears locally because `pytest-asyncio` is installed in the local environment; that package is not in `requirements.txt` and the suite does not depend on it (all tests are synchronous `unittest` style).
 
 UI:
 
