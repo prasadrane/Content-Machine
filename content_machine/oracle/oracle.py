@@ -47,30 +47,69 @@ class OracleOrchestrator:
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _pull_all(self, max_workers: int = 5) -> list[ConnectorItem]:
+    @staticmethod
+    def _emit(progress_cb, event: dict) -> None:
+        """Deliver one progress event; a broken callback must never kill the run."""
+        if progress_cb is None:
+            return
+        try:
+            progress_cb(event)
+        except Exception:
+            pass
+
+    @staticmethod
+    def _connector_label(connector: BaseConnector) -> str:
+        import os
+
+        for attr in ("url", "repo", "file_path"):
+            v = getattr(connector, attr, None)
+            if isinstance(v, (str, os.PathLike)) and str(v):
+                return str(v)
+        return type(connector).__name__
+
+    def _pull_all(self, max_workers: int = 5, progress_cb=None) -> list[ConnectorItem]:
         """Fetch from all connectors concurrently and merge, deduplicating by URL."""
         if not self.connectors:
             return []
 
+        total_feeds = len(self.connectors)
+        for i, connector in enumerate(self.connectors, 1):
+            self._emit(progress_cb, {
+                "event": "fetch_start",
+                "label": self._connector_label(connector),
+                "index": i,
+                "total": total_feeds,
+            })
+
         def fetch_one(connector: BaseConnector) -> list[ConnectorItem]:
+            label = self._connector_label(connector)
             try:
                 res = connector.fetch()
+                self._emit(progress_cb, {
+                    "event": "fetch_done", "label": label, "items": len(res.items),
+                })
                 return res.items
             except Exception as e:
                 if self.db_conn:
                     log_event(self.db_conn, "connector_error", f"{type(connector).__name__}: {e}")
+                self._emit(progress_cb, {
+                    "event": "fetch_done", "label": label, "items": 0, "error": str(e),
+                })
                 return []
 
         seen_urls: set[str] = set()
         items: list[ConnectorItem] = []
-        workers = min(max_workers, len(self.connectors))
+        dropped = 0
+        workers = min(max_workers, total_feeds)
         with ThreadPoolExecutor(max_workers=workers) as pool:
             for connector_items in pool.map(fetch_one, self.connectors):
                 for item in connector_items:
                     if item.url in seen_urls:
+                        dropped += 1
                         continue
                     seen_urls.add(item.url)
                     items.append(item)
+        self._emit(progress_cb, {"event": "dedup", "kept": len(items), "dropped": dropped})
         return items
 
 
@@ -152,16 +191,20 @@ class OracleOrchestrator:
         max_items: Optional[int] = None,
         force_rescore: bool = False,
         rehydrate_cached: bool = True,
+        progress_cb=None,
     ):
         """Yield (scored_idea, is_cached) dynamically as each item is evaluated.
 
         Allows real-time streaming of candidates and dedup progress.
+        progress_cb (optional) receives dict events: fetch_start, fetch_done,
+        dedup, score_progress — one per phase/item, for CLI transparency.
         """
-        items = self._pull_all()
+        items = self._pull_all(progress_cb=progress_cb)
         if max_items is not None and max_items > 0:
             items = items[:max_items]
 
-        for item in items:
+        total = len(items)
+        for i, item in enumerate(items, 1):
             if not force_rescore and self.db_conn is not None:
                 cached = self._find_cached_spike(item)
                 if cached is not None:
@@ -170,6 +213,11 @@ class OracleOrchestrator:
                         "item_skipped_already_scored",
                         f"title={item.title!r} url={item.url!r}",
                     )
+                    self._emit(progress_cb, {
+                        "event": "score_progress", "index": i, "total": total,
+                        "title": item.title[:80], "status": "cached",
+                        "median": cached.median_composite,
+                    })
                     if rehydrate_cached:
                         if include_rejected or cached.verdict != "reject":
                             yield cached, True
@@ -177,6 +225,11 @@ class OracleOrchestrator:
 
             scored = self.scorer.score_item(item)
             self._persist(scored)
+            self._emit(progress_cb, {
+                "event": "score_progress", "index": i, "total": total,
+                "title": item.title[:80], "status": scored.verdict,
+                "median": scored.median_composite,
+            })
             if include_rejected or scored.verdict != "reject":
                 yield scored, False
 
@@ -186,6 +239,7 @@ class OracleOrchestrator:
         max_items: Optional[int] = None,
         force_rescore: bool = False,
         rehydrate_cached: bool = True,
+        progress_cb=None,
     ) -> list[ScoredIdea]:
         """Pull → deduplicate → score → persist → return sorted candidates."""
         results = [
@@ -195,7 +249,9 @@ class OracleOrchestrator:
                 max_items=max_items,
                 force_rescore=force_rescore,
                 rehydrate_cached=rehydrate_cached,
+                progress_cb=progress_cb,
             )
         ]
         results.sort(key=lambda s: s.median_composite, reverse=True)
+        self._emit(progress_cb, {"event": "done", "results": len(results)})
         return results

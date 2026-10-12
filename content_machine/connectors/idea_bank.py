@@ -192,3 +192,42 @@ class IdeaBankConnector(BaseConnector):
         wb.save(path)
         return count
 
+    def write_image_prompts(
+        self,
+        prompts: dict[int, str],
+        file_path: str | Path | None = None,
+        backup: bool = True,
+        backup_dir: str | Path | None = None,
+    ) -> Optional[Path]:
+        """Write per-post image prompts into PACKAGING column F ('Image Prompt').
+
+        prompts maps sheet row number -> filled §28 template text.
+        Creates a timestamped pre-write backup when backup=True; returns the
+        backup path, or None when no backup was made.
+        """
+        import shutil
+
+        path = self._resolve_path(file_path)
+
+        backup_path: Optional[Path] = None
+        if backup:
+            if backup_dir is not None:
+                bdir = Path(backup_dir)
+            else:
+                sibling = path.parent.parent / "backups"
+                bdir = sibling if sibling.is_dir() else path.parent
+            bdir.mkdir(parents=True, exist_ok=True)
+            ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H-%M-%S")
+            backup_path = bdir / f"{path.stem}.{ts}.pre-imageprompts.xlsx"
+            shutil.copy2(path, backup_path)
+
+        wb = openpyxl.load_workbook(path)
+        if "PACKAGING" not in wb.sheetnames:
+            raise ValueError(f"Sheet 'PACKAGING' not found in workbook: {path}")
+        ws = wb["PACKAGING"]
+        ws.cell(row=1, column=6, value="Image Prompt")
+        for row, text in prompts.items():
+            ws.cell(row=row, column=6, value=text)
+        wb.save(path)
+        return backup_path
+
