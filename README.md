@@ -1,17 +1,25 @@
 # Content Machine
 
-Local-first, multi-model AI editorial engine that turns real engineering signals and lived experience into high-signal technical content.
+Local-first editorial pipeline that turns an engineer's own signals (feeds, repos, voice notes, past posts) into technical posts, with a panel of LLM judges scoring each draft against a fixed rubric and a human deciding what ships.
+
+**The problem.** Prompting a model for "a LinkedIn post" yields fluent, generic text with no stake behind it. Content Machine does not generate from nothing.
+
+**The invariant.** AI is used for extraction, synthesis, and editorial review, anchored in real human experience (transcripts, connector items, the author's approved drafts). It is never an unconstrained text generator. Output that cannot be traced to an input is a bug.
+
+**What it does not do.** It never posts anything. Judge scores are a workflow aid for deciding where a draft needs work, not a guarantee of quality; the human reads and decides.
 
 [![CI](https://github.com/prasadrane/Content-Machine/actions/workflows/ci.yml/badge.svg)](https://github.com/prasadrane/Content-Machine/actions/workflows/ci.yml)
 ![Python 3.11](https://img.shields.io/badge/Python-3.11-blue)
 ![Node 22](https://img.shields.io/badge/Node-22-green)
 ![License MIT](https://img.shields.io/badge/License-MIT-blue)
-![tests](https://img.shields.io/badge/tests-389%20backend%20%C2%B7%2078%20UI%20passing-green)
+![tests](https://img.shields.io/badge/tests-366%20backend%20%C2%B7%2078%20UI%20passing-green)
 [![Live demo](https://img.shields.io/badge/live%20demo-vercel-black?logo=vercel)](https://content-machine-chi-lac.vercel.app)
 
 ## Live Demo
 
-Live demo: **https://content-machine-chi-lac.vercel.app** (public demo runs on free-tier Gemini quota - limited usage; service may degrade or stop mid-flight.)
+Live demo: **https://content-machine-chi-lac.vercel.app**
+
+The public demo runs on free-tier Gemini quota with a synthetic persona and seeded data, so usage is limited and it may degrade or stop mid-flight. Locally, models and keys are whatever you configure (see Quickstart).
 
 ## Screenshots
 
@@ -39,15 +47,15 @@ Screenshots show the seeded demo dataset (`content_machine/demo_seed.py`: public
 
 ## Architecture
 
-The guiding invariant: AI as extraction, synthesis, and editorial council anchored in authentic human experience — never an unconstrained text generator.
+Flow: signals are scored, a draft goes to the 4-judge council, the human reviews the verdicts and either revises or moves the draft on, then channel derivatives are produced and approved edits feed a governed rules store.
 
 ```mermaid
 flowchart LR
     FEEDS["Feeds: RSS · GitHub · LinkedIn"] --> ORACLE["Oracle scorer (median of 3 samples)"]
     ORACLE --> COUNCIL["Writer's Council (4 judges, rubric_v1, gate 9.0 ±0.3)"]
-    COUNCIL --> APPROVE{"Human approve"}
+    COUNCIL --> APPROVE{"Human review & decision"}
     APPROVE --> |revise| COUNCIL
-    APPROVE --> |approved| HUMANIZE["Humanize (anti-AI sanitizer + burstiness)"]
+    APPROVE --> |accept| HUMANIZE["Humanize (anti-AI sanitizer + burstiness)"]
     HUMANIZE --> DIST["Distribution: LinkedIn · X · video · newsletter"]
     DIST --> LESSONS["Lessons store (governed editorial rules)"]
     LESSONS --> COUNCIL
@@ -76,7 +84,7 @@ Content-Machine/
 │   ├── storage/         # SQLite State, Audit Log, Migrations & Local Paths
 │   └── api/             # FastAPI REST Server & Static SPA Serving
 ├── ui/                  # Modular React + Vite + Tailwind CSS Editorial Cockpit
-└── tests/               # 100% Offline-Capable Test Suite (389 backend, 78 UI)
+└── tests/               # 100% Offline-Capable Test Suite (366 backend, 78 UI)
 ```
 
 ## Core Capabilities
@@ -88,7 +96,7 @@ Content-Machine/
   3. *Job-Status Agnostic Senior Tone* (speaks with architectural authority).
   4. *Current Operational Reality* (hands-on AI systems builder).
   5. *Zero Generic Praise & Emojis* (straight into the technical crux).
-- **Writer's Council**: 4-judge parallel review board running rubric-grounded evaluations against the frozen `council/rubric_v1.md`:
+- **Writer's Council**: 4-judge parallel review board scoring drafts against the frozen `council/rubric_v1.md` (judge scores inform the human's decision; they do not publish anything):
   - **Narrative Judge** (`qwen3.8-max`): Narrative arc, personal stake, hook velocity.
   - **Punch Judge** (`qwen3.8-flash`): Directness, punchiness, visual rhythm.
   - **Depth Judge** (`qwen3.8-max`): Substantive depth, empirical grounding, timelessness.
@@ -99,7 +107,7 @@ Content-Machine/
   - Burstiness measurement: sentence-length standard deviation computed and reported per output as `burstiness_score`.
 - **LinkedIn Commenting Tool**: Synthesizes 2–3 sentence senior comments from 3 strategic angles (`Insightful`, `Contrarian`, `Question`) with voice dictation and post-council polish.
 - **Cross-Channel Distribution**: Transforms approved anchor posts into platform-native X/Twitter threads, spoken short-form video scripts (with `[Visual Cue]` and `[Camera Zoom]` markers), and newsletter digests.
-- **Governed Lessons Store**: Human-approved negative constraint repository with diff analysis and vector deduplication.
+- **Governed Lessons Store**: Editorial rules extracted from draft-vs-published diffs stay `pending` until a human approves them; rules typed by the operator are activated directly. Conflicting rules are flagged by embedding similarity.
 
 ## Engineering Highlights
 
@@ -209,7 +217,7 @@ python -m content_machine imageprompts "path/to/Prasad Windmill Idea Bank.xlsx" 
 
 ## Quality Gates
 
-- **Offline test suite**: 100% offline-capable, zero live network access or API calls — 389 backend tests, 78 UI tests. Scope and run details: [docs/testing.md](docs/testing.md).
+- **Offline test suite**: 100% offline-capable, zero live network access or API calls — 366 backend tests, 78 UI tests. Scope and run details: [docs/testing.md](docs/testing.md).
   ```bash
   python -m pytest tests -q   # backend (also: python -m unittest discover -s tests)
   cd ui && npx vitest run     # frontend

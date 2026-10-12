@@ -4,8 +4,10 @@ Used by:
 - Local sanitized screenshot runs (CONTENT_MACHINE_HOME=tmp/demo-home).
 - Vercel public demo cold starts (CONTENT_MACHINE_HOME=/tmp/cm, DEMO_MODE=1).
 
-All rows are fictional: invented titles, example.com URLs, no personal names,
-no employer references, no credentials. Safe to render publicly.
+Contents: synthetic scores, verdicts, drafts, lessons and persona ("John Doe"),
+plus public article titles/URLs from third-party feeds (metadata only, no body
+text). No personal names, no employer references, no credentials. Safe to
+render publicly.
 
 Run directly:  python -m content_machine.demo_seed
 """
