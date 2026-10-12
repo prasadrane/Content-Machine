@@ -8,7 +8,7 @@ import OutputPreviews from './OutputPreviews'
 import PlatformConfigModal from './PlatformConfigModal'
 import DistributeHistoryDrawer from './DistributeHistoryDrawer'
 
-export default function DistributeTab({ initialText, initialSlug }) {
+export default function DistributeTab({ initialText, initialSlug, approvedText: approvedProp = '', onApprove }) {
   const [anchorText, setAnchorText] = useState(initialText || '')
   const [slug, setSlug] = useState(initialSlug || 'post-1')
   const [loading, setLoading] = useState(false)
@@ -21,6 +21,8 @@ export default function DistributeTab({ initialText, initialSlug }) {
   const [historyItems, setHistoryItems] = useState([])
   const [historyLoading, setHistoryLoading] = useState(false)
   const [humanize, setHumanize] = useState(true)
+  const [approvedText, setApprovedText] = useState(approvedProp || '')
+  const [reviewed, setReviewed] = useState(false)
   const [humanizeTone, setHumanizeTone] = useState('pragmatic_architect')
 
   // Format selection state (LinkedIn default ON)
@@ -31,6 +33,10 @@ export default function DistributeTab({ initialText, initialSlug }) {
     video_script_long: false,
     newsletter: true,
   })
+
+  useEffect(() => {
+    setApprovedText(approvedProp || '')
+  }, [approvedProp])
 
   // Update if initialText changes
   useEffect(() => {
@@ -102,12 +108,24 @@ export default function DistributeTab({ initialText, initialSlug }) {
     })
   }
 
+  const isApproved = Boolean(anchorText.trim()) && anchorText.trim() === approvedText.trim()
+
+  const approveCurrent = () => {
+    setApprovedText(anchorText)
+    setReviewed(false)
+    if (onApprove) onApprove(anchorText)
+  }
+
   const activeFormatKeys = Object.keys(enabledFormats).filter(k => enabledFormats[k])
 
   const handleGenerate = async (e) => {
     e.preventDefault()
     if (!anchorText.trim()) {
       setError('Anchor post cannot be empty.')
+      return
+    }
+    if (!isApproved) {
+      setError('Approve this exact text before generating derivatives.')
       return
     }
     if (activeFormatKeys.length === 0) {
@@ -196,6 +214,12 @@ export default function DistributeTab({ initialText, initialSlug }) {
         </div>
       </div>
 
+      {bundle?.replayed && (
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs">
+          Replayed sample output: live model quota was unavailable, so these are stored derivatives of a seeded post, not generated from your text.
+        </div>
+      )}
+
       {/* Main Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
         <AnchorForm
@@ -214,6 +238,10 @@ export default function DistributeTab({ initialText, initialSlug }) {
           error={error}
           onSubmit={handleGenerate}
           activeFormatCount={activeFormatKeys.length}
+          isApproved={isApproved}
+          reviewed={reviewed}
+          onReviewedChange={setReviewed}
+          onApprove={approveCurrent}
         />
 
         <OutputPreviews

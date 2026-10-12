@@ -235,6 +235,44 @@ def _write_bundles() -> None:
             (dist / name).write_text(text, encoding="utf-8")
 
 
+REPLAY_SPIKE_ID = "demo-cache-stampede"
+
+
+def replay_council(conn: sqlite3.Connection) -> dict | None:
+    """Seeded peak council result, used when live quota is unavailable.
+
+    Returns None when the demo dataset has not been seeded. The caller must
+    label the result as replayed: it is not a review of the user's draft.
+    """
+    row = conn.execute(
+        "SELECT iteration, composite_raw, council_review_json FROM iterations "
+        "WHERE spike_id=? ORDER BY composite_raw DESC, iteration DESC LIMIT 1",
+        (REPLAY_SPIKE_ID,),
+    ).fetchone()
+    if row is None:
+        return None
+    review = json.loads(row["council_review_json"] or "{}")
+    return {
+        "iteration": int(row["iteration"]),
+        "score": round(float(row["composite_raw"] or 0.0), 3),
+        "verdict": "pass" if review.get("threshold_met") else "revise",
+        "actions": list(review.get("required_actions") or []),
+    }
+
+
+def replay_bundle() -> dict[str, str] | None:
+    """Seeded distribution bundle (sample output) for quota-exhausted demos."""
+    dist = paths.project_dir(REPLAY_SPIKE_ID) / "distribution"
+    names = {
+        "linkedin": "linkedin.md",
+        "x_thread": "x_thread.md",
+        "newsletter": "newsletter.md",
+        "video_script": "video_script.md",
+    }
+    bundle = {k: (dist / f).read_text(encoding="utf-8") for k, f in names.items() if (dist / f).is_file()}
+    return bundle or None
+
+
 def main() -> None:
     from content_machine.storage import db
 

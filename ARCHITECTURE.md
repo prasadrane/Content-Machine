@@ -683,3 +683,18 @@ records that the repository has no formal ADR history and that entries are
 **Candidate** status until the project owner confirms their rationale. The
 tradeoffs in section 16 are the best available reconstruction from code; consult
 the ADR directory for the curated list and its promotion status.
+
+## Human approval gate and demo replay
+
+- **Approval gate (UI-level).** Distribute only generates derivatives for text the
+  operator explicitly approved: via the Council approval dialog
+  ([ApprovalGate.jsx](ui/src/components/approval/ApprovalGate.jsx)) or by confirming the
+  exact text in the Distribute tab. Approval is bound to the exact text; editing it
+  re-locks generation. Approving a non-`pass` verdict is allowed and shown as an
+  override. **Scope caveat:** this is enforced in the UI, not on the server;
+  `/api/distribute/run` and the CLI do not check approval. Nothing in the system
+  publishes to any external service.
+- **Demo replay.** With `DEMO_MODE=1`, if a live council or distribute call fails
+  (e.g. free-tier quota), the API returns a seeded result with `replayed: true`
+  ([demo_seed.py](content_machine/demo_seed.py) `replay_council` / `replay_bundle`).
+  The UI labels it as a stored sample, never as a review of the user's draft.

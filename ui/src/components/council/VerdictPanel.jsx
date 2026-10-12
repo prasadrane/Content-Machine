@@ -9,7 +9,7 @@ export default function VerdictPanel({
   humanizing,
   onLoadDraft,
   onHumanize,
-  onSendToDistribute,
+  onRequestApproval,
 }) {
   if (!result) return null
 
@@ -36,6 +36,12 @@ export default function VerdictPanel({
           <span>{result.verdict}</span>
         </div>
       </div>
+
+      {result.replayed && (
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs">
+          Replayed sample result: live model quota was unavailable, so this is a stored review of a seeded draft, not a review of yours.
+        </div>
+      )}
 
       {/* Peak comparison note */}
       {best && best.score > result.score && (
@@ -96,13 +102,13 @@ export default function VerdictPanel({
             </button>
           )}
 
-          {onSendToDistribute && (
+          {onRequestApproval && (
             <button
               type="button"
-              onClick={() => onSendToDistribute(draft, spikeId)}
+              onClick={() => onRequestApproval(draft, { verdict: result.replayed ? 'unreviewed' : result.verdict, score: result.score })}
               className="px-5 py-2.5 bg-[#141413] hover:bg-[#252524] text-[#faf9f5] rounded-full text-xs font-medium transition flex items-center gap-2 shadow-sm ml-auto"
             >
-              <span>Distribute Current Post</span>
+              <span>Approve &amp; Distribute</span>
               <Share2 className="w-3.5 h-3.5 text-[#d97757]" />
             </button>
           )}

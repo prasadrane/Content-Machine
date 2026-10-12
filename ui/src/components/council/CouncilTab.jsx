@@ -7,8 +7,9 @@ import HumanizedDraftCard from './HumanizedDraftCard'
 import DraftingStudio from './DraftingStudio'
 import VerdictPanel from './VerdictPanel'
 import HistoryTimeline from './HistoryTimeline'
+import ApprovalGate from '../approval/ApprovalGate'
 
-export default function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onSendToDistribute }) {
+export default function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onApprove }) {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
@@ -20,6 +21,9 @@ export default function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onSen
   const { copied: humanizeCopied, copy: copyHumanized } = useCopyToClipboard()
   const [humanizeError, setHumanizeError] = useState('')
   const [maxIterations, setMaxIterations] = useState(1)
+  const [pendingApproval, setPendingApproval] = useState(null)
+
+  const requestApproval = (text, meta = {}) => setPendingApproval({ text, ...meta })
 
   const fetchHistory = async (slug) => {
     if (!slug) return
@@ -174,18 +178,32 @@ export default function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onSen
                 <span>{humanizing ? 'Humanizing...' : '🪄 Humanize Peak Draft'}</span>
               </button>
             )}
-            {best.draft && onSendToDistribute && (
+            {best.draft && onApprove && (
               <button
                 type="button"
-                onClick={() => onSendToDistribute(best.draft, spikeId)}
+                onClick={() => requestApproval(best.draft, { verdict: best.threshold_met ? 'pass' : best.verdict || 'revise', score: best.score })}
                 className="px-4 py-2 bg-[#c6613f] hover:bg-[#b55535] text-[#faf9f5] rounded-full text-xs font-medium transition flex items-center gap-1.5 shadow-sm"
               >
                 <Share2 className="w-3.5 h-3.5" />
-                <span>Distribute Peak Post</span>
+                <span>Approve Peak Post</span>
               </button>
             )}
           </div>
         </div>
+      )}
+
+      {pendingApproval && onApprove && (
+        <ApprovalGate
+          text={pendingApproval.text}
+          verdict={pendingApproval.verdict}
+          score={pendingApproval.score}
+          onCancel={() => setPendingApproval(null)}
+          onConfirm={() => {
+            const { text } = pendingApproval
+            setPendingApproval(null)
+            onApprove(text, spikeId)
+          }}
+        />
       )}
 
       {/* Humanized Peak Draft Card */}
@@ -264,7 +282,7 @@ export default function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onSen
             humanizing={humanizing}
             onLoadDraft={handleLoadDraft}
             onHumanize={handleHumanize}
-            onSendToDistribute={onSendToDistribute}
+            onRequestApproval={onApprove ? requestApproval : undefined}
           />
 
           <HistoryTimeline

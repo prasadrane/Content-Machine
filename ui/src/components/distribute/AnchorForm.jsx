@@ -1,5 +1,5 @@
 import React from 'react'
-import { Settings, AlertCircle, RotateCw, Share2 } from 'lucide-react'
+import { Settings, AlertCircle, RotateCw, Share2, ShieldCheck } from 'lucide-react'
 import { DISTRIBUTION_FORMATS, HUMANIZE_TONES } from '../../lib/constants'
 
 export default function AnchorForm({
@@ -18,6 +18,10 @@ export default function AnchorForm({
   error,
   onSubmit,
   activeFormatCount,
+  isApproved = true,
+  reviewed = false,
+  onReviewedChange = () => {},
+  onApprove = () => {},
 }) {
   return (
     <form onSubmit={onSubmit} className="space-y-4 bg-[#f0eee6]/60 p-6 rounded-2xl border border-[#e3dacc] shadow-anthropic">
@@ -124,6 +128,29 @@ export default function AnchorForm({
         )}
       </div>
 
+      {isApproved ? (
+        <div role="status" className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-xs flex items-center gap-2">
+          <ShieldCheck className="w-4 h-4 shrink-0" />
+          <span>Approved by you. Editing the text will require approval again.</span>
+        </div>
+      ) : (
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs space-y-2">
+          <p>This text has not been approved. Derivatives are only generated for text you explicitly approve (use Approve in the Council tab, or confirm here).</p>
+          <label className="flex items-start gap-2 cursor-pointer">
+            <input type="checkbox" checked={reviewed} onChange={(e) => onReviewedChange(e.target.checked)} className="mt-0.5" />
+            <span>I have read this exact text and approve it for distribution.</span>
+          </label>
+          <button
+            type="button"
+            disabled={!reviewed || !anchorText.trim()}
+            onClick={onApprove}
+            className="px-3 py-1.5 rounded-full text-xs font-medium bg-[#141413] text-[#faf9f5] disabled:opacity-40"
+          >
+            Approve this text
+          </button>
+        </div>
+      )}
+
       {error && (
         <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
@@ -133,7 +160,7 @@ export default function AnchorForm({
 
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || !isApproved}
         className="w-full py-2.5 px-4 bg-[#141413] hover:bg-[#252524] disabled:opacity-50 text-[#faf9f5] rounded-full text-xs font-medium transition flex items-center justify-center gap-2 shadow-sm"
       >
         {loading ? <RotateCw className="w-3.5 h-3.5 animate-spin" /> : <Share2 className="w-3.5 h-3.5 text-[#d97757]" />}

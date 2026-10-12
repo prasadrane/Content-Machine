@@ -5,6 +5,8 @@ export function useSharedFlow(setActiveTab) {
   const [councilSpikeId, setCouncilSpikeId] = useState('spike-1')
   const [distributeText, setDistributeText] = useState('')
   const [distributeSlug, setDistributeSlug] = useState('post-1')
+  // Exact text a human explicitly approved. Distribute only generates for this text.
+  const [approvedText, setApprovedText] = useState('')
 
   const handleSendToCouncil = (item) => {
     setCouncilSpikeId(item.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 30))
@@ -25,7 +27,15 @@ export function useSharedFlow(setActiveTab) {
     if (setActiveTab) setActiveTab('distribute')
   }
 
+  const handleApprove = (text, slug) => {
+    setApprovedText(text)
+    handleSendToDistribute(text, slug)
+  }
+
   return {
+    approvedText,
+    setApprovedText,
+    handleApprove,
     councilDraft,
     setCouncilDraft,
     councilSpikeId,
