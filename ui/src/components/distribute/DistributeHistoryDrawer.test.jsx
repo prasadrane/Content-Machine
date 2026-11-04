@@ -61,6 +61,7 @@ describe('DistributeHistoryDrawer', () => {
     // Items should be displayed
     expect(screen.getByText('cloudflare-100tb-dns-cache')).toBeInTheDocument()
     expect(screen.getByText('release-weekend')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /load cloudflare-100tb-dns-cache/i })).toBeInTheDocument()
 
     // Test filter search
     const searchInput = screen.getByPlaceholderText(/Search by slug or content/i)

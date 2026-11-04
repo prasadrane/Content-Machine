@@ -22,6 +22,7 @@ export default function DemoBanner({ activeTab, approved = false, onStart, onGot
   const [demo, setDemo] = useState(false);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState('');
+  const [showGuide, setShowGuide] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -49,21 +50,21 @@ export default function DemoBanner({ activeTab, approved = false, onStart, onGot
 
   return (
     <>
-      <div role="status" className="bg-amber-100 text-amber-900 text-sm text-center py-2 px-4">
-        Public demo &mdash; runs on free-tier Gemini quota. Limited usage; generation may degrade or stop mid-flight.
-        When quota runs out, results are replayed from seeded samples and labelled as such.
+      <div className="bg-[#f0eee6] border-b border-[#e3dacc] px-4 py-3">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center gap-3 text-sm">
+          <p role="status" className="text-[#58574f]">Public demo · Explore the workflow with illustrative sample data.</p>
+          {onStart && <button type="button" onClick={start} disabled={starting} className="min-h-10 px-4 py-2 rounded-full bg-[#141413] text-[#faf9f5] disabled:opacity-50">{starting ? 'Loading...' : 'Explore a completed example'}</button>}
+          <details className="text-[#58574f]">
+            <summary className="cursor-pointer min-h-10 flex items-center">Demo limits</summary>
+            <p className="max-w-2xl py-2">Runs on free-tier Gemini quota. Generation may fail or stop. When quota runs out, stored samples may be replayed; they are labeled and are not generated from your custom text. Demo data is temporary.</p>
+          </details>
+          {onGoto && <button type="button" aria-expanded={showGuide} aria-controls="demo-workflow" onClick={() => setShowGuide(v => !v)} className="min-h-10 px-3 py-2 rounded-lg border border-[#b0aea5]">{showGuide ? 'Hide workflow guide' : 'Show workflow guide'}</button>}
+          {startError && <p role="alert" className="text-rose-800">{startError}</p>}
+        </div>
       </div>
-      {onStart && (
-        <nav aria-label="Demo workflow" className="bg-[#f0eee6] border-b border-[#e3dacc] px-6 py-2">
+      {showGuide && onGoto && (
+        <nav id="demo-workflow" aria-label="Demo workflow" className="bg-[#f0eee6] border-b border-[#e3dacc] px-6 py-2">
           <div className="max-w-7xl mx-auto flex items-center gap-3 flex-wrap text-xs font-mono">
-            <button
-              type="button"
-              onClick={start}
-              disabled={starting}
-              className="px-3 py-1.5 rounded-full bg-[#141413] text-[#faf9f5] disabled:opacity-50"
-            >
-              {starting ? 'Loading…' : 'Start guided demo'}
-            </button>
             <ol className="flex items-center gap-2 flex-wrap">
               {DEMO_STEPS.map((s, i) => (
                 <li key={s.id}>
@@ -86,7 +87,6 @@ export default function DemoBanner({ activeTab, approved = false, onStart, onGot
             {current && (
               <span className="text-[#87867f]">{DEMO_STEPS.find((s) => s.id === current).hint}</span>
             )}
-            {startError && <span className="text-rose-700">{startError}</span>}
           </div>
         </nav>
       )}

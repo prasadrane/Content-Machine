@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Compass, Database } from 'lucide-react'
 import { runOracleScan, getOracleHistory } from '../../api/oracle'
 import { getLinkedInStatus, syncLinkedIn } from '../../api/linkedin'
@@ -7,12 +7,14 @@ import SourceCockpit from './SourceCockpit'
 import CandidateStream from './CandidateStream'
 import ArchiveView from './ArchiveView'
 import InterviewModal from './InterviewModal'
+import { parseSources, validateSources } from './sourceInputs'
 
-export default function OracleTab({ onSendToCouncil, onSendToCouncilWithDraft }) {
+export default function OracleTab({ onSendToCouncil, onSendToCouncilWithDraft, isActive = true }) {
+  const initialArchiveLoaded = useRef(false)
   const [selectedInterviewItem, setSelectedInterviewItem] = useState(null)
   const [oracleView, setOracleView] = useState('active') // 'active' | 'archive'
   const [sourceSubTab, setSourceSubTab] = useState('rss') // 'rss' | 'github' | 'linkedin'
-  const [rssUrls, setRssUrls] = useState('https://dev.to/feed\\nhttps://news.ycombinator.com/rss')
+  const [rssUrls, setRssUrls] = useState('https://dev.to/feed\nhttps://news.ycombinator.com/rss')
   const [githubRepos, setGithubRepos] = useState('')
   const [linkedInProfiles, setLinkedInProfiles] = useState('')
   const [linkedInLiAt, setLinkedInLiAt] = useState('')
@@ -22,6 +24,7 @@ export default function OracleTab({ onSendToCouncil, onSendToCouncilWithDraft })
   const [candidates, setCandidates] = useState([])
   const [error, setError] = useState('')
   const [scanProgress, setScanProgress] = useState(null)
+  useEffect(() => { if (!isActive) setLinkedInLiAt('') }, [isActive])
 
   const handleDismissCandidate = (candidate) => {
     setCandidates(prev => prev.filter(c => (candidate.url && c.url ? c.url !== candidate.url : c.title !== candidate.title)))
@@ -78,6 +81,10 @@ export default function OracleTab({ onSendToCouncil, onSendToCouncilWithDraft })
       const data = await getOracleHistory(params)
       setArchiveItems(data.items || [])
       setArchiveTotal(data.total || 0)
+      if (!initialArchiveLoaded.current) {
+        initialArchiveLoaded.current = true
+        if (data.items?.length) setOracleView('archive')
+      }
       if (data.topics && data.topics.length > 0) {
         setAvailableTopics(['All', ...data.topics])
       }
@@ -92,27 +99,23 @@ export default function OracleTab({ onSendToCouncil, onSendToCouncilWithDraft })
     fetchArchive()
   }, [archiveTopic, archiveVerdict, archiveSearch])
 
-  const rssCount = rssUrls.split('\\n').map(s => s.trim()).filter(Boolean).length
-  const ghCount = githubRepos.split('\\n').map(s => s.trim()).filter(Boolean).length
-  const liCount = linkedInProfiles.split('\\n').map(s => s.trim()).filter(Boolean).length
+  const rssList = parseSources(rssUrls), ghList = parseSources(githubRepos), liProfiles = parseSources(linkedInProfiles)
+  const rssCount = rssList.length, ghCount = ghList.length, liCount = liProfiles.length
   const totalSources = rssCount + ghCount + liCount
 
   const handleRun = async (e) => {
     e.preventDefault()
-    setLoading(true)
+    initialArchiveLoaded.current = true
     setError('')
-    setCandidates([])
-
-    const rssList = rssUrls.split('\\n').map(s => s.trim()).filter(Boolean)
-    const ghList = githubRepos.split('\\n').map(s => s.trim()).filter(Boolean)
-    const liProfiles = linkedInProfiles.split('\\n').map(s => s.trim()).filter(Boolean)
-
+    const sourceError = validateSources(rssList, ghList, liProfiles)
+    if (sourceError) { setError(sourceError); return }
     if (rssList.length === 0 && ghList.length === 0 && liProfiles.length === 0 && !linkedInLiAt.trim()) {
       setError('Please provide at least one source (RSS, GitHub, or LinkedIn).')
       setLoading(false)
       return
     }
-
+    setLoading(true)
+    setCandidates([])
     setScanProgress({
       phase: 'fetching',
       message: 'Initializing signal stream across registered sources...',
@@ -220,7 +223,8 @@ export default function OracleTab({ onSendToCouncil, onSendToCouncilWithDraft })
         <div className="flex items-center gap-1 bg-[#f0eee6] p-1 rounded-full border border-[#e3dacc] shrink-0 self-start sm:self-auto shadow-anthropic">
           <button
             type="button"
-            onClick={() => setOracleView('active')}
+            aria-pressed={oracleView === 'active'}
+            onClick={() => { initialArchiveLoaded.current = true; setOracleView('active') }}
             className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium transition ${
               oracleView === 'active'
                 ? 'bg-[#141413] text-[#faf9f5] shadow-sm'
@@ -232,7 +236,9 @@ export default function OracleTab({ onSendToCouncil, onSendToCouncilWithDraft })
           </button>
           <button
             type="button"
+            aria-pressed={oracleView === 'archive'}
             onClick={() => {
+              initialArchiveLoaded.current = true
               setOracleView('archive')
               fetchArchive()
             }}
@@ -250,8 +256,9 @@ export default function OracleTab({ onSendToCouncil, onSendToCouncilWithDraft })
 
       {/* Sub-View 1: Active Scanner */}
       {oracleView === 'active' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+        <div className="space-y-6 min-w-0">
           <SourceCockpit
+            compact
             sourceSubTab={sourceSubTab}
             onSubTabChange={setSourceSubTab}
             rssUrls={rssUrls}
@@ -287,6 +294,7 @@ export default function OracleTab({ onSendToCouncil, onSendToCouncilWithDraft })
             onSendToCouncil={onSendToCouncil}
             onOpenInterview={(c) => setSelectedInterviewItem(c)}
             onDismissCandidate={handleDismissCandidate}
+            onBrowseArchive={() => setOracleView('archive')}
           />
         </div>
       )}
@@ -312,6 +320,7 @@ export default function OracleTab({ onSendToCouncil, onSendToCouncilWithDraft })
       {/* Topic Briefing & Perspective Intake Modal (Subsystem 2) */}
       {selectedInterviewItem && (
         <InterviewModal
+          isActive={isActive}
           item={selectedInterviewItem}
           onClose={() => setSelectedInterviewItem(null)}
           onSynthesizeComplete={(draft, slug) => {

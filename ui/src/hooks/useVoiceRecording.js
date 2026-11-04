@@ -27,7 +27,9 @@ const MAX_SECONDS = 120
  *   { startRecording(target), stopRecording(), isRecording, recordingTarget,
  *     isTranscribing, error, setError }
  */
-export function useVoiceRecording({ onTranscript, onSecondTick } = {}) {
+export function useVoiceRecording({ onTranscript, onSecondTick, enabled = true } = {}) {
+  const enabledRef = useRef(enabled)
+  enabledRef.current = enabled
   const [recordingTarget, setRecordingTarget] = useState(null)
   const [isTranscribing, setIsTranscribing] = useState(false)
   const [error, setError] = useState('')
@@ -57,10 +59,11 @@ export function useVoiceRecording({ onTranscript, onSecondTick } = {}) {
       timeoutRef.current = null
     }
     if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop()
-      } catch (e) {}
+      const recognition = recognitionRef.current
       recognitionRef.current = null
+      try {
+        recognition.stop()
+      } catch (e) {}
     }
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       try {
@@ -89,6 +92,7 @@ export function useVoiceRecording({ onTranscript, onSecondTick } = {}) {
   }
 
   const startRecording = async (target) => {
+    if (!enabledRef.current) return
     const norm = target === undefined ? DEFAULT_TARGET : target
     setError('')
     if (recordingTarget === norm) {
@@ -121,11 +125,13 @@ export function useVoiceRecording({ onTranscript, onSecondTick } = {}) {
         recog.lang = 'en-US'
 
         recog.onstart = () => {
+          if (!enabledRef.current) { stopRecording(); return }
           markActive(norm)
           startTimer()
         }
 
         recog.onresult = (event) => {
+          if (!enabledRef.current) return
           let sessionFinal = ''
           for (let i = event.resultIndex; i < event.results.length; ++i) {
             if (event.results[i].isFinal) {
@@ -161,6 +167,7 @@ export function useVoiceRecording({ onTranscript, onSecondTick } = {}) {
     // Fallback: MediaRecorder + backend /api/interview/transcribe
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      if (!enabledRef.current) { stream.getTracks().forEach(track => track.stop()); return }
       const mediaRecorder = new MediaRecorder(stream)
       mediaRecorderRef.current = mediaRecorder
       audioChunksRef.current = []
@@ -183,7 +190,7 @@ export function useVoiceRecording({ onTranscript, onSecondTick } = {}) {
         setRecordingTarget(null)
 
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
-        if (audioBlob.size === 0) return
+        if (audioBlob.size === 0 || !enabledRef.current) return
 
         setIsTranscribing(true)
         try {
@@ -207,7 +214,13 @@ export function useVoiceRecording({ onTranscript, onSecondTick } = {}) {
   }
 
   useEffect(() => {
+    enabledRef.current = enabled
+    if (!enabled) stopRecording()
+  }, [enabled])
+
+  useEffect(() => {
     return () => {
+      enabledRef.current = false
       stopRecording()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

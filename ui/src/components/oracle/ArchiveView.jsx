@@ -24,6 +24,7 @@ export default function ArchiveView({
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3.5 top-3 text-[#87867f]" />
             <input
+              aria-label="Search saved signals"
               type="text"
               value={archiveSearch}
               onChange={(e) => setArchiveSearch(e.target.value)}
@@ -32,6 +33,8 @@ export default function ArchiveView({
             />
             {archiveSearch && (
               <button 
+                type="button"
+                aria-label="Clear signal search"
                 onClick={() => setArchiveSearch('')}
                 className="absolute right-3.5 top-3 text-[#87867f] hover:text-[#141413]"
               >
@@ -51,6 +54,7 @@ export default function ArchiveView({
               <button
                 key={v.key}
                 type="button"
+                aria-pressed={archiveVerdict === v.key}
                 onClick={() => setArchiveVerdict(v.key)}
                 className={`px-3 py-1 rounded-full text-xs font-mono transition shrink-0 ${
                   archiveVerdict === v.key
@@ -87,6 +91,7 @@ export default function ArchiveView({
               return (
                 <button
                   key={topic}
+                  aria-pressed={active}
                   type="button"
                   onClick={() => setArchiveTopic(topic)}
                   className={`text-xs px-3.5 py-1.5 rounded-full border transition flex items-center gap-1.5 ${
@@ -128,11 +133,11 @@ export default function ArchiveView({
           </div>
           {archiveItems.map((item) => (
             <div
-              key={item.id}
+              key={item.id || item.url || item.title}
               className="bg-[#faf9f5] hover:bg-[#f0eee6]/40 transition border border-[#e3dacc] rounded-2xl p-5 flex flex-col justify-between gap-3 shadow-anthropic"
             >
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-1.5">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="space-y-1.5 min-w-0 break-words">
                   <h4 className="text-sm font-serif font-medium text-[#141413] leading-snug">{item.title}</h4>
                   <div className="flex items-center gap-2 text-[11px] text-[#87867f] font-mono flex-wrap">
                     <span className={`text-[10px] font-medium px-2.5 py-0.5 rounded-full border ${getTopicBadgeClass(item.topic_tag)}`}>
@@ -140,9 +145,9 @@ export default function ArchiveView({
                     </span>
                     <span>{item.source}</span>
                     <span className="text-[#b0aea5]">&bull;</span>
-                    <span className="text-[#87867f]">
+                    {item.created_at && <span className="text-[#87867f]">
                       {new Date(item.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </span>
+                    </span>}
                     {item.url && (
                       <>
                         <span className="text-[#b0aea5]">&bull;</span>
@@ -171,13 +176,15 @@ export default function ArchiveView({
                 </div>
               </div>
 
+              {item.body_snippet && <p className="text-sm text-[#58574f] leading-relaxed">{item.body_snippet}</p>}
               <div className="flex justify-end pt-2 border-t border-[#e3dacc]">
                 <button
-                  onClick={() => onOpenInterview({ title: item.title, url: item.url, topic_tag: item.topic_tag })}
+                  type="button"
+                  onClick={() => onOpenInterview(item)}
                   className="text-xs text-[#c6613f] hover:text-[#a54c2d] font-medium flex items-center gap-1.5 transition"
                 >
                   <Sparkles className="w-3 h-3 text-[#d97757]" />
-                  <span>Brief & Perspective</span>
+                  <span>Add my perspective</span>
                   <ArrowRight className="w-3 h-3" />
                 </button>
               </div>

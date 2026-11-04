@@ -5,6 +5,7 @@ export default function GithubPane({
   githubRepos,
   setGithubRepos,
   ghCount,
+  sourceError = '',
   githubPresets,
   onAddGithubPreset,
 }) {
@@ -13,10 +14,13 @@ export default function GithubPane({
   return (
     <div className="space-y-3 animate-fadeIn">
       <div className="flex items-center justify-between">
-        <label className="block text-xs font-medium text-[#141413]">GitHub Repositories</label>
+        <label htmlFor="oracle-github-repos" className="block text-xs font-medium text-[#141413]">GitHub Repositories</label>
         <span className="text-[10px] font-mono text-[#87867f]">{ghCount} configured</span>
       </div>
       <textarea
+        id="oracle-github-repos"
+        aria-invalid={Boolean(sourceError)}
+        aria-describedby={sourceError ? 'oracle-source-error' : undefined}
         rows={4}
         value={githubRepos}
         onChange={(e) => setGithubRepos(e.target.value)}

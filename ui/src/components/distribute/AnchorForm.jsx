@@ -18,59 +18,66 @@ export default function AnchorForm({
   error,
   onSubmit,
   activeFormatCount,
-  isApproved = true,
+  isApproved = false,
   reviewed = false,
   onReviewedChange = () => {},
   onApprove = () => {},
 }) {
   return (
     <form onSubmit={onSubmit} className="space-y-4 bg-[#f0eee6]/60 p-6 rounded-2xl border border-[#e3dacc] shadow-anthropic">
-      <div className="flex items-center justify-between">
-        <h3 className="text-xs uppercase font-mono tracking-wider text-[#87867f]">Anchor Post (Verified)</h3>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h3 className="text-sm font-semibold text-[#141413]">Anchor post</h3>
+        <label className="text-sm text-[#58574f] flex flex-col gap-1">
+          Post identifier
         <input
           type="text"
           value={slug}
           onChange={(e) => onSlugChange(e.target.value)}
           placeholder="Project Slug"
-          className="text-xs font-mono bg-[#faf9f5] border border-[#e3dacc] rounded-lg px-2.5 py-1 text-[#141413] w-36 focus:outline-none focus:border-[#141413]"
+          className="text-sm font-mono bg-[#faf9f5] border border-[#b0aea5] rounded-lg px-2.5 py-2 text-[#141413] w-36 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141413]"
         />
+        </label>
       </div>
 
       <textarea
+        aria-label="Anchor post"
         rows={16}
         value={anchorText}
         onChange={(e) => onAnchorChange(e.target.value)}
         placeholder="Paste your approved anchor post or final draft..."
-        className="w-full text-xs font-mono leading-relaxed bg-[#faf9f5] border border-[#e3dacc] rounded-xl p-4 text-[#141413] focus:outline-none focus:border-[#141413] resize-none placeholder-[#b0aea5]"
+        className="w-full text-base leading-relaxed bg-[#faf9f5] border border-[#b0aea5] rounded-xl p-4 text-[#141413] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141413] resize-y placeholder-[#68675f]"
       />
 
       {/* Active Platform Chips */}
-      <div className="flex items-center justify-between gap-2 p-3 bg-[#faf9f5] border border-[#e3dacc] rounded-xl">
-        <div className="flex items-center gap-1.5 flex-wrap text-[11px] font-mono">
-          <span className="text-[#87867f] mr-1">Active:</span>
+      <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-[#faf9f5] border border-[#e3dacc] rounded-xl">
+        <div role="group" aria-label="Channel formats" className="flex items-center gap-2 flex-wrap text-sm">
+          <span className="text-[#58574f] mr-1">Formats:</span>
           {DISTRIBUTION_FORMATS.map(fmt => {
             const isEnabled = enabledFormats[fmt.id]
             return (
-              <span
+              <button
                 key={fmt.id}
+                type="button"
+                aria-pressed={Boolean(isEnabled)}
                 onClick={() => onToggleFormat(fmt.id)}
-                className={`cursor-pointer px-2.5 py-0.5 rounded-full border transition ${
+                className={`min-h-9 px-3 py-1.5 rounded-full border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141413] ${
                   isEnabled
                     ? fmt.id === 'linkedin'
                       ? 'bg-[#141413] text-[#faf9f5] border-[#141413] font-semibold'
                       : 'bg-[#f0eee6] text-[#141413] border-[#b0aea5] hover:border-[#141413]'
-                    : 'opacity-40 line-through text-[#87867f] border-transparent hover:opacity-60'
+                    : 'text-[#58574f] border-[#b0aea5] border-dashed hover:bg-[#f0eee6]'
                 }`}
               >
                 {fmt.shortLabel}
-              </span>
+              </button>
             )
           })}
         </div>
         <button
           type="button"
           onClick={onOpenConfig}
-          className="text-xs text-[#c6613f] hover:text-[#a54c2d] font-mono flex items-center gap-1 shrink-0"
+          aria-label="Edit channel formats"
+          className="min-h-9 text-sm text-[#a54c2d] font-medium flex items-center gap-1 shrink-0"
         >
           <Settings className="w-3 h-3" />
           <span>Edit</span>
@@ -90,6 +97,7 @@ export default function AnchorForm({
           </div>
           <button
             type="button"
+            aria-pressed={humanize}
             onClick={onHumanizeToggle}
             className={`px-3 py-1 rounded-full text-xs font-mono font-medium transition flex items-center gap-1.5 border shadow-sm ${
               humanize
@@ -113,6 +121,7 @@ export default function AnchorForm({
                 <button
                   key={t.id}
                   type="button"
+                  aria-pressed={active}
                   onClick={() => onToneChange(t.id)}
                   className={`px-2.5 py-1 rounded-full text-[11px] font-mono border transition ${
                     active
@@ -131,10 +140,11 @@ export default function AnchorForm({
       {isApproved ? (
         <div role="status" className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-xs flex items-center gap-2">
           <ShieldCheck className="w-4 h-4 shrink-0" />
-          <span>Approved by you. Editing the text will require approval again.</span>
+          <span><strong>Approved by you</strong>. Editing the text will require approval again.</span>
         </div>
       ) : (
-        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs space-y-2">
+        <div role="status" className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-sm space-y-2">
+          <p className="font-semibold">Needs approval</p>
           <p>This text has not been approved. Derivatives are only generated for text you explicitly approve (use Approve in the Council tab, or confirm here).</p>
           <label className="flex items-start gap-2 cursor-pointer">
             <input type="checkbox" checked={reviewed} onChange={(e) => onReviewedChange(e.target.checked)} className="mt-0.5" />
@@ -152,7 +162,7 @@ export default function AnchorForm({
       )}
 
       {error && (
-        <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center gap-2">
+        <div role="alert" className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-sm flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
           <span>{error}</span>
         </div>

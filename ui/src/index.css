@@ -7,7 +7,7 @@
   --swatch--ivory-medium: #f0eee6;
   --swatch--slate-dark: #141413;
   --swatch--cloud-medium: #b0aea5;
-  --swatch--cloud-dark: #87867f;
+  --swatch--cloud-dark: #68675f;
   --swatch--oat: #e3dacc;
   --swatch--accent: #c6613f;
   --swatch--clay: #d97757;
@@ -71,4 +71,16 @@ html, body {
 
 .animate-fadeIn {
   animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Shared interaction foundations; preserve native hidden panels for session continuity. */
+[hidden] { display: none !important; }
+button, input, textarea, select, summary { scroll-margin-top: 9rem; }
+:focus-visible { outline: 2px solid #794029; outline-offset: 3px; }
+main:focus { outline: none; }
+input, textarea, select { max-width: 100%; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.text-\[\#87867f\] { color: #68675f; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }

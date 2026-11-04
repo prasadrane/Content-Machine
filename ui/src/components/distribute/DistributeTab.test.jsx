@@ -85,4 +85,66 @@ describe('DistributeTab', () => {
     fireEvent.change(screen.getByDisplayValue('Approved text'), { target: { value: 'Approved text, tweaked' } })
     expect(generate).toBeDisabled()
   })
+
+  it('does not restore approval after whitespace changes or editing back', async () => {
+    distributeApi.getDistributeHistory.mockResolvedValue({ items: [] })
+    render(<DistributeTab initialText="Approved text" initialSlug="p" approvedText="Approved text" />)
+    const generate = await screen.findByRole('button', { name: /generate platform bundle/i })
+    fireEvent.change(screen.getByRole('textbox', { name: /^anchor post$/i }), { target: { value: 'Approved text ' } })
+    expect(generate).toBeDisabled()
+    fireEvent.change(screen.getByRole('textbox', { name: /^anchor post$/i }), { target: { value: 'Approved text' } })
+    expect(generate).toBeDisabled()
+  })
+
+  it('uses canonical approval authority rather than a legacy matching string', async () => {
+    distributeApi.getDistributeHistory.mockResolvedValue({ items: [] })
+    render(<DistributeTab initialText="Text" initialSlug="p" approvedText="Text" approval={null} />)
+    expect(await screen.findByRole('button', { name: /generate platform bundle/i })).toBeDisabled()
+  })
+
+  it('requires the canonical item and version and invalidates on identifier edits', async () => {
+    distributeApi.getDistributeHistory.mockResolvedValue({ items: [] })
+    const anchor = { itemId: 'item-a', version: 4, text: 'Same text', slug: 'a' }
+    const onInvalidateApproval = vi.fn()
+    const { rerender } = render(<DistributeTab anchorIdentity={anchor} approval={{ ...anchor, itemId: 'other' }} onInvalidateApproval={onInvalidateApproval} />)
+    const generate = await screen.findByRole('button', { name: /generate platform bundle/i })
+    expect(generate).toBeDisabled()
+    rerender(<DistributeTab anchorIdentity={anchor} approval={anchor} onInvalidateApproval={onInvalidateApproval} />)
+    expect(generate).toBeEnabled()
+    fireEvent.change(screen.getByRole('textbox', { name: /post identifier/i }), { target: { value: 'b' } })
+    expect(generate).toBeDisabled()
+    expect(onInvalidateApproval).toHaveBeenCalledTimes(1)
+  })
+
+  it('associates delayed derivatives with the original anchor after editing', async () => {
+    distributeApi.getDistributeHistory.mockResolvedValue({ items: [] })
+    let resolve
+    distributeApi.runDistribute.mockImplementation(() => new Promise(done => { resolve = done }))
+    render(<DistributeTab initialText="Original anchor" initialSlug="original" approvedText="Original anchor" />)
+    fireEvent.click(await screen.findByRole('button', { name: /generate platform bundle/i }))
+    fireEvent.change(screen.getByRole('textbox', { name: /^anchor post$/i }), { target: { value: 'New working anchor' } })
+    resolve({ linkedin: 'Original derivative' })
+    expect(await screen.findByText('Original derivative')).toBeInTheDocument()
+    expect(screen.getByText(/earlier anchor version/i)).toBeInTheDocument()
+    expect(screen.getByText('Original anchor')).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /^anchor post$/i })).toHaveValue('New working anchor')
+  })
+  it('does not label submitted custom input as the source of a replay', async () => {
+    distributeApi.getDistributeHistory.mockResolvedValue({ items: [] })
+    distributeApi.runDistribute.mockResolvedValue({ linkedin: 'Stored sample derivative', replayed: true })
+    render(<DistributeTab initialText="My custom input" initialSlug="custom" approvedText="My custom input" />)
+    fireEvent.click(await screen.findByRole('button', { name: /generate platform bundle/i }))
+    expect(await screen.findByText('Stored sample derivative')).toBeInTheDocument()
+    expect(screen.getByText(/submitted input \(not the source of this replay\)/i)).toBeInTheDocument()
+    expect(screen.queryByText(/outputs for this anchor version/i)).not.toBeInTheDocument()
+  })
+  it('closes transient dialogs when inactive while retaining the working anchor', async () => {
+    distributeApi.getDistributeHistory.mockResolvedValue({ items: [] })
+    const { rerender } = render(<DistributeTab initialText="Working anchor" isActive />)
+    fireEvent.click(await screen.findByRole('button', { name: /platforms \(/i }))
+    expect(screen.getByRole('dialog', { name: /platform distribution formats/i })).toBeInTheDocument()
+    rerender(<DistributeTab initialText="Working anchor" isActive={false} />)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /^anchor post$/i })).toHaveValue('Working anchor')
+  })
 })

@@ -3,6 +3,7 @@ import { RotateCw, Sparkles, AlertCircle } from 'lucide-react'
 import RssPane from './RssPane'
 import GithubPane from './GithubPane'
 import LinkedinPane from './LinkedinPane'
+import { toggleSource } from './sourceInputs'
 import {
   devFeedPresets,
   companyBlogPresets,
@@ -16,6 +17,7 @@ import {
 } from './presets'
 
 export default function SourceCockpit({
+  compact = false,
   sourceSubTab,
   onSubTabChange,
   rssUrls,
@@ -47,37 +49,26 @@ export default function SourceCockpit({
   }
 
   const handleTogglePreset = (url) => {
-    const current = rssUrls.split('\n').map(s => s.trim()).filter(Boolean)
-    if (current.includes(url)) {
-      setRssUrls(current.filter(u => u !== url).join('\n'))
-    } else {
-      setRssUrls(prev => prev.trim() ? `${prev.trim()}\n${url}` : url)
-    }
+    setRssUrls(toggleSource(rssUrls, url))
   }
 
   const handleToggleGithubPreset = (repo) => {
-    const current = githubRepos.split('\n').map(s => s.trim()).filter(Boolean)
-    if (current.includes(repo)) {
-      setGithubRepos(current.filter(r => r !== repo).join('\n'))
-    } else {
-      setGithubRepos(prev => prev.trim() ? `${prev.trim()}\n${repo}` : repo)
-    }
+    setGithubRepos(toggleSource(githubRepos, repo))
   }
 
   const handleToggleLinkedInPreset = (handle) => {
-    const current = linkedInProfiles.split('\n').map(s => s.trim()).filter(Boolean)
-    if (current.includes(handle)) {
-      setLinkedInProfiles(current.filter(h => h !== handle).join('\n'))
-    } else {
-      setLinkedInProfiles(prev => prev.trim() ? `${prev.trim()}\n${handle}` : handle)
-    }
+    setLinkedInProfiles(toggleSource(linkedInProfiles, handle))
   }
 
   return (
     <form 
       onSubmit={onRun} 
-      className="md:col-span-1 bg-[#f0eee6]/60 rounded-2xl border border-[#e3dacc] shadow-anthropic flex flex-col md:sticky md:top-24 md:max-h-[calc(100vh-7.5rem)] overflow-hidden"
+      className="min-w-0 bg-[#f0eee6]/60 rounded-2xl border border-[#e3dacc] shadow-anthropic overflow-hidden"
     >
+      <details open={!compact}>
+        <summary className="cursor-pointer p-4 text-sm font-semibold text-[#141413] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-4px]">
+          Edit sources and limits <span className="font-normal text-[#58574f]">({totalSources} sources configured)</span>
+        </summary>
       {/* Cockpit Header & Sub-Tab Navigation */}
       <div className="p-4 pb-3 border-b border-[#e3dacc] shrink-0 space-y-3 bg-[#f0eee6]/80">
         <div className="flex items-center justify-between">
@@ -91,6 +82,7 @@ export default function SourceCockpit({
         <div className="grid grid-cols-3 gap-1 bg-[#faf9f5] p-1 rounded-xl border border-[#e3dacc]">
           <button
             type="button"
+            aria-pressed={sourceSubTab === 'rss'}
             onClick={() => onSubTabChange('rss')}
             className={`py-1.5 px-2 rounded-lg text-xs font-medium transition flex items-center justify-center gap-1.5 ${
               sourceSubTab === 'rss'
@@ -108,6 +100,7 @@ export default function SourceCockpit({
 
           <button
             type="button"
+            aria-pressed={sourceSubTab === 'github'}
             onClick={() => onSubTabChange('github')}
             className={`py-1.5 px-2 rounded-lg text-xs font-medium transition flex items-center justify-center gap-1.5 ${
               sourceSubTab === 'github'
@@ -125,6 +118,7 @@ export default function SourceCockpit({
 
           <button
             type="button"
+            aria-pressed={sourceSubTab === 'linkedin'}
             onClick={() => onSubTabChange('linkedin')}
             className={`py-1.5 px-2 rounded-lg text-xs font-medium transition flex items-center justify-center gap-1.5 ${
               sourceSubTab === 'linkedin'
@@ -149,6 +143,7 @@ export default function SourceCockpit({
             rssUrls={rssUrls}
             setRssUrls={setRssUrls}
             rssCount={rssCount}
+            sourceError={error?.startsWith('RSS feed') ? error : ''}
             onLoadViralRadar={handleLoadViralRadar}
             onAddPreset={handleTogglePreset}
             redditPresets={redditPresets}
@@ -165,6 +160,7 @@ export default function SourceCockpit({
             githubRepos={githubRepos}
             setGithubRepos={setGithubRepos}
             ghCount={ghCount}
+            sourceError={error?.startsWith('GitHub repository') ? error : ''}
             githubPresets={githubPresets}
             onAddGithubPreset={handleToggleGithubPreset}
           />
@@ -173,6 +169,7 @@ export default function SourceCockpit({
         {sourceSubTab === 'linkedin' && (
           <LinkedinPane
             linkedInProfiles={linkedInProfiles}
+            sourceError={error?.startsWith('LinkedIn profile') ? error : ''}
             setLinkedInProfiles={setLinkedInProfiles}
             linkedInLiAt={linkedInLiAt}
             setLinkedInLiAt={setLinkedInLiAt}
@@ -185,15 +182,16 @@ export default function SourceCockpit({
           />
         )}
       </div>
-
+      </details>
       {/* Sticky Footer: Freshness, Limits & Trigger Bar */}
-      <div className="p-4 bg-[#f0eee6] border-t border-[#e3dacc] space-y-3 shrink-0">
-        <div className="grid grid-cols-2 gap-2.5">
+      <div className="p-4 bg-[#f0eee6] border-t border-[#e3dacc] space-y-3">
+        <div className="grid grid-cols-2 gap-2.5 max-w-md">
           <div>
             <label className="block text-[11px] font-medium text-[#141413] mb-1">Max Age</label>
             <div className="relative">
               <input
                 type="number"
+                aria-label="Maximum source age in days"
                 min="1"
                 max="90"
                 value={maxAgeDays}
@@ -209,6 +207,7 @@ export default function SourceCockpit({
             <div className="relative">
               <input
                 type="number"
+                aria-label="Maximum posts per feed"
                 min="1"
                 max="100"
                 value={maxItemsPerFeed}
@@ -232,7 +231,7 @@ export default function SourceCockpit({
         </div>
 
         {error && (
-          <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center gap-2">
+          <div role="alert" id="oracle-source-error" className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
             <span className="text-[11px] leading-tight">{error}</span>
           </div>

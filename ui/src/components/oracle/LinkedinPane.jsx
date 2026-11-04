@@ -4,6 +4,7 @@ import { PresetChipGroup, selectedSetFrom } from './PresetEditorPane'
 
 export default function LinkedinPane({
   linkedInProfiles,
+  sourceError = '',
   setLinkedInProfiles,
   linkedInLiAt,
   setLinkedInLiAt,
@@ -41,10 +42,13 @@ export default function LinkedinPane({
 
       {/* Creator & Company Handles */}
       <div>
-        <label className="block text-[10px] font-mono text-[#87867f] mb-1">
+        <label htmlFor="oracle-linkedin-profiles" className="block text-[10px] font-mono text-[#87867f] mb-1">
           Target Handles (in/slug or company/slug):
         </label>
         <textarea
+          id="oracle-linkedin-profiles"
+          aria-invalid={Boolean(sourceError)}
+          aria-describedby={sourceError ? 'oracle-source-error' : undefined}
           rows={3}
           value={linkedInProfiles}
           onChange={(e) => setLinkedInProfiles(e.target.value)}

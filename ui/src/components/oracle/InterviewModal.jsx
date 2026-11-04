@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import {
   Sparkles,
@@ -15,7 +15,11 @@ import {
   RawNotesSection,
 } from './BriefingSections'
 
-export default function InterviewModal({ item, onClose, onSynthesizeComplete, onSkipToCouncil }) {
+export default function InterviewModal({ item, onClose, onSynthesizeComplete, onSkipToCouncil, isActive = true }) {
+  const activeRef = useRef(isActive)
+  activeRef.current = isActive
+  const dialogRef = useRef(null)
+  const [completedDraft, setCompletedDraft] = useState(null)
   const [briefing, setBriefing] = useState(null)
   const [loadingBriefing, setLoadingBriefing] = useState(true)
   const [briefingError, setBriefingError] = useState('')
@@ -32,7 +36,9 @@ export default function InterviewModal({ item, onClose, onSynthesizeComplete, on
     error: recordingError,
     setError: setRecordingError,
   } = useVoiceRecording({
+    enabled: isActive,
     onTranscript: (text, target) => {
+      if (!activeRef.current) return
       if (target === 'raw') {
         setRawNotes((prev) => (prev ? prev.trim() + ' ' + text : text))
       } else {
@@ -46,6 +52,26 @@ export default function InterviewModal({ item, onClose, onSynthesizeComplete, on
       }
     },
   })
+
+  useEffect(() => {
+    if (!isActive) return
+    const opener = document.activeElement, dialog = dialogRef.current
+    const selector = 'button:not([disabled]), a[href], input:not([disabled]), textarea:not([disabled])'
+    dialog?.querySelector('button')?.focus()
+    const handleKey = event => {
+      if (event.key === 'Escape') { event.preventDefault(); onClose(); return }
+      if (event.key !== 'Tab') return
+      const controls = [...dialog.querySelectorAll(selector)].filter(el => !el.closest('details:not([open])'))
+      const first = controls[0], last = controls[controls.length - 1]
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+    }
+    dialog?.addEventListener('keydown', handleKey)
+    return () => {
+      dialog?.removeEventListener('keydown', handleKey)
+      if (opener?.isConnected && !opener.closest('[hidden]')) opener.focus()
+    }
+  }, [isActive, onClose])
 
   useEffect(() => {
     if (!item) return
@@ -97,19 +123,26 @@ export default function InterviewModal({ item, onClose, onSynthesizeComplete, on
         raw_notes: rawNotes,
         spike_id: spikeId,
       })
-      onSynthesizeComplete(data.draft, data.spike_id)
+      if (activeRef.current) onSynthesizeComplete(data.draft, data.spike_id)
+      else setCompletedDraft(data)
     } catch (err) {
       setSynthError(err.message || 'Draft synthesis failed.')
+    } finally {
       setSynthesizing(false)
     }
   }
 
+  if (!isActive) return null
   return createPortal(
     <div 
       className="fixed inset-0 z-[100] w-screen h-screen bg-[#141413]/70 backdrop-blur-sm flex items-center justify-center p-6 sm:p-8 md:p-10 overflow-y-auto"
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       <div 
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Perspective on ${item.title}`}
         className="bg-[#faf9f5] border border-[#e3dacc] rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl animate-fadeIn max-h-[calc(100vh-5rem)] flex flex-col justify-between my-auto shrink-0"
         onClick={(e) => e.stopPropagation()}
       >
@@ -137,6 +170,8 @@ export default function InterviewModal({ item, onClose, onSynthesizeComplete, on
             )}
           </div>
           <button
+            type="button"
+            aria-label="Close perspective interview"
             onClick={onClose}
             className="p-1.5 rounded-full text-[#87867f] hover:text-[#141413] hover:bg-[#e3dacc]/50 transition shrink-0"
           >
@@ -181,6 +216,10 @@ export default function InterviewModal({ item, onClose, onSynthesizeComplete, on
         </div>
 
         {/* Modal Actions */}
+        {completedDraft && <div role="status" className="p-3 bg-emerald-50 text-emerald-900 rounded-xl text-sm">
+          Your draft finished while you were elsewhere. Your notes are preserved.
+          <button type="button" className="ml-2 underline" onClick={() => onSynthesizeComplete(completedDraft.draft, completedDraft.spike_id)}>Open completed draft</button>
+        </div>}
         <div className="flex items-center justify-between pt-5 mt-2 border-t border-[#e3dacc] shrink-0 gap-3">
           <button
             onClick={() => onSkipToCouncil(item)}

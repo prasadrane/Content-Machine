@@ -154,7 +154,7 @@ export default function CandidateCard({ candidate, onSendToCouncil, onOpenInterv
       )}
 
       {/* Dimension Scores Micro-Chips */}
-      {renderDimensionScores()}
+      {candidate.dimension_scores && <details className="text-sm text-[#58574f]"><summary className="cursor-pointer">Score breakdown</summary>{renderDimensionScores()}</details>}
 
       {/* Card Footer Action Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#e3dacc]">
@@ -164,12 +164,12 @@ export default function CandidateCard({ candidate, onSendToCouncil, onOpenInterv
           {onOpenInterview && (
             <button
               type="button"
-              onClick={() => onOpenInterview(candidate)}
+              onClick={() => onSendToCouncil(candidate)}
               className="text-xs text-[#87867f] hover:text-[#141413] px-2.5 py-1 rounded-full hover:bg-[#e3dacc]/50 transition flex items-center gap-1 font-medium"
-              title="Open Topic Briefing & Perspective Intake"
+              title="Start a draft directly without an interview"
             >
               <Sparkles className="w-3 h-3 text-[#d97757]" />
-              <span>Perspective</span>
+              <span>Review a draft</span>
             </button>
           )}
 
@@ -226,10 +226,10 @@ export default function CandidateCard({ candidate, onSendToCouncil, onOpenInterv
         {/* Primary Action: Send to Council */}
         <button
           type="button"
-          onClick={() => onSendToCouncil(candidate)}
+          onClick={() => onOpenInterview ? onOpenInterview(candidate) : onSendToCouncil(candidate)}
           className="py-1.5 px-4 bg-[#141413] hover:bg-[#252524] text-[#faf9f5] rounded-full text-xs font-medium transition flex items-center gap-1.5 shadow-sm ml-auto shrink-0"
         >
-          <span>Send to Council</span>
+          <span>{onOpenInterview ? 'Add my perspective' : 'Send to Council'}</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </div>

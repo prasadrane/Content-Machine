@@ -12,6 +12,7 @@ export default function CandidateStream({
   onSendToCouncil,
   onOpenInterview,
   onDismissCandidate,
+  onBrowseArchive,
 }) {
   const [batchSearch, setBatchSearch] = useState('')
   const [batchSort, setBatchSort] = useState('score') // 'score' | 'recency'
@@ -71,7 +72,8 @@ export default function CandidateStream({
         <div className="border border-dashed border-[#b0aea5] rounded-2xl p-12 text-center text-[#87867f] bg-[#f0eee6]/30">
           <Compass className="w-8 h-8 mx-auto mb-3 stroke-1 text-[#b0aea5]" />
           <p className="text-sm font-medium text-[#141413]">No candidates scored in this scan yet.</p>
-          <p className="text-xs text-[#87867f] mt-1">Configure sources on the left and trigger a scan, or switch to the Feed Archive tab to browse all past posts.</p>
+          <p className="text-sm text-[#58574f] mt-1">Scan your configured sources or explore previously saved signals.</p>
+          {onBrowseArchive && <button type="button" onClick={onBrowseArchive} className="mt-4 px-4 py-2 rounded-full border border-[#87867f] text-sm text-[#141413]">Browse feed archive</button>}
         </div>
       )}
 

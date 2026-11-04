@@ -1,125 +1,34 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Trophy, RotateCw, Sparkles, Share2, AlertCircle, Users, History } from 'lucide-react'
-import { runCouncil, getCouncilHistory, getCouncilSpikes } from '../../api/council'
-import { runHumanize } from '../../api/humanize'
+import { useCouncilSession } from './useCouncilSession'
 import { useCopyToClipboard } from '../../hooks/useCopyToClipboard'
 import HumanizedDraftCard from './HumanizedDraftCard'
 import DraftingStudio from './DraftingStudio'
 import VerdictPanel from './VerdictPanel'
 import HistoryTimeline from './HistoryTimeline'
 import ApprovalGate from '../approval/ApprovalGate'
+import RevisionComparison from './RevisionComparison'
 
-export default function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onApprove }) {
-  const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState(null)
-  const [error, setError] = useState('')
-  const [historyData, setHistoryData] = useState(null)
-  const [recentSpikes, setRecentSpikes] = useState([])
-  const [showHistory, setShowHistory] = useState(false)
-  const [humanizing, setHumanizing] = useState(false)
-  const [humanizedResult, setHumanizedResult] = useState(null)
+export default function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onApprove, councilIdentity }) {
+  const {
+    loading, result, error, historyData, recentSpikes, showHistory, setShowHistory,
+    humanizing, humanizedResult, setHumanizedResult, humanizeError, maxIterations, setMaxIterations,
+    pendingApproval, setPendingApproval, requestApproval, confirmApproval, best,
+    handleReview, handleHumanize, handleSelectSpike, handleLoadDraft, resultIsEarlier, polishIsEarlier,
+  } = useCouncilSession({ draft, setDraft, spikeId, setSpikeId, onApprove, councilIdentity })
   const { copied: humanizeCopied, copy: copyHumanized } = useCopyToClipboard()
-  const [humanizeError, setHumanizeError] = useState('')
-  const [maxIterations, setMaxIterations] = useState(1)
-  const [pendingApproval, setPendingApproval] = useState(null)
-
-  const requestApproval = (text, meta = {}) => setPendingApproval({ text, ...meta })
-
-  const fetchHistory = async (slug) => {
-    if (!slug) return
-    try {
-      const data = await getCouncilHistory(slug)
-      setHistoryData(data)
-    } catch {
-      // ignore
-    }
+  const [replacement, setReplacement] = useState(null)
+  const compareReplacement = text => {
+    if (text && text !== draft) setReplacement({ text, base: draft, slug: spikeId })
   }
-
-  const fetchSpikes = async () => {
-    try {
-      const data = await getCouncilSpikes()
-      setRecentSpikes(data || [])
-    } catch {
-      // ignore
-    }
-  }
-
-  useEffect(() => {
-    fetchSpikes()
-  }, [])
-
-  useEffect(() => {
-    if (spikeId) {
-      fetchHistory(spikeId)
-    }
-  }, [spikeId])
-
-  const handleReview = async (e) => {
-    e.preventDefault()
-    if (!draft.trim()) {
-      setError('Draft text cannot be empty.')
-      return
-    }
-    setLoading(true)
-    setError('')
-    setResult(null)
-
-    try {
-      const targetSlug = spikeId || 'council-ui'
-      const data = await runCouncil({ draft, spike_id: targetSlug, max_iterations: maxIterations })
-      setResult(data)
-      fetchHistory(targetSlug)
-      fetchSpikes()
-    } catch (err) {
-      setError(err.message || 'Council run failed.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleSelectSpike = (slug) => {
-    setSpikeId(slug)
-    fetchHistory(slug)
-  }
-
-  const handleLoadDraft = (text) => {
-    if (text) {
-      setDraft(text)
-    }
-  }
-
-  const best = historyData?.best
-
-  const handleHumanize = async (sourceText) => {
-    const textToHumanize = sourceText || best?.draft || draft
-    if (!textToHumanize || !textToHumanize.trim()) {
-      setHumanizeError('No draft text available to humanize.')
-      return
-    }
-
-    setHumanizing(true)
-    setHumanizeError('')
-    try {
-      const data = await runHumanize({
-        text: textToHumanize,
-        channel: 'linkedin_post',
-        tone: 'pragmatic_architect',
-      })
-      setHumanizedResult(data)
-    } catch (err) {
-      setHumanizeError(err.message || 'Failed to humanize draft.')
-    } finally {
-      setHumanizing(false)
-    }
-  }
-
+  useEffect(() => { setReplacement(null) }, [draft, spikeId, councilIdentity?.itemId, councilIdentity?.version])
   return (
     <div className="space-y-8 animate-fadeIn">
       {/* Editorial Title */}
       <div>
         <h2 className="font-serif text-2xl font-medium tracking-tight text-[#141413]">Writer's Council</h2>
         <p className="text-sm text-[#87867f] mt-1 font-sans">
-          Multi-judge editorial review and iterative revision.
+          Review and improve your draft. Editorial scores do not verify factual claims.
         </p>
       </div>
 
@@ -132,7 +41,7 @@ export default function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onApp
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#c6613f]">All-Time Peak Iteration</span>
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#c6613f]">Highest-scoring reviewed version</span>
                 <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-[#faf9f5] text-[#141413] border border-[#e3dacc]">
                   Iteration {best.iteration}
                 </span>
@@ -156,7 +65,7 @@ export default function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onApp
             {best.draft && (
               <button
                 type="button"
-                onClick={() => handleLoadDraft(best.draft)}
+                onClick={() => compareReplacement(best.draft)}
                 className="px-4 py-2 bg-[#faf9f5] hover:bg-[#e3dacc]/50 text-[#141413] rounded-full text-xs font-medium transition flex items-center gap-1.5 border border-[#e3dacc] shadow-sm"
               >
                 <RotateCw className="w-3.5 h-3.5 text-[#87867f]" />
@@ -198,22 +107,31 @@ export default function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onApp
           verdict={pendingApproval.verdict}
           score={pendingApproval.score}
           onCancel={() => setPendingApproval(null)}
-          onConfirm={() => {
-            const { text } = pendingApproval
-            setPendingApproval(null)
-            onApprove(text, spikeId)
-          }}
+          onConfirm={confirmApproval}
         />
       )}
 
+      {polishIsEarlier && (
+        <p role="status" className="text-sm text-amber-900">Polished wording belongs to an earlier version of {humanizedResult.reviewInput.slug}. Your current draft has not been replaced.</p>
+      )}
       {/* Humanized Peak Draft Card */}
       <HumanizedDraftCard
         humanizedResult={humanizedResult}
-        onUseInEditor={setDraft}
+        onUseInEditor={compareReplacement}
         onCopy={copyHumanized}
         copied={humanizeCopied}
         onDismiss={() => setHumanizedResult(null)}
       />
+
+      {replacement && <RevisionComparison
+        currentText={draft}
+        proposedText={replacement.text}
+        onCancel={() => setReplacement(null)}
+        onAccept={() => {
+          if (replacement.base === draft && replacement.slug === spikeId) handleLoadDraft(replacement.text)
+          setReplacement(null)
+        }}
+      />}
 
       {humanizeError && (
         <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center gap-2 animate-fadeIn">
@@ -269,13 +187,19 @@ export default function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onApp
           {loading && (
             <div className="border border-[#e3dacc] rounded-2xl p-12 text-center text-[#87867f] space-y-3 bg-[#f0eee6]/50 shadow-anthropic">
               <RotateCw className="w-6 h-6 mx-auto animate-spin text-[#c6613f]" />
-              <p className="text-sm font-medium text-[#141413]">Obfuscating authorship & gathering parallel verdicts...</p>
-              <p className="text-xs text-[#87867f] font-mono">Running z-score normalization against rolling history</p>
+              <p role="status" className="text-sm font-medium text-[#141413]">Reviewing the submitted draft...</p>
+              <p className="text-xs text-[#87867f]">You can keep editing. The review will remain linked to the submitted version.</p>
             </div>
           )}
 
+          {resultIsEarlier && (
+            <div role="status" className="p-3 bg-amber-50 text-amber-900 rounded-xl text-sm">
+              Review of an earlier version of {result.reviewInput.slug}. Your current draft has not been replaced.
+            </div>
+          )}
           <VerdictPanel
             result={result}
+            reviewIsEarlier={resultIsEarlier}
             best={best}
             draft={draft}
             spikeId={spikeId}
@@ -289,7 +213,7 @@ export default function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onApp
             show={showHistory}
             historyData={historyData}
             best={best}
-            onLoadDraft={handleLoadDraft}
+            onLoadDraft={compareReplacement}
           />
         </div>
       </div>

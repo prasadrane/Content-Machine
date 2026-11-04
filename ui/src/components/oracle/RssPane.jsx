@@ -8,6 +8,7 @@ export default function RssPane({
   rssUrls,
   setRssUrls,
   rssCount,
+  sourceError = '',
   onLoadViralRadar,
   onAddPreset,
   redditPresets,
@@ -33,7 +34,7 @@ export default function RssPane({
       </button>
 
       <div className="flex items-center justify-between">
-        <label className="block text-xs font-medium text-[#141413]">RSS / Atom Feeds</label>
+        <label htmlFor="oracle-rss-feeds" className="block text-xs font-medium text-[#141413]">RSS / Atom Feeds</label>
         <div className="flex items-center gap-2">
           <span className="text-[10px] font-mono text-[#87867f]">{rssCount} configured</span>
           {rssCount > 0 && (
@@ -48,6 +49,9 @@ export default function RssPane({
         </div>
       </div>
       <textarea
+        id="oracle-rss-feeds"
+        aria-invalid={Boolean(sourceError)}
+        aria-describedby={sourceError ? 'oracle-source-error' : undefined}
         rows={4}
         value={rssUrls}
         onChange={(e) => setRssUrls(e.target.value)}

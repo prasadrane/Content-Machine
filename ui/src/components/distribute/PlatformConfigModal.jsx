@@ -1,6 +1,7 @@
 import React from 'react'
 import { Sliders, X } from 'lucide-react'
 import { DISTRIBUTION_FORMATS } from '../../lib/constants'
+import { useDialogFocus } from './useDialogFocus'
 
 export default function PlatformConfigModal({
   show,
@@ -10,11 +11,12 @@ export default function PlatformConfigModal({
   onSelectAll,
   onResetDefaults,
 }) {
+  const dialogRef = useDialogFocus(show, onClose)
   if (!show) return null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#141413]/60 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-[#faf9f5] border border-[#e3dacc] rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl space-y-0">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Platform Distribution Formats" className="bg-[#faf9f5] border border-[#e3dacc] rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl space-y-0">
         {/* Modal Header */}
         <div className="p-5 border-b border-[#e3dacc] flex items-center justify-between">
           <div>
@@ -28,6 +30,7 @@ export default function PlatformConfigModal({
           </div>
           <button
             type="button"
+            aria-label="Close platform settings"
             onClick={onClose}
             className="p-1 rounded-full text-[#87867f] hover:text-[#141413] hover:bg-[#f0eee6] transition"
           >
@@ -40,9 +43,8 @@ export default function PlatformConfigModal({
           {DISTRIBUTION_FORMATS.map(fmt => {
             const isEnabled = enabledFormats[fmt.id]
             return (
-              <div
+              <label
                 key={fmt.id}
-                onClick={() => onToggleFormat(fmt.id)}
                 className={`p-4 rounded-xl border transition cursor-pointer flex items-start gap-3.5 ${
                   isEnabled
                     ? 'bg-[#f0eee6] border-[#b0aea5]'
@@ -51,8 +53,9 @@ export default function PlatformConfigModal({
               >
                 <input
                   type="checkbox"
-                  checked={isEnabled}
-                  onChange={() => {}}
+                  checked={Boolean(isEnabled)}
+                  aria-label={fmt.label}
+                  onChange={() => onToggleFormat(fmt.id)}
                   className="mt-1 rounded text-[#141413] focus:ring-0 focus:outline-none"
                 />
                 <div className="flex-1 space-y-1">
@@ -68,7 +71,7 @@ export default function PlatformConfigModal({
                     {fmt.desc}
                   </p>
                 </div>
-              </div>
+              </label>
             )
           })}
         </div>

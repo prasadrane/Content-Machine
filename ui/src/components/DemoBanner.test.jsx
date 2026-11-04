@@ -33,15 +33,29 @@ test('guided demo: start button loads the sample and current step is marked', as
   fetchJson.mockResolvedValue({ demo_mode: true, llm: 'gemini' });
   const onStart = vi.fn().mockResolvedValue();
   render(<DemoBanner activeTab="council" approved={false} onStart={onStart} onGoto={vi.fn()} />);
-  const start = await screen.findByRole('button', { name: /start guided demo/i });
+  const start = await screen.findByRole('button', { name: /explore a completed example/i });
   fireEvent.click(start);
   await waitFor(() => expect(onStart).toHaveBeenCalledTimes(1));
+  fireEvent.click(screen.getByRole('button', { name: /show workflow guide/i }));
   expect(screen.getByRole('button', { name: /2\. Council review/ })).toHaveAttribute('aria-current', 'step');
 });
 
 test('guided demo: approved council state advances to the approve step', async () => {
   fetchJson.mockResolvedValue({ demo_mode: true, llm: 'gemini' });
   render(<DemoBanner activeTab="council" approved onStart={vi.fn()} onGoto={vi.fn()} />);
-  const step = await screen.findByRole('button', { name: /3\. You approve/ });
+  fireEvent.click(await screen.findByRole('button', { name: /show workflow guide/i }));
+  const step = screen.getByRole('button', { name: /3\. You approve/ });
   expect(step).toHaveAttribute('aria-current', 'step');
+});
+
+test('workflow guidance is optional and does not crowd the initial navigation', async () => {
+  fetchJson.mockResolvedValue({ demo_mode: true });
+  render(<DemoBanner activeTab="oracle" onStart={vi.fn()} onGoto={vi.fn()} />);
+  const guide = await screen.findByRole('button', { name: /show workflow guide/i });
+  expect(guide).toHaveAttribute('aria-expanded', 'false');
+  expect(screen.queryByRole('navigation', { name: /demo workflow/i })).not.toBeInTheDocument();
+  fireEvent.click(guide);
+  expect(screen.getByRole('navigation', { name: /demo workflow/i })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: /hide workflow guide/i }));
+  expect(screen.queryByRole('navigation', { name: /demo workflow/i })).not.toBeInTheDocument();
 });

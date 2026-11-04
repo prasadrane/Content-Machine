@@ -38,4 +38,13 @@ describe('App shell', () => {
     await userEvent.click(screen.getByRole('button', { name: /profile/i }))
     expect(await screen.findByText(/Author Voice & Profile/i)).toBeInTheDocument()
   })
+  it('preserves an unfinished anchor when navigating away and back', async () => {
+    render(<App />)
+    await userEvent.click(screen.getByRole('button', { name: /^distribute$/i }))
+    const anchor = screen.getByRole('textbox', { name: /^anchor post$/i })
+    await userEvent.type(anchor, 'An unfinished engineering story')
+    await userEvent.click(screen.getByRole('button', { name: /^oracle$/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^distribute$/i }))
+    expect(screen.getByRole('textbox', { name: /^anchor post$/i })).toHaveValue('An unfinished engineering story')
+  })
 })

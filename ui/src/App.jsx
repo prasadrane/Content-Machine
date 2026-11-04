@@ -1,34 +1,39 @@
-import React, { useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import TabBtn from './components/ui/TabBtn'
 import DemoBanner from './components/DemoBanner'
 import { TABS } from './app/tabs'
 import { useServerHealth } from './app/useServerHealth'
 import { useSharedFlow } from './app/useSharedFlow'
-import { getCouncilHistory } from './api/council'
-
-const DEMO_SPIKE = 'demo-cache-stampede'
+import WorkspaceEntry from './components/WorkspaceEntry'
+import SampleStory from './components/SampleStory'
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('oracle')
+  const [visitedTabs, setVisitedTabs] = useState(['oracle'])
+  const [showSample, setShowSample] = useState(false)
+  const workspaceRef = useRef(null)
+  const navigate = useCallback((id) => {
+    setVisitedTabs(previous => previous.includes(id) ? previous : [...previous, id])
+    setShowSample(false)
+    setActiveTab(id)
+  }, [])
   const serverOnline = useServerHealth()
-  const shared = useSharedFlow(setActiveTab)
+  const shared = useSharedFlow(navigate)
+  useEffect(() => {
+    workspaceRef.current?.focus({ preventScroll: true })
+  }, [activeTab, showSample])
 
   return (
     <div className="min-h-screen w-full bg-[#faf9f5] text-[#141413] flex flex-col font-sans selection:bg-[#c6613f]/20 selection:text-[#c6613f]">
       <DemoBanner
         activeTab={activeTab}
         approved={Boolean(shared.approvedText)}
-        onGoto={setActiveTab}
-        onStart={async () => {
-          const data = await getCouncilHistory(DEMO_SPIKE)
-          const draft = data?.best?.draft
-          if (!draft) throw new Error('Sample draft is not available on this server.')
-          shared.handleSendToCouncilWithDraft(draft, DEMO_SPIKE)
-        }}
+        onGoto={navigate}
+        onStart={() => setShowSample(true)}
       />
       {/* Minimalist Editorial Navigation Header */}
       <header className="border-b border-[#e3dacc]/70 bg-[#faf9f5]/85 backdrop-blur-md sticky top-0 z-40 transition-colors w-full">
-        <div className="max-w-7xl w-full mx-auto px-6 h-14 flex items-center justify-between">
+        <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
           {/* Brand Logo & Title */}
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0">
@@ -43,12 +48,12 @@ export default function App() {
           </div>
 
           {/* Minimalist Navigation Bar */}
-          <nav className="flex items-center gap-1 sm:gap-1.5" aria-label="Main Navigation">
+          <nav className="flex flex-wrap items-center gap-1 sm:gap-1.5 order-3 w-full md:order-none md:w-auto" aria-label="Main Navigation">
             {TABS.map(({ id, label }) => (
               <TabBtn
                 key={id}
                 active={activeTab === id}
-                onClick={() => setActiveTab(id)}
+                onClick={() => navigate(id)}
                 label={label}
               />
             ))}
@@ -63,10 +68,14 @@ export default function App() {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-8">
+      <main ref={workspaceRef} tabIndex={-1} aria-label={`${TABS.find(tab => tab.id === activeTab)?.label} workspace`} className="flex-1 min-w-0 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        {showSample && <SampleStory onClose={() => setShowSample(false)} />}
+        {activeTab === 'oracle' && !showSample && <WorkspaceEntry onNavigate={navigate} onSample={() => setShowSample(true)} />}
         {TABS.map(({ id, Component, getProps }) =>
-          activeTab === id ? (
-            <Component key={id} {...(getProps ? getProps(shared) : {})} />
+          visitedTabs.includes(id) && (['oracle', 'council', 'distribute'].includes(id) || activeTab === id) ? (
+            <section key={id} hidden={showSample || activeTab !== id}>
+              <Component {...(getProps ? getProps(shared) : {})} isActive={!showSample && activeTab === id} />
+            </section>
           ) : null
         )}
       </main>

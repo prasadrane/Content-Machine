@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Sliders, History } from 'lucide-react'
-import { runDistribute, getDistributeHistory } from '../../api/distribute'
+import { useDistributionSession } from './useDistributionSession'
 import { DISTRIBUTION_FORMATS } from '../../lib/constants'
 import { useCopyToClipboard } from '../../hooks/useCopyToClipboard'
 import AnchorForm from './AnchorForm'
@@ -8,77 +8,23 @@ import OutputPreviews from './OutputPreviews'
 import PlatformConfigModal from './PlatformConfigModal'
 import DistributeHistoryDrawer from './DistributeHistoryDrawer'
 
-export default function DistributeTab({ initialText, initialSlug, approvedText: approvedProp = '', onApprove }) {
-  const [anchorText, setAnchorText] = useState(initialText || '')
-  const [slug, setSlug] = useState(initialSlug || 'post-1')
-  const [loading, setLoading] = useState(false)
-  const [bundle, setBundle] = useState(null)
-  const [error, setError] = useState('')
-  const [activeFormat, setActiveFormat] = useState('linkedin')
+export default function DistributeTab(props) {
+  const session = useDistributionSession(props)
+  const { anchor, output, loading, error, reviewed, setReviewed, isApproved, approveCurrent,
+    historyItems, historyLoading, activeFormat, setActiveFormat } = session
+  const anchorText = anchor.text
+  const slug = anchor.slug
+  const bundle = output?.data
   const { copied, copy } = useCopyToClipboard()
   const [showConfigModal, setShowConfigModal] = useState(false)
   const [showHistoryDrawer, setShowHistoryDrawer] = useState(false)
-  const [historyItems, setHistoryItems] = useState([])
-  const [historyLoading, setHistoryLoading] = useState(false)
+  useEffect(() => {
+    if (props.isActive === false) { setShowConfigModal(false); setShowHistoryDrawer(false) }
+  }, [props.isActive])
   const [humanize, setHumanize] = useState(true)
-  const [approvedText, setApprovedText] = useState(approvedProp || '')
-  const [reviewed, setReviewed] = useState(false)
   const [humanizeTone, setHumanizeTone] = useState('pragmatic_architect')
-
-  // Format selection state (LinkedIn default ON)
-  const [enabledFormats, setEnabledFormats] = useState({
-    linkedin: true,
-    x_thread: true,
-    video_script_short: true,
-    video_script_long: false,
-    newsletter: true,
-  })
-
-  useEffect(() => {
-    setApprovedText(approvedProp || '')
-  }, [approvedProp])
-
-  // Update if initialText changes
-  useEffect(() => {
-    if (initialText) setAnchorText(initialText)
-    if (initialSlug) setSlug(initialSlug)
-  }, [initialText, initialSlug])
-
-  const fetchHistory = async () => {
-    setHistoryLoading(true)
-    try {
-      const data = await getDistributeHistory()
-      setHistoryItems(data?.items || [])
-    } catch {
-      // ignore
-    } finally {
-      setHistoryLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchHistory()
-  }, [])
-
-  const handleSelectHistoryItem = (item) => {
-    if (!item) return
-    if (item.anchor_text) {
-      setAnchorText(item.anchor_text)
-    }
-    if (item.slug) {
-      setSlug(item.slug)
-    }
-    if (item.has_bundle && item.bundle && Object.keys(item.bundle).length > 0) {
-      setBundle(item.bundle)
-      const priorityOrder = ['linkedin', 'x_thread', 'video_script_short', 'video_script', 'video_script_long', 'newsletter']
-      const firstAvailable = priorityOrder.find(k => item.bundle[k])
-      if (firstAvailable) {
-        setActiveFormat(firstAvailable)
-      }
-    }
-    setShowHistoryDrawer(false)
-  }
-
+  const [enabledFormats, setEnabledFormats] = useState({ linkedin: true, x_thread: true, video_script_short: true, video_script_long: false, newsletter: true })
+  const handleSelectHistoryItem = item => { session.selectHistory(item); setShowHistoryDrawer(false) }
   const toggleFormat = (id) => {
     setEnabledFormats(prev => {
       const next = { ...prev, [id]: !prev[id] }
@@ -108,58 +54,8 @@ export default function DistributeTab({ initialText, initialSlug, approvedText: 
     })
   }
 
-  const isApproved = Boolean(anchorText.trim()) && anchorText.trim() === approvedText.trim()
-
-  const approveCurrent = () => {
-    setApprovedText(anchorText)
-    setReviewed(false)
-    if (onApprove) onApprove(anchorText)
-  }
-
   const activeFormatKeys = Object.keys(enabledFormats).filter(k => enabledFormats[k])
-
-  const handleGenerate = async (e) => {
-    e.preventDefault()
-    if (!anchorText.trim()) {
-      setError('Anchor post cannot be empty.')
-      return
-    }
-    if (!isApproved) {
-      setError('Approve this exact text before generating derivatives.')
-      return
-    }
-    if (activeFormatKeys.length === 0) {
-      setError('Please enable at least one distribution format.')
-      return
-    }
-
-    setLoading(true)
-    setError('')
-    setBundle(null)
-
-    try {
-      const data = await runDistribute({
-        anchor_post: anchorText,
-        project_slug: slug || 'post',
-        enabled_formats: activeFormatKeys,
-        humanize: humanize,
-        tone: humanizeTone,
-      })
-      setBundle(data)
-      fetchHistory()
-
-      const priorityOrder = ['linkedin', 'x_thread', 'video_script_short', 'video_script', 'video_script_long', 'newsletter']
-      const firstAvailable = priorityOrder.find(k => data[k])
-      if (firstAvailable) {
-        setActiveFormat(firstAvailable)
-      }
-    } catch (err) {
-      setError(err.message || 'Failed to generate distribution derivatives.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
+  const handleGenerate = event => session.generate(event, { enabled_formats: activeFormatKeys, humanize, tone: humanizeTone })
   const handleCopy = (text) => {
     if (!text) return
     copy(text)
@@ -188,7 +84,7 @@ export default function DistributeTab({ initialText, initialSlug, approvedText: 
         <div>
           <h2 className="font-serif text-2xl font-medium tracking-tight text-[#141413]">Distribute</h2>
           <p className="text-sm text-[#87867f] mt-1 font-sans">
-            Generate channel-native formats from your verified post.
+            Generate channel-native formats from text you explicitly approve.
           </p>
         </div>
 
@@ -224,9 +120,9 @@ export default function DistributeTab({ initialText, initialSlug, approvedText: 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
         <AnchorForm
           anchorText={anchorText}
-          onAnchorChange={setAnchorText}
+          onAnchorChange={session.editText}
           slug={slug}
-          onSlugChange={setSlug}
+          onSlugChange={session.editSlug}
           enabledFormats={enabledFormats}
           onToggleFormat={toggleFormat}
           onOpenConfig={() => setShowConfigModal(true)}
@@ -246,8 +142,11 @@ export default function DistributeTab({ initialText, initialSlug, approvedText: 
 
         <OutputPreviews
           bundle={bundle}
+          anchorSnapshot={output?.anchor}
+          isEarlier={session.isEarlier}
+          origin={output?.origin}
           loading={loading}
-          slug={slug}
+          slug={output?.anchor.slug || slug}
           availableFormats={availableFormats}
           activeFormat={activeFormat}
           onFormatChange={setActiveFormat}

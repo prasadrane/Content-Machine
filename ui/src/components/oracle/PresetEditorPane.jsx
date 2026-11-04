@@ -1,9 +1,10 @@
 import React from 'react'
+import { parseSources } from './sourceInputs'
 
 // Derive the selected-value Set from a newline-delimited textarea string.
 // Shared list-edit logic for the oracle preset-editor panes.
 export function selectedSetFrom(text) {
-  return new Set((text || '').split('\n').map((s) => s.trim()).filter(Boolean))
+  return new Set(parseSources(text || ''))
 }
 
 // Render one labeled group of toggleable preset chips.
@@ -28,6 +29,7 @@ export function PresetChipGroup({
             <button
               key={value}
               type="button"
+              aria-pressed={isSelected}
               onClick={() => onAdd(value)}
               className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full border transition duration-150 flex items-center gap-1 ${
                 isSelected

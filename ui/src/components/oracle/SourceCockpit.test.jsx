@@ -40,6 +40,7 @@ describe('SourceCockpit Presets selection state', () => {
     // The selected preset should show selected indicator (e.g. checkmark)
     const selectedBtn = screen.getByRole('button', { name: /r\/ExperiencedDevs/i })
     expect(selectedBtn.textContent).toContain('✓')
+    expect(selectedBtn).toHaveAttribute('aria-pressed', 'true')
 
     // An unselected preset should show plus
     const unselectedBtn = screen.getByRole('button', { name: /r\/LocalLLaMA/i })

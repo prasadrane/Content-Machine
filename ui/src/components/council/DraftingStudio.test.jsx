@@ -3,6 +3,18 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import DraftingStudio from './DraftingStudio'
 
 describe('DraftingStudio', () => {
+  it('names editor fields and keeps optional grounding notes separate per story', () => {
+    const props = { draft: 'Draft', onDraftChange: vi.fn(), spikeId: 'first', onSpikeChange: vi.fn(), recentSpikes: [], onSelectSpike: vi.fn(), onSubmit: vi.fn() }
+    const { rerender } = render(<DraftingStudio {...props} />)
+    expect(screen.getByRole('textbox', { name: 'Current draft' })).toHaveValue('Draft')
+    expect(screen.getByRole('textbox', { name: 'Story identifier' })).toHaveValue('first')
+    fireEvent.click(screen.getByText('Source and author notes (optional)'))
+    fireEvent.change(screen.getByLabelText('What I directly experienced'), { target: { value: 'My observation' } })
+    rerender(<DraftingStudio {...props} spikeId="second" />)
+    expect(screen.getByLabelText('What I directly experienced')).toHaveValue('')
+    rerender(<DraftingStudio {...props} />)
+    expect(screen.getByLabelText('What I directly experienced')).toHaveValue('My observation')
+  })
   it('renders draft, spike input, and recent spikes', () => {
     const onDraftChange = vi.fn()
     const onSpikeChange = vi.fn()
