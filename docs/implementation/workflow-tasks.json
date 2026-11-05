@@ -1,0 +1,2163 @@
+{
+  "schema_version": 1,
+  "product": "Content Machine creator workflow",
+  "created_on": "2026-11-05",
+  "status": "planned_checkpoints",
+  "product_plan": "docs/ui-workflow-plan.md",
+  "reference_commit": "34405a5530a6340aee17a9b1f0f5f61dfc1bd091",
+  "execution": {
+    "implementer": "Freebuff official CLI",
+    "pinned_package": "freebuff@0.2.36",
+    "package_integrity": "sha512-Cb2/8ux8EexLHW8M9wa4a2ZBg32bZCWxRJ9zNsUF+VJnUgt6Tclnd1isOlWLfdtEL6VpXMhQUlEottHl3sy7MQ==",
+    "transport": "interactive_terminal",
+    "transport_status": "three_round_trips_verified_with_fixture_read_cancellation_and_recovery",
+    "reviewer": "Codex orchestrator",
+    "parallel_implementers": 1,
+    "max_repair_attempts_per_checkpoint": 3,
+    "task_timeout_seconds": 1200,
+    "max_repeated_identical_failures": 2,
+    "advisory_implementation_line_budget": 200,
+    "permanent_advance_requires": "controller_acceptance_for_exact_reviewed_tree",
+    "authentication_status": "authenticated_cli_session_observed",
+    "observed_cli_model": "m-096e75164d (opaque model ID, Freebuff high)",
+    "repository_handoff_authorization": "explicitly_authorized_by_user_2026-11-05",
+    "operational_notes": [
+      "Model session startup initially timed out and succeeded on retry",
+      "Send pasted text and submit Enter as separate terminal inputs",
+      "Completion is available in chat-messages.json as an AI record with isComplete=true",
+      "An interrupted record must be associated with its request and rejected as successful work",
+      "Interrupted AI records also have isComplete=true. Controller cancellation state overrides completion."
+    ],
+    "baseline_status": "passed_on_reference_source",
+    "source_handoff_status": "contract_accepted_implementation_authorized",
+    "baseline_results": {
+      "pytest": {
+        "passed": 375,
+        "exit_code": 0,
+        "duration_seconds": 114.84
+      },
+      "unittest": {
+        "passed": 245,
+        "exit_code": 0,
+        "duration_seconds": 15.986
+      },
+      "frontend": {
+        "files": 34,
+        "passed": 132,
+        "exit_code": 0,
+        "node_version": "22.23.4",
+        "duration_seconds": 241.9
+      },
+      "production_build": {
+        "exit_code": 0,
+        "duration_seconds": 21.89
+      },
+      "diff_check": {
+        "exit_code": 0,
+        "changed_tracked_scope": [
+          "docs/ui-workspace.md"
+        ]
+      }
+    },
+    "frontend_baseline_notes": "Earlier Node 24 runs were interrupted during a long startup. No causal Node-version conclusion is established.",
+    "probe_process_status": "contract_complete",
+    "current_gate": "C02_schema_implementation"
+  },
+  "command_bindings": {
+    "python": "C:\\Users\\mamat\\AppData\\Local\\Microsoft\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\python.exe",
+    "npm": "C:\\Users\\mamat\\AppData\\Local\\Temp\\content-machine-node22\\node_modules\\node\\bin\\node.exe",
+    "worker_root": "C:\\Users\\mamat\\Github\\Content-Machine\\.orchestration\\worker",
+    "run_root": "C:\\Users\\mamat\\Github\\Content-Machine\\.orchestration\\controller"
+  },
+  "common_reads": [
+    "AGENTS.md",
+    "docs/implementation/workflow-contract.md",
+    "docs/ui-style-system.md"
+  ],
+  "common_write_policy": {
+    "source_paths": "per_task_allowlist",
+    "worker_report": "{run_root}/{task_id}/{attempt}/worker-report.json",
+    "controller_owned": [
+      "accepted.json",
+      "review.json",
+      "dispatch.json",
+      "evidence/"
+    ],
+    "scope_expansion": "controller_supplies_revised_packet",
+    "operational_authority": "controller owns branches, checkpoints, environment setup and release actions",
+    "controller_generated_paths": [
+      "ui/dist/**"
+    ]
+  },
+  "baseline_checks": [
+    {
+      "cwd": ".",
+      "program": "{python}",
+      "args": [
+        "-m",
+        "pytest",
+        "tests",
+        "-q"
+      ]
+    },
+    {
+      "cwd": ".",
+      "program": "{python}",
+      "args": [
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests"
+      ]
+    },
+    {
+      "cwd": "ui",
+      "program": "{npm}",
+      "args": [
+        "test",
+        "--",
+        "--maxWorkers=2"
+      ]
+    },
+    {
+      "cwd": "ui",
+      "program": "{npm}",
+      "args": [
+        "run",
+        "build"
+      ]
+    },
+    {
+      "cwd": ".",
+      "program": "git",
+      "args": [
+        "diff",
+        "--check"
+      ]
+    }
+  ],
+  "queue_states": [
+    "queued",
+    "ready",
+    "dispatched",
+    "worker_running",
+    "cancel_requested",
+    "cancelled",
+    "awaiting_review",
+    "repair_requested",
+    "accepted",
+    "blocked"
+  ],
+  "tasks": [
+    {
+      "id": "C00",
+      "title": "Prove the Freebuff transport and capture the baseline",
+      "phase": "readiness",
+      "depends_on": [],
+      "kind": "controller_gate",
+      "allowed_write_paths": [],
+      "test_path": null,
+      "steps": [
+        "Controller pins the CLI version and records its actual help output and available terminal transport.",
+        "Send a read-only nonce task in a disposable directory containing three known files. Capture submitted input, actual answer, terminal/session identity and completion evidence.",
+        "Repeat with one follow-up and an interruption. Confirm the adapter can associate each result with the correct request.",
+        "Record repository HEAD, staged/unstaged/untracked paths, Python/npm executables, collected tests and baseline command results. Preserve the current planning changes."
+      ],
+      "acceptance": [
+        "Two distinct prompts receive their matching nonces without manual prompt copy/paste.",
+        "An interrupted or sign-in-blocked task has an explicit status and cannot advance the queue.",
+        "Controller records actual completion evidence and baseline changes before any product task is dispatched."
+      ],
+      "review_focus": "Transport version, exact completion detection, one-time authentication and unchanged product files",
+      "gate": "transport_verified",
+      "checks": []
+    },
+    {
+      "id": "C01",
+      "title": "Freeze implementation decisions and the logical contract",
+      "phase": "foundation",
+      "depends_on": [
+        "C00"
+      ],
+      "kind": "controller_gate",
+      "allowed_write_paths": [
+        "docs/implementation/workflow-contract.md"
+      ],
+      "test_path": null,
+      "steps": [
+        "Read the product plan and current storage/API/client seams named in this runbook.",
+        "Controller records exact schema fields, endpoint shapes, ownership source, local storage choice and hosted auth/storage decision status.",
+        "Record canonical artifact serialization, revision/CAS rules, idempotency behavior, source/context mapping and retained platform identifiers.",
+        "Supply a worked create/save/review-or-skip/approve/export example and an error example. Controller reviews the contract before code packets begin."
+      ],
+      "acceptance": [
+        "Every implementation packet refers to an approved contract revision and its digest.",
+        "Hosted provider/account decisions have a named owner and explicit status.",
+        "An owner is obtained from trusted authentication or explicit trusted local mode, with spoofed client owner fields rejected."
+      ],
+      "review_focus": "Ambiguous identities, contradictory payload examples and invented provider choices",
+      "gate": "contract_approved",
+      "checks": []
+    },
+    {
+      "id": "C02",
+      "title": "Define workflow domain schemas",
+      "phase": "foundation",
+      "depends_on": [
+        "C01"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "content_machine/workflow/__init__.py",
+        "content_machine/workflow/schemas.py",
+        "tests/test_workflow_schemas.py",
+        "content_machine/workflow/format_registry.py"
+      ],
+      "test_path": "tests/test_workflow_schemas.py",
+      "steps": [
+        "Write failing schema tests for item/context/artifact/snapshot/review/approval inputs from the approved contract.",
+        "Implement Pydantic models with bounded fields and explicit platform/format combinations.",
+        "Represent thread segments in order and single-text artifacts as one segment. Preserve exact string contents.",
+        "Keep ownership and timestamps server-assigned.",
+        "Create the initial backend capability registry with the approved retained IDs and explicit editing/generation readiness."
+      ],
+      "acceptance": [
+        "Unknown platform/format pairs and invalid revision numbers are rejected.",
+        "Whitespace-only final artifacts cannot be approved.",
+        "Client-supplied ownership cannot replace the authenticated principal."
+      ],
+      "review_focus": "Schema/API drift and accidental whitespace normalization",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": ".",
+          "program": "{python}",
+          "args": [
+            "-m",
+            "pytest",
+            "tests/test_workflow_schemas.py",
+            "-q"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C03",
+      "title": "Add additive workflow storage migration",
+      "phase": "foundation",
+      "depends_on": [
+        "C02"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "content_machine/workflow/migrations.py",
+        "content_machine/storage/db.py",
+        "tests/test_workflow_migrations.py"
+      ],
+      "test_path": "tests/test_workflow_migrations.py",
+      "steps": [
+        "Write isolated tests starting from a fresh DB and a legacy DB with existing content and Comments rows.",
+        "Create owned item, immutable version, review, approval and idempotency tables using the contract.",
+        "Connect the migration to the existing initialization seam and preserve row factories/foreign-key behavior.",
+        "Make repeated initialization safe and atomic."
+      ],
+      "acceptance": [
+        "Fresh and existing databases initialize successfully.",
+        "Running the migration twice preserves counts, IDs and legacy rows.",
+        "A forced migration failure leaves a usable recoverable original state."
+      ],
+      "review_focus": "Destructive SQL, constraint coverage and partial migration behavior",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": ".",
+          "program": "{python}",
+          "args": [
+            "-m",
+            "pytest",
+            "tests/test_workflow_migrations.py",
+            "-q"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C04",
+      "title": "Resolve trusted principals for workflow requests",
+      "phase": "foundation",
+      "depends_on": [
+        "C03"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "content_machine/workflow/access.py",
+        "tests/test_workflow_access.py"
+      ],
+      "test_path": "tests/test_workflow_access.py",
+      "steps": [
+        "Write tests using dependency-injected authenticated principals A and B and an unauthenticated caller.",
+        "Implement the contract's Principal and resolve_principal boundary.",
+        "Implement explicitly configured local mode and hosted-mode failure behavior.",
+        "Use the principal for internal ownership. Keep request body, query and untrusted forwarding headers outside that decision."
+      ],
+      "acceptance": [
+        "Hosted requests without configured/valid authentication fail closed.",
+        "Spoofed owner values cannot select B's workspace.",
+        "Local-mode tests are explicitly configured and isolated."
+      ],
+      "review_focus": "Implicit default owners, trusting browser-provided ownership and local mode on hosted deployments",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": ".",
+          "program": "{python}",
+          "args": [
+            "-m",
+            "pytest",
+            "tests/test_workflow_access.py",
+            "-q"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C05",
+      "title": "Store and list owned working items",
+      "phase": "foundation",
+      "depends_on": [
+        "C04"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "content_machine/workflow/items.py",
+        "tests/test_workflow_items.py"
+      ],
+      "test_path": "tests/test_workflow_items.py",
+      "steps": [
+        "Write tests for create/list/get/update for two owners with identical display titles.",
+        "Use opaque IDs, owner-filtered queries and parameterized SQL.",
+        "Save working content with expected_revision and an idempotency key.",
+        "Return acknowledged state only after transaction commit."
+      ],
+      "acceptance": [
+        "A cannot load or mutate B's item by ID.",
+        "A stale expected_revision returns a conflict and preserves newer content.",
+        "Retrying the same idempotency key does not create another item or revision."
+      ],
+      "review_focus": "Lost updates, title collisions and partial saves",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": ".",
+          "program": "{python}",
+          "args": [
+            "-m",
+            "pytest",
+            "tests/test_workflow_items.py",
+            "-q"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C06",
+      "title": "Persist immutable content snapshots",
+      "phase": "foundation",
+      "depends_on": [
+        "C05"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "content_machine/workflow/versions.py",
+        "tests/test_workflow_versions.py"
+      ],
+      "test_path": "tests/test_workflow_versions.py",
+      "steps": [
+        "Write tests that freeze an item's exact artifact/context at a review or approval boundary.",
+        "Create immutable snapshots associated with item, owner and working revision.",
+        "Expose owned list/get operations and the canonical digest operation.",
+        "Keep old snapshots available after further working edits."
+      ],
+      "acceptance": [
+        "Changing one whitespace character changes the artifact digest.",
+        "Repeated freezing of the same acknowledged revision is idempotent.",
+        "Later working edits cannot mutate stored snapshots."
+      ],
+      "review_focus": "Mutable history, Unicode/newline transformation and snapshot races",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": ".",
+          "program": "{python}",
+          "args": [
+            "-m",
+            "pytest",
+            "tests/test_workflow_versions.py",
+            "-q"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C07",
+      "title": "Approve and export an exact saved artifact",
+      "phase": "foundation",
+      "depends_on": [
+        "C06"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "content_machine/workflow/approvals.py",
+        "tests/test_workflow_approvals.py"
+      ],
+      "test_path": "tests/test_workflow_approvals.py",
+      "steps": [
+        "Write failing tests for explicit author approval of the current acknowledged revision.",
+        "Bind approval to owner, item, snapshot, destination, format and canonical artifact digest.",
+        "Resolve export from that approved snapshot and the documented UTF-8 serialization.",
+        "Keep historical approved snapshots accessible to their owner."
+      ],
+      "acceptance": [
+        "A one-character edit or format change requires a new approval.",
+        "Reverting to identical text in a new revision does not revive old approval.",
+        "Export matches the approved segments and invokes zero generation calls."
+      ],
+      "review_focus": "Borrowed approval, stale consent and post-approval rewriting",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": ".",
+          "program": "{python}",
+          "args": [
+            "-m",
+            "pytest",
+            "tests/test_workflow_approvals.py",
+            "-q"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C08",
+      "title": "Restore versions and create linked adaptations",
+      "phase": "foundation",
+      "depends_on": [
+        "C07"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "content_machine/workflow/history.py",
+        "tests/test_workflow_history.py"
+      ],
+      "test_path": "tests/test_workflow_history.py",
+      "steps": [
+        "Write tests for read-only historical inspection, restore and adaptation.",
+        "Restore old content into a new working revision after checking expected_revision.",
+        "Create another format/destination as a linked unapproved item using the original approved snapshot.",
+        "Retain the original artifact and approvals through adaptation failure or cancellation."
+      ],
+      "acceptance": [
+        "Restoring preserves both the previous working version and historical snapshot.",
+        "An adaptation starts without inherited approval or AI-review success.",
+        "Cross-owner source snapshots are inaccessible."
+      ],
+      "review_focus": "Destructive replacement and cross-item consent",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": ".",
+          "program": "{python}",
+          "args": [
+            "-m",
+            "pytest",
+            "tests/test_workflow_history.py",
+            "-q"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C09",
+      "title": "Expose owned item CRUD through a small API router",
+      "phase": "foundation",
+      "depends_on": [
+        "C08"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "content_machine/workflow/routes.py",
+        "content_machine/api/app.py",
+        "tests/test_workflow_api_items.py"
+      ],
+      "test_path": "tests/test_workflow_api_items.py",
+      "steps": [
+        "Write TestClient cases for create/list/get/update under /api/workflow/items.",
+        "Use resolve_principal and the approved request/response models.",
+        "Map missing, unauthorized, validation and revision-conflict results consistently.",
+        "Register the router through the existing FastAPI app."
+      ],
+      "acceptance": [
+        "Normal API entry points exercise actual storage behavior.",
+        "Unauthenticated and cross-owner cases return the approved errors.",
+        "Failed writes do not return Saved or a fabricated current revision."
+      ],
+      "review_focus": "API-only success mocks and ownership bypass",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": ".",
+          "program": "{python}",
+          "args": [
+            "-m",
+            "pytest",
+            "tests/test_workflow_api_items.py",
+            "-q"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C10",
+      "title": "Expose history, approval and export actions",
+      "phase": "foundation",
+      "depends_on": [
+        "C09"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "content_machine/workflow/action_routes.py",
+        "content_machine/api/app.py",
+        "tests/test_workflow_api_actions.py",
+        "content_machine/workflow/routes.py"
+      ],
+      "test_path": "tests/test_workflow_api_actions.py",
+      "steps": [
+        "Write tests for version history, restore, approve, export and adaptation endpoints.",
+        "Apply the same principal and revision contract to every action.",
+        "Return exact text downloads with safe filenames and appropriate content types.",
+        "Provide explicit review-skip state through the versioned workflow action contract.",
+        "Register the subrouter in the workflow router and exercise it through TestClient against the normal app.",
+        "Expose /api/workflow/capabilities from the backend registry and cover it through the normal app entry point."
+      ],
+      "acceptance": [
+        "An unapproved working item cannot use the final-export action.",
+        "Historical owned approved artifacts can be retrieved accurately.",
+        "Failed or skipped AI review never supplies human approval."
+      ],
+      "review_focus": "Unguarded file routes, filename collisions and state inferred from navigation",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": ".",
+          "program": "{python}",
+          "args": [
+            "-m",
+            "pytest",
+            "tests/test_workflow_api_actions.py",
+            "-q"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C11",
+      "title": "Create a platform registry and recognizable icons",
+      "phase": "shell",
+      "depends_on": [
+        "C10"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "ui/src/lib/platforms.js",
+        "ui/src/components/ui/PlatformIcon.jsx",
+        "ui/src/lib/platforms.test.js"
+      ],
+      "test_path": "ui/src/lib/platforms.test.js",
+      "steps": [
+        "Map retained identifiers from constants.js and the approved capability inventory.",
+        "Add Instagram caption and Reel-script identity/format definitions. Consume editing/generation readiness from the server capability response.",
+        "Use reviewed licensed brand SVG assets with visible labels and consistent dimensions.",
+        "Retain neutral script/newsletter choices where a specific provider is absent."
+      ],
+      "acceptance": [
+        "Every retained format has one explicit destination/format mapping.",
+        "An unavailable generation adapter is identified by the server capability response until its packet passes.",
+        "Icons cannot imply an authenticated account or published content."
+      ],
+      "review_focus": "Dropped legacy identifiers and generic scripts presented as platform-ready assets",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": "ui",
+          "program": "{npm}",
+          "args": [
+            "test",
+            "--",
+            "src/lib/platforms.test.js",
+            "--maxWorkers=2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C12",
+      "title": "Add workflow domain API clients",
+      "phase": "shell",
+      "depends_on": [
+        "C11"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "ui/src/api/workflow.js",
+        "ui/src/api/workflow.test.js"
+      ],
+      "test_path": "ui/src/api/workflow.test.js",
+      "steps": [
+        "Write request/response and error tests around fetchJson.",
+        "Implement the approved item, history, skip, approve, export and adaptation calls.",
+        "Pass revision and idempotency data explicitly.",
+        "Preserve server conflict details for recovery UI.",
+        "Load the authoritative capability response alongside item state."
+      ],
+      "acceptance": [
+        "Networking remains inside ui/src/api.",
+        "Request fields match the frozen contract.",
+        "An error response cannot be interpreted as an empty successful result."
+      ],
+      "review_focus": "Raw fetch in components and silently swallowed failures",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": "ui",
+          "program": "{npm}",
+          "args": [
+            "test",
+            "--",
+            "src/api/workflow.test.js",
+            "--maxWorkers=2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C13",
+      "title": "Manage acknowledged workflow state and saves",
+      "phase": "shell",
+      "depends_on": [
+        "C12"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "ui/src/app/useWorkflowSession.js",
+        "ui/src/app/useWorkflowSession.test.jsx"
+      ],
+      "test_path": "ui/src/app/useWorkflowSession.test.jsx",
+      "steps": [
+        "Write delayed-request tests for load, edit, debounce save, item switch and retry.",
+        "Track local edits separately from acknowledged server revision.",
+        "Apply returned state only to its owner/item/request generation.",
+        "Expose Saving/Saved/Not saved, conflict and recovery without clearing typed content."
+      ],
+      "acceptance": [
+        "A delayed save/load for A cannot replace B or newer A edits.",
+        "Repeated retries use stable idempotency keys.",
+        "Approval and final export wait for the current artifact's required acknowledgement."
+      ],
+      "review_focus": "False Saved labels, race conditions and errors that erase input",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": "ui",
+          "program": "{npm}",
+          "args": [
+            "test",
+            "--",
+            "src/app/useWorkflowSession.test.jsx",
+            "--maxWorkers=2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C14",
+      "title": "Build the real saved-content landing",
+      "phase": "shell",
+      "depends_on": [
+        "C13"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "ui/src/components/workflow/ContentList.jsx",
+        "ui/src/components/workflow/ContentList.test.jsx"
+      ],
+      "test_path": "ui/src/components/workflow/ContentList.test.jsx",
+      "steps": [
+        "Write cases for loading, actual empty results, loaded items, no search matches and load failure.",
+        "Show New content and a prominent Resume action naming its saved item.",
+        "Use actual server status and updated time.",
+        "Keep previously loaded items visible with an appropriate stale/error indication on refresh failure."
+      ],
+      "acceptance": [
+        "Two same-title items remain distinguishable and independently resumable.",
+        "A load failure never becomes No saved content.",
+        "Scanned articles are absent until deliberately saved or used."
+      ],
+      "review_focus": "Synthetic empty-state data and conflating discovery history with drafts",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": "ui",
+          "program": "{npm}",
+          "args": [
+            "test",
+            "--",
+            "src/components/workflow/ContentList.test.jsx",
+            "--maxWorkers=2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C15",
+      "title": "Capture own material in the Idea stage",
+      "phase": "shell",
+      "depends_on": [
+        "C14"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "ui/src/components/workflow/IdeaStage.jsx",
+        "ui/src/components/workflow/IdeaStage.test.jsx"
+      ],
+      "test_path": "ui/src/components/workflow/IdeaStage.test.jsx",
+      "steps": [
+        "Write tests for platform/format selection, notes and an existing draft.",
+        "Provide equally prominent Your idea and Discover ideas choices.",
+        "Capture one optional intended point and source/context attachments through shared item state.",
+        "Preserve a pasted draft exactly until an author edit or accepted suggestion."
+      ],
+      "acceptance": [
+        "No profile or source setup is required for the own-material path.",
+        "Changing stage preserves input and the selected destination.",
+        "Choosing discovery can expose a truthful unavailable/loading state until discovery integration lands."
+      ],
+      "review_focus": "Forced interviews and duplicate note forms",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": "ui",
+          "program": "{npm}",
+          "args": [
+            "test",
+            "--",
+            "src/components/workflow/IdeaStage.test.jsx",
+            "--maxWorkers=2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C16",
+      "title": "Provide one manual draft editor and explicit AI skip",
+      "phase": "shell",
+      "depends_on": [
+        "C15"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "ui/src/components/workflow/DraftStage.jsx",
+        "ui/src/components/workflow/DraftStage.test.jsx"
+      ],
+      "test_path": "ui/src/components/workflow/DraftStage.test.jsx",
+      "steps": [
+        "Write tests for manual edits, supplied drafts and explicit Skip AI review and continue.",
+        "Use one controlled editor and the same expandable context record from Idea.",
+        "Save the working artifact and record the explicit skip before approval.",
+        "Expose existing AI controls only when their matching integration is ready."
+      ],
+      "acceptance": [
+        "Manual drafting reaches approval without a score or an interview.",
+        "A failed AI request remains distinguishable from an explicit skip.",
+        "Changing content invalidates the working approval."
+      ],
+      "review_focus": "Review-result prerequisites and duplicate editors",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": "ui",
+          "program": "{npm}",
+          "args": [
+            "test",
+            "--",
+            "src/components/workflow/DraftStage.test.jsx",
+            "--maxWorkers=2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C17",
+      "title": "Present the actual approval decision",
+      "phase": "shell",
+      "depends_on": [
+        "C16"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "ui/src/components/workflow/ApproveStage.jsx",
+        "ui/src/components/workflow/ApproveStage.test.jsx"
+      ],
+      "test_path": "ui/src/components/workflow/ApproveStage.test.jsx",
+      "steps": [
+        "Write tests displaying the full current artifact, destination, format and honest review state.",
+        "Use one explicit Approve this version action with clear consent wording.",
+        "Submit the acknowledged revision and show conflicts without losing text.",
+        "Advance only after the server returns the matching approval."
+      ],
+      "acceptance": [
+        "Pending/failed approval cannot advance to final export.",
+        "Explicit AI skip still requires human approval.",
+        "A stale approval response cannot approve newer edits."
+      ],
+      "review_focus": "Extra consent rituals and approval of an earlier artifact",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": "ui",
+          "program": "{npm}",
+          "args": [
+            "test",
+            "--",
+            "src/components/workflow/ApproveStage.test.jsx",
+            "--maxWorkers=2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C18",
+      "title": "Copy and download the approved payload",
+      "phase": "shell",
+      "depends_on": [
+        "C17"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "ui/src/components/workflow/ExportStage.jsx",
+        "ui/src/components/workflow/ExportStage.test.jsx",
+        "ui/src/hooks/useCopyToClipboard.js"
+      ],
+      "test_path": "ui/src/components/workflow/ExportStage.test.jsx",
+      "steps": [
+        "Write tests for exact approved content, clipboard denial and download initiation failure.",
+        "Show Copy, Download and selectable content from the approved snapshot.",
+        "Present per-segment controls for threads and an appropriate whole-artifact download.",
+        "Offer linked adaptation using the approved version as its source."
+      ],
+      "acceptance": [
+        "Entering or using Export invokes zero model calls.",
+        "Failed copy cannot report Copied.",
+        "Download feedback describes initiation and never claims publication."
+      ],
+      "review_focus": "Hidden rewriting and generated files mistaken for browser downloads",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": "ui",
+          "program": "{npm}",
+          "args": [
+            "test",
+            "--",
+            "src/components/workflow/ExportStage.test.jsx",
+            "--maxWorkers=2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C19",
+      "title": "Replace tool navigation with the integrated Workflow",
+      "phase": "shell",
+      "depends_on": [
+        "C18"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "ui/src/components/workflow/WorkflowPage.jsx",
+        "ui/src/app/tabs.js",
+        "ui/src/App.jsx",
+        "ui/src/App.test.jsx"
+      ],
+      "test_path": "ui/src/App.test.jsx",
+      "steps": [
+        "Write entry-point tests for Workflow, Lessons and Settings with four stages inside an item.",
+        "Open the saved-content landing first and resume at the actual saved stage.",
+        "Integrate the working Idea/Draft/Approve/Export components using useWorkflowSession.",
+        "Keep registration in tabs.js and App within its documented size target."
+      ],
+      "acceptance": [
+        "The primary journey completes from App without copying between tool pages.",
+        "Resume avoids repeating new-item platform selection.",
+        "Workflow navigation preserves current item and pending input."
+      ],
+      "review_focus": "A cosmetic stepper over disconnected old tabs",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": "ui",
+          "program": "{npm}",
+          "args": [
+            "test",
+            "--",
+            "src/App.test.jsx",
+            "--maxWorkers=2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C20",
+      "title": "Validate the complete internal manual slice",
+      "phase": "integration",
+      "depends_on": [
+        "C19"
+      ],
+      "kind": "implementation_with_gate",
+      "allowed_write_paths": [
+        "ui/src/components/workflow/WorkflowJourney.test.jsx"
+      ],
+      "test_path": "ui/src/components/workflow/WorkflowJourney.test.jsx",
+      "steps": [
+        "Add an integrated existing LinkedIn draft journey using real workflow clients with mocked transport boundaries.",
+        "Cover durable save acknowledgement, list/Resume, explicit AI skip, one approval and exact copy/download.",
+        "Controller runs a browser journey against isolated local storage.",
+        "Capture actual visual/keyboard evidence and repair the previous packet responsible for any failure."
+      ],
+      "acceptance": [
+        "All four states operate through the normal root entry point.",
+        "Refreshing recovers acknowledged input and actual approval associations.",
+        "The controller records a verified internal slice separately from release readiness."
+      ],
+      "review_focus": "Unit-only success and seeded screenshots",
+      "gate": "manual_slice_reviewed",
+      "checks": [
+        {
+          "cwd": "ui",
+          "program": "{npm}",
+          "args": [
+            "test",
+            "--",
+            "src/components/workflow/WorkflowJourney.test.jsx",
+            "--maxWorkers=2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C21",
+      "title": "Persist real author facts and source configuration",
+      "phase": "support",
+      "depends_on": [
+        "C20"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "content_machine/workflow/settings.py",
+        "content_machine/workflow/settings_routes.py",
+        "tests/test_workflow_settings.py",
+        "content_machine/workflow/routes.py"
+      ],
+      "test_path": "tests/test_workflow_settings.py",
+      "steps": [
+        "Write owner-isolation and failed-save tests for factual profile and source records.",
+        "Implement explicit save/read operations using the approved owned storage.",
+        "Initialize empty author fields and labeled neutral product defaults.",
+        "Support add/edit/enable/disable sources while preserving attached historical evidence.",
+        "Register the subrouter in the workflow router and exercise it through TestClient against the normal app."
+      ],
+      "acceptance": [
+        "Blank accounts contain no invented identity or employment history.",
+        "Updating one source preserves other sources.",
+        "Saved records survive reload and seed refresh."
+      ],
+      "review_focus": "Global Markdown state leaking between creators",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": ".",
+          "program": "{python}",
+          "args": [
+            "-m",
+            "pytest",
+            "tests/test_workflow_settings.py",
+            "-q"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C22",
+      "title": "Edit profile and sources through Settings",
+      "phase": "support",
+      "depends_on": [
+        "C21"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "ui/src/components/profile/SettingsPage.jsx",
+        "ui/src/api/settings.js",
+        "ui/src/components/profile/SettingsPage.test.jsx"
+      ],
+      "test_path": "ui/src/components/profile/SettingsPage.test.jsx",
+      "steps": [
+        "Write tests for optional factual fields, sources, unsaved edits, validation and server failure.",
+        "Use ordinary fields and Save per section.",
+        "Preserve unsaved inputs when refreshing or visiting Workflow.",
+        "Link writing preferences to Lessons."
+      ],
+      "acceptance": [
+        "Profile completion is optional.",
+        "A failed save preserves exact input.",
+        "Returning to Workflow restores the active item."
+      ],
+      "review_focus": "Hardcoded persona and duplicate rule editors",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": "ui",
+          "program": "{npm}",
+          "args": [
+            "test",
+            "--",
+            "src/components/profile/SettingsPage.test.jsx",
+            "--maxWorkers=2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C23",
+      "title": "Scope governed writing preferences to their creator",
+      "phase": "support",
+      "depends_on": [
+        "C22"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "content_machine/workflow/preferences.py",
+        "content_machine/workflow/preference_routes.py",
+        "tests/test_workflow_preferences.py",
+        "content_machine/workflow/routes.py"
+      ],
+      "test_path": "tests/test_workflow_preferences.py",
+      "steps": [
+        "Use failing tests to exercise manual add/edit/stop-using and actual conflict/cap outcomes.",
+        "Reuse governed conflict/cap logic through the contract-approved storage seam.",
+        "Preserve origin and change history and keep AI proposals pending.",
+        "Keep old local/CLI records recoverable under the explicit migration mapping.",
+        "Register the subrouter in the workflow router and exercise it through TestClient against the normal app."
+      ],
+      "acceptance": [
+        "Creator A's preferences do not affect B.",
+        "A conflicting or blocked save cannot report activation.",
+        "Stopping a preference persists and does not rewrite approved artifacts."
+      ],
+      "review_focus": "Bypassing lessons governance and ambiguous legacy ownership",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": ".",
+          "program": "{python}",
+          "args": [
+            "-m",
+            "pytest",
+            "tests/test_workflow_preferences.py",
+            "-q"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C24",
+      "title": "Simplify Lessons to the single preference editor",
+      "phase": "support",
+      "depends_on": [
+        "C23"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "ui/src/components/lessons/LessonsTab.jsx",
+        "ui/src/api/lessons.js",
+        "ui/src/components/lessons/LessonsTab.test.jsx"
+      ],
+      "test_path": "ui/src/components/lessons/LessonsTab.test.jsx",
+      "steps": [
+        "Write cases for empty/loading/failed/active/pending preferences and blocked activation.",
+        "Show Add/Edit/Stop using with explicit human Save and use.",
+        "Use actual returned activation status and plain conflict text.",
+        "Keep optional existing proposals manageable through the same collection."
+      ],
+      "acceptance": [
+        "A creator can finish publishing preparation without visiting Lessons.",
+        "AI suggestions activate only after an explicit author decision.",
+        "A factual correction stays item-specific unless deliberately generalized."
+      ],
+      "review_focus": "False success and a fifth required stage",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": "ui",
+          "program": "{npm}",
+          "args": [
+            "test",
+            "--",
+            "src/components/lessons/LessonsTab.test.jsx",
+            "--maxWorkers=2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C25",
+      "title": "Attach real discovery sources to the working item",
+      "phase": "content",
+      "depends_on": [
+        "C24"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "content_machine/workflow/discovery.py",
+        "content_machine/workflow/discovery_routes.py",
+        "tests/test_workflow_discovery.py",
+        "content_machine/workflow/routes.py"
+      ],
+      "test_path": "tests/test_workflow_discovery.py",
+      "steps": [
+        "Reuse connector/Oracle seams with trusted creator-specific source configuration.",
+        "Preserve item URL, title, available excerpt and retrieval context.",
+        "Distinguish partial failure, no new results and unavailable history.",
+        "Create an owned working item only after Save/Use.",
+        "Register the subrouter in the workflow router and exercise it through TestClient against the normal app."
+      ],
+      "acceptance": [
+        "Title-only source material is identified accurately.",
+        "A failed connector leaves other successful items usable.",
+        "Real source metadata cannot become a fabricated personal experience."
+      ],
+      "review_focus": "Dropped excerpts, global connector settings and invented fallback summaries",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": ".",
+          "program": "{python}",
+          "args": [
+            "-m",
+            "pytest",
+            "tests/test_workflow_discovery.py",
+            "-q"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C26",
+      "title": "Unify discovery presentation inside Idea",
+      "phase": "content",
+      "depends_on": [
+        "C25"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "ui/src/components/workflow/DiscoveryPane.jsx",
+        "ui/src/components/workflow/IdeaStage.jsx",
+        "ui/src/components/workflow/DiscoveryPane.test.jsx",
+        "ui/src/api/workflow.js"
+      ],
+      "test_path": "ui/src/components/workflow/DiscoveryPane.test.jsx",
+      "steps": [
+        "Show one discovery list with search, optional filters and Use this idea.",
+        "Keep refresh/status/Manage sources contextual.",
+        "Use the same source selection behavior for new and previously found items.",
+        "Preserve personal notes when the creator switches entry routes.",
+        "Extend the workflow domain client with the actual discovery endpoints and preserve errors."
+      ],
+      "acceptance": [
+        "Your idea and Discover remain equally prominent.",
+        "Filters can be cleared and failures expose a useful next action.",
+        "Source configuration changes return to the same draft."
+      ],
+      "review_focus": "Taxonomy noise and inconsistent archive actions",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": "ui",
+          "program": "{npm}",
+          "args": [
+            "test",
+            "--",
+            "src/components/workflow/DiscoveryPane.test.jsx",
+            "--maxWorkers=2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C27",
+      "title": "Make voice results target a stable field context",
+      "phase": "content",
+      "depends_on": [
+        "C26"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "ui/src/hooks/useVoiceRecording.js",
+        "ui/src/hooks/useVoiceRecording.test.js"
+      ],
+      "test_path": "ui/src/hooks/useVoiceRecording.test.js",
+      "steps": [
+        "Write delayed-transcription tests with item/revision/field targets.",
+        "Expose recording and transcribing status independently of the active recording flag.",
+        "Release microphone resources when the target stage becomes inactive.",
+        "Return a recoverable transcript when intervening edits prevent safe insertion."
+      ],
+      "acceptance": [
+        "Permission denial leaves typing usable.",
+        "A delayed transcript cannot enter another item or account.",
+        "Stopping shows processing accurately until a result or error."
+      ],
+      "review_focus": "Late insertion, silent text replacement and hidden active microphones",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": "ui",
+          "program": "{npm}",
+          "args": [
+            "test",
+            "--",
+            "src/hooks/useVoiceRecording.test.js",
+            "--maxWorkers=2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C28",
+      "title": "Place labeled dictation beside intake and editing",
+      "phase": "content",
+      "depends_on": [
+        "C27"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "ui/src/components/workflow/DictationControl.jsx",
+        "ui/src/components/workflow/IdeaStage.jsx",
+        "ui/src/components/workflow/DraftStage.jsx",
+        "ui/src/components/workflow/DictationControl.test.jsx"
+      ],
+      "test_path": "ui/src/components/workflow/DictationControl.test.jsx",
+      "steps": [
+        "Add Dictate/Stop to the intended fields using the shared hook.",
+        "Show local recording/processing/error status and an editable transcript.",
+        "Bind insertion to the originating field and preserve typed text.",
+        "Document the actual browser/backend processing path in contextual help."
+      ],
+      "acceptance": [
+        "The full workflow requires no separate Audio destination.",
+        "Keyboard start/stop and cancellation preserve input.",
+        "An unavailable microphone offers continued typing."
+      ],
+      "review_focus": "Decorative-only controls and field labeling",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": "ui",
+          "program": "{npm}",
+          "args": [
+            "test",
+            "--",
+            "src/components/workflow/DictationControl.test.jsx",
+            "--maxWorkers=2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C29",
+      "title": "Build an owner-specific editorial context snapshot",
+      "phase": "content",
+      "depends_on": [
+        "C28"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "content_machine/workflow/context.py",
+        "content_machine/knowledge/provider.py",
+        "tests/test_workflow_context.py"
+      ],
+      "test_path": "tests/test_workflow_context.py",
+      "steps": [
+        "Write tests for source claims, author experience, interpretation and owned settings/preferences.",
+        "Build one immutable context snapshot for the writing request.",
+        "Pass scoped context explicitly through the provider seam while retaining supported local callers.",
+        "Keep credentials outside stored draft/evidence payloads."
+      ],
+      "acceptance": [
+        "A and B receive only their own author/preferences context.",
+        "Changing settings affects later requests and leaves existing approved snapshots intact.",
+        "Source-only commentary requires no invented personal story."
+      ],
+      "review_focus": "Per-request process environment mutation and globally loaded author facts",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": ".",
+          "program": "{python}",
+          "args": [
+            "-m",
+            "pytest",
+            "tests/test_workflow_context.py",
+            "-q"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C30",
+      "title": "Generate the initial selected-platform draft",
+      "phase": "content",
+      "depends_on": [
+        "C29"
+      ],
+      "kind": "controller_split",
+      "allowed_write_paths": [
+        "content_machine/workflow/writing.py",
+        "content_machine/workflow/writing_routes.py",
+        "tests/test_workflow_writing.py",
+        "content_machine/workflow/routes.py",
+        "content_machine/workflow/format_registry.py"
+      ],
+      "test_path": "tests/test_workflow_writing.py",
+      "steps": [
+        "Write offline tests capturing the actual model request inputs.",
+        "Reuse the appropriate existing generation seams with the approved context snapshot and platform/format.",
+        "Return a proposed artifact associated with its input version.",
+        "Preserve source/notes and an honest error when generation fails.",
+        "Register the subrouter in the workflow router and exercise it through TestClient against the normal app.",
+        "Controller splits this packet into children with concrete allowlists before any implementation dispatch."
+      ],
+      "acceptance": [
+        "Per-item notes and excerpts actually reach the writing request.",
+        "A supplied draft is unchanged until a creator requests/accepts a rewrite.",
+        "Provider failure produces no template disguised as successful generation."
+      ],
+      "review_focus": "Context rendered only in UI and wrong platform prompts",
+      "gate": "small_child_packets_approved",
+      "checks": [
+        {
+          "cwd": ".",
+          "program": "{python}",
+          "args": [
+            "-m",
+            "pytest",
+            "tests/test_workflow_writing.py",
+            "-q"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C31",
+      "title": "Add the actual Instagram caption adapter",
+      "phase": "content",
+      "depends_on": [
+        "C30"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "content_machine/workflow/adapters/instagram_caption.py",
+        "content_machine/workflow/format_registry.py",
+        "tests/test_instagram_caption.py"
+      ],
+      "test_path": "tests/test_instagram_caption.py",
+      "steps": [
+        "Write tests for supported format registration, grounded prompt inputs and failure behavior.",
+        "Generate editable caption text from the supplied evidence and creator point.",
+        "Apply contract-approved applicable limits before approval.",
+        "Register the adapter under the exact destination/format ID."
+      ],
+      "acceptance": [
+        "Caption requests return caption artifacts.",
+        "Missing evidence does not trigger invented metrics or anecdotes.",
+        "Availability becomes true only when the adapter checks pass."
+      ],
+      "review_focus": "Relabeling a generic video script as a caption",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": ".",
+          "program": "{python}",
+          "args": [
+            "-m",
+            "pytest",
+            "tests/test_instagram_caption.py",
+            "-q"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C32",
+      "title": "Add the actual Instagram Reel-script adapter",
+      "phase": "content",
+      "depends_on": [
+        "C31"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "content_machine/workflow/adapters/instagram_reel.py",
+        "content_machine/workflow/format_registry.py",
+        "tests/test_instagram_reel.py"
+      ],
+      "test_path": "tests/test_instagram_reel.py",
+      "steps": [
+        "Write tests for a script artifact with grounded spoken text and production cues.",
+        "Implement the Reel-specific adapter using shared generation logic.",
+        "Preserve required visual/camera/pause markers where applicable.",
+        "Expose the format independently of Caption."
+      ],
+      "acceptance": [
+        "A Reel script is labeled as text for production.",
+        "Unsupported benchmark/numeric sections are omitted or returned as author questions.",
+        "A caption remains separately selectable and separately approved."
+      ],
+      "review_focus": "Rendered-video promises and compulsory bundles",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": ".",
+          "program": "{python}",
+          "args": [
+            "-m",
+            "pytest",
+            "tests/test_instagram_reel.py",
+            "-q"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C33",
+      "title": "Preserve and validate X-thread segments",
+      "phase": "content",
+      "depends_on": [
+        "C32"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "content_machine/workflow/adapters/x_thread.py",
+        "content_machine/workflow/format_registry.py",
+        "tests/test_workflow_x_thread.py"
+      ],
+      "test_path": "tests/test_workflow_x_thread.py",
+      "steps": [
+        "Reuse the current X generator through the selected-platform adapter contract.",
+        "Parse or request ordered post segments and validate configured per-post constraints.",
+        "Keep the approved segmentation in the immutable artifact.",
+        "Return actionable errors before approval when segmentation is invalid."
+      ],
+      "acceptance": [
+        "Per-post copy and full download use the exact approved boundaries.",
+        "No silent shortening occurs during export.",
+        "An incomplete/overlong response cannot appear ready for approval."
+      ],
+      "review_focus": "Total-string length mistaken for valid thread structure",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": ".",
+          "program": "{python}",
+          "args": [
+            "-m",
+            "pytest",
+            "tests/test_workflow_x_thread.py",
+            "-q"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C34",
+      "title": "Preserve short/long YouTube script capabilities",
+      "phase": "content",
+      "depends_on": [
+        "C33"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "content_machine/workflow/adapters/youtube.py",
+        "content_machine/workflow/format_registry.py",
+        "tests/test_workflow_youtube.py"
+      ],
+      "test_path": "tests/test_workflow_youtube.py",
+      "steps": [
+        "Map existing short/long script identifiers without removing retained history.",
+        "Use grounded script generation with actual production cues.",
+        "Make unsupported evidence sections optional.",
+        "Label deliverables accurately as scripts."
+      ],
+      "acceptance": [
+        "Short and long formats remain distinct.",
+        "A source without numbers yields no forced benchmark chapter.",
+        "Export retains the exact approved script text."
+      ],
+      "review_focus": "Lost formats and fabricated production/performance claims",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": ".",
+          "program": "{python}",
+          "args": [
+            "-m",
+            "pytest",
+            "tests/test_workflow_youtube.py",
+            "-q"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C35",
+      "title": "Preserve newsletter and generic-script capabilities",
+      "phase": "content",
+      "depends_on": [
+        "C34"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "content_machine/workflow/adapters/retained_formats.py",
+        "content_machine/workflow/format_registry.py",
+        "tests/test_workflow_retained_formats.py"
+      ],
+      "test_path": "tests/test_workflow_retained_formats.py",
+      "steps": [
+        "Implement the contract's honest mappings for newsletter and the retained general short-script path.",
+        "Reuse existing generators and keep their legacy identifier translation explicit.",
+        "Validate actual artifact structure before approval.",
+        "Keep format changes as separately approvable adaptations."
+      ],
+      "acceptance": [
+        "Existing formats/history have an explicit supported mapping.",
+        "Newsletter is a draft and generic script names its actual capability.",
+        "Destination/format changes cannot inherit approval."
+      ],
+      "review_focus": "Silent capability removal and inflated platform claims",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": ".",
+          "program": "{python}",
+          "args": [
+            "-m",
+            "pytest",
+            "tests/test_workflow_retained_formats.py",
+            "-q"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C36",
+      "title": "Associate AI review with its exact owned snapshot",
+      "phase": "content",
+      "depends_on": [
+        "C35"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "content_machine/workflow/reviews.py",
+        "content_machine/council/loop.py",
+        "tests/test_workflow_reviews.py",
+        "content_machine/workflow/writing_routes.py"
+      ],
+      "test_path": "tests/test_workflow_reviews.py",
+      "steps": [
+        "Write tests capturing reviewed bytes/context and subsequent sanitizer/revision changes.",
+        "Invoke Council using the owned immutable input context.",
+        "Record actual reviewed snapshot, score basis, actions and proposed revisions separately.",
+        "Preserve fail/skip/earlier/current states and the ability to approve without a score.",
+        "Use a single review pass for workflow advice and present sanitizer or writer changes as proposals. Preserve existing Council iteration callers.",
+        "Expose the owned review operation through writing_routes.py and test its normal HTTP entry with scoped principals."
+      ],
+      "acceptance": [
+        "Returned changed wording never inherits a review of different content.",
+        "Raw and normalized scores have explicit distinct scales.",
+        "Reviewing A cannot incorporate B's profile/preferences or overwrite B."
+      ],
+      "review_focus": "Review/source mismatch and global author context",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": ".",
+          "program": "{python}",
+          "args": [
+            "-m",
+            "pytest",
+            "tests/test_workflow_reviews.py",
+            "-q"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C37",
+      "title": "Connect drafting, AI feedback and revision comparison",
+      "phase": "content",
+      "depends_on": [
+        "C36"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "ui/src/components/workflow/DraftStage.jsx",
+        "ui/src/components/workflow/ReviewPanel.jsx",
+        "ui/src/components/workflow/ReviewPanel.test.jsx",
+        "ui/src/api/workflow.js"
+      ],
+      "test_path": "ui/src/components/workflow/ReviewPanel.test.jsx",
+      "steps": [
+        "Connect Create draft, optional Review draft and one wording suggestion to versioned APIs.",
+        "Lead with actionable feedback and a readable current/proposed comparison.",
+        "Accept a proposal as a new working version and retain the prior snapshot.",
+        "Keep pending/failure/earlier-version output attached to its origin.",
+        "Extend the domain client with actual owned generation/review operations used by this UI."
+      ],
+      "acceptance": [
+        "Cancel changes nothing and acceptance invalidates old working approval.",
+        "An explicit skip remains available after a failed review.",
+        "Late results cannot force navigation or replace newer text."
+      ],
+      "review_focus": "Multiple polish entry points and stale revisions accepted into another item",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": "ui",
+          "program": "{npm}",
+          "args": [
+            "test",
+            "--",
+            "src/components/workflow/ReviewPanel.test.jsx",
+            "--maxWorkers=2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C38",
+      "title": "Separate provable demo records from creator work",
+      "phase": "integrity",
+      "depends_on": [
+        "C37"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "content_machine/workflow/legacy_import.py",
+        "tests/test_workflow_legacy_import.py"
+      ],
+      "test_path": "tests/test_workflow_legacy_import.py",
+      "steps": [
+        "Write migration tests with proven synthetic, actual legacy and ambiguous records.",
+        "Require an explicit owner mapping for imported user work.",
+        "Keep recoverable backups and quarantine proven synthetic records outside normal creator work.",
+        "Make repeated import safe and preserve historical Comments/exports."
+      ],
+      "acceptance": [
+        "No demo record becomes actual creator content by changing its label.",
+        "Unknown lineage/approval stays unknown.",
+        "Import twice preserves edits, record counts and recoverability."
+      ],
+      "review_focus": "Mass deletion and guessed ownership",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": ".",
+          "program": "{python}",
+          "args": [
+            "-m",
+            "pytest",
+            "tests/test_workflow_legacy_import.py",
+            "-q"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C39",
+      "title": "Remove automatic public-demo seeding from the real entry",
+      "phase": "integrity",
+      "depends_on": [
+        "C38"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "api/index.py",
+        "content_machine/bootstrap.py",
+        "tests/test_workflow_bootstrap.py"
+      ],
+      "test_path": "tests/test_workflow_bootstrap.py",
+      "steps": [
+        "Write bootstrap tests for real empty private workspace initialization.",
+        "Separate product defaults and isolated test/demo fixture setup explicitly.",
+        "Use the selected deployment storage configuration.",
+        "Initialize actual accounts without invented persona or active learned rules."
+      ],
+      "acceptance": [
+        "Cold start never repopulates synthetic creator records.",
+        "Restart/deploy cannot replace saved creator settings.",
+        "Temporary storage is identified until the durable hosted gate passes."
+      ],
+      "review_focus": "A new UI backed by the old demo cold start",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": ".",
+          "program": "{python}",
+          "args": [
+            "-m",
+            "pytest",
+            "tests/test_workflow_bootstrap.py",
+            "-q"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C40",
+      "title": "Return actual Council and distribution failures",
+      "phase": "integrity",
+      "depends_on": [
+        "C39"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "content_machine/api/app.py",
+        "tests/test_workflow_failure_routes.py"
+      ],
+      "test_path": "tests/test_workflow_failure_routes.py",
+      "steps": [
+        "Write failed-provider cases for the existing API seams.",
+        "Remove unrelated seeded review/bundle substitution in the real workflow.",
+        "Return actionable structured failures with the original request identity.",
+        "Retain preserved inputs and usable earlier-version data."
+      ],
+      "acceptance": [
+        "A quota/provider failure cannot return sample success.",
+        "Failed review cannot set review-complete or human-approved state.",
+        "Existing clients receive explicit errors through their domain adapters."
+      ],
+      "review_focus": "A labeled replay still being used as actual work",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": ".",
+          "program": "{python}",
+          "args": [
+            "-m",
+            "pytest",
+            "tests/test_workflow_failure_routes.py",
+            "-q"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C41",
+      "title": "Return actual briefing and synthesis failures",
+      "phase": "integrity",
+      "depends_on": [
+        "C40"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "content_machine/interview/engine.py",
+        "tests/test_workflow_interview_failures.py"
+      ],
+      "test_path": "tests/test_workflow_interview_failures.py",
+      "steps": [
+        "Write cases for unavailable source context, invalid model output and exhausted routes.",
+        "Return explicit failure/partial status instead of invented tension or template success.",
+        "Keep optional generic prompts labeled as generic help.",
+        "Preserve author notes for manual continuation."
+      ],
+      "acceptance": [
+        "Title-only input cannot produce a confident sourced briefing by fallback.",
+        "Typed notes survive a failed synthesis.",
+        "Manual drafting and explicit AI skip remain possible."
+      ],
+      "review_focus": "Invented narrative used to conceal failure",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": ".",
+          "program": "{python}",
+          "args": [
+            "-m",
+            "pytest",
+            "tests/test_workflow_interview_failures.py",
+            "-q"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C42",
+      "title": "Report wording-assistance fallback outcomes honestly",
+      "phase": "integrity",
+      "depends_on": [
+        "C41"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "content_machine/humanize/transformer.py",
+        "content_machine/schemas.py",
+        "tests/test_workflow_wording_failures.py"
+      ],
+      "test_path": "tests/test_workflow_wording_failures.py",
+      "steps": [
+        "Write cases distinguishing model rewrite, deterministic cleanup and complete failure.",
+        "Expose the actual operation/result provenance.",
+        "Show cleanup as a proposal associated with its original version.",
+        "Keep exact saved/approved artifacts immutable."
+      ],
+      "acceptance": [
+        "Local cleanup cannot claim a successful model rewrite or authenticity verification.",
+        "Changed text has a new review/approval status.",
+        "Failure retains input and a useful retry/manual route."
+      ],
+      "review_focus": "Silent sanitizer success and misleading humanized badges",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": ".",
+          "program": "{python}",
+          "args": [
+            "-m",
+            "pytest",
+            "tests/test_workflow_wording_failures.py",
+            "-q"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C43",
+      "title": "Retire Audio/demo navigation and UI emoji throughout entry points",
+      "phase": "integration",
+      "depends_on": [
+        "C42"
+      ],
+      "kind": "controller_split",
+      "allowed_write_paths": [
+        "ui/src/App.jsx",
+        "ui/src/app/tabs.js",
+        "ui/src/lib/topics.js",
+        "ui/src/App.test.jsx",
+        "ui/src/components/audio/AudioTab.jsx",
+        "ui/src/components/audio/AudioTab.test.jsx",
+        "ui/src/components/DemoBanner.jsx",
+        "ui/src/components/DemoBanner.test.jsx",
+        "ui/src/components/SampleStory.jsx",
+        "ui/src/components/SampleStory.test.jsx",
+        "ui/src/lib/constants.js",
+        "ui/src/lib/topics.test.js"
+      ],
+      "test_path": "ui/src/App.test.jsx",
+      "steps": [
+        "Update root navigation tests to the reviewed destinations and integrated workflow.",
+        "Remove obsolete guide/sample mounting and Audio registration.",
+        "Use professional topic/action presentation through the shared registry.",
+        "Keep original content text intact while changing interface labels.",
+        "Split retirement into controller-issued child packets by navigation, obsolete components, and interface labels before dispatch. Adjust tests for the intended removal and verify rendered UI labels across every remaining destination."
+      ],
+      "acceptance": [
+        "Normal entry points expose the agreed Workflow/Lessons/Settings structure.",
+        "Mic input remains available at real fields.",
+        "No guide toggle or sample launch competes with the creator journey."
+      ],
+      "review_focus": "Dormant old navigation and accidental modification of authored text",
+      "gate": "retirement_children_reviewed",
+      "checks": [
+        {
+          "cwd": "ui",
+          "program": "{npm}",
+          "args": [
+            "test",
+            "--",
+            "src/App.test.jsx",
+            "--maxWorkers=2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C44",
+      "title": "Add safe item history and stable browser navigation",
+      "phase": "integration",
+      "depends_on": [
+        "C43"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "ui/src/app/workflowNavigation.js",
+        "ui/src/components/workflow/VersionHistory.jsx",
+        "ui/src/components/workflow/VersionHistory.test.jsx",
+        "ui/src/components/workflow/WorkflowPage.jsx"
+      ],
+      "test_path": "ui/src/components/workflow/VersionHistory.test.jsx",
+      "steps": [
+        "Implement private item/stage URLs through the selected existing routing seam.",
+        "Open old snapshots read-only with Compare and Restore as new version.",
+        "Restore focus and active item/stage after settings/history detours.",
+        "Keep the current unsaved draft while historical data loads or fails."
+      ],
+      "acceptance": [
+        "Back/Forward does not rerun AI or clear text.",
+        "Viewing history cannot grant approval.",
+        "Direct Export navigation handles missing prerequisites visibly."
+      ],
+      "review_focus": "Navigation inferred as workflow completion and destructive restoration",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": "ui",
+          "program": "{npm}",
+          "args": [
+            "test",
+            "--",
+            "src/components/workflow/VersionHistory.test.jsx",
+            "--maxWorkers=2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C45",
+      "title": "Validate the hosted authentication/storage adapter",
+      "phase": "hosted",
+      "depends_on": [
+        "C44"
+      ],
+      "kind": "controller_gate",
+      "allowed_write_paths": [
+        "docs/implementation/hosted-workspace-decision.md"
+      ],
+      "test_path": null,
+      "steps": [
+        "Controller chooses the deployment-compatible authentication and durable-storage adapter using actual available accounts and requirements.",
+        "Record trusted principal verification, durable store guarantees, CORS/origin configuration and credential provisioning.",
+        "Produce provider-specific implementation subpackets with exact files and tests.",
+        "Review the adapter before hosted implementation or real-data migration."
+      ],
+      "acceptance": [
+        "Account/cost/credential prerequisites are explicit.",
+        "Ephemeral Vercel /tmp cannot satisfy acknowledged durable saves.",
+        "Provider-specific work remains blocked until this decision is complete."
+      ],
+      "review_focus": "A placeholder provider treated as a private production system",
+      "gate": "hosted_adapter_decision",
+      "checks": []
+    },
+    {
+      "id": "C46",
+      "title": "Implement the selected hosted adapter in reviewed subpackets",
+      "phase": "hosted",
+      "depends_on": [
+        "C45"
+      ],
+      "kind": "controller_gate",
+      "allowed_write_paths": [
+        "{controller_supplied_hosted_allowlist}"
+      ],
+      "test_path": null,
+      "steps": [
+        "Controller replaces this packet with small concrete provider-specific children after the hosted decision.",
+        "Freebuff implements one child at a time with failing identity/storage tests.",
+        "Exercise actual authenticated access and durable recovery in the selected environment.",
+        "Return credentials/setup blockers as typed status for one-time user action."
+      ],
+      "acceptance": [
+        "Every dispatched child has concrete paths and commands, with all placeholders resolved.",
+        "Unauthenticated and forged-principal requests fail.",
+        "Acknowledged content survives the chosen deployment restart boundary."
+      ],
+      "review_focus": "Dispatching an unresolved architecture task to the implementer",
+      "gate": "hosted_children_reviewed",
+      "checks": []
+    },
+    {
+      "id": "C47",
+      "title": "Audit every legacy route and file for creator isolation",
+      "phase": "hosted",
+      "depends_on": [
+        "C46"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "content_machine/workflow/route_access.py",
+        "content_machine/api/app.py",
+        "tests/test_workflow_route_access.py"
+      ],
+      "test_path": "tests/test_workflow_route_access.py",
+      "steps": [
+        "Enumerate all existing read/write/static-file routes and identify private data flows.",
+        "Apply the selected hosted access boundary to legacy routes as well as /api/workflow.",
+        "Scope or explicitly disable unsupported global-data routes in hosted mode while preserving supported local callers.",
+        "Test direct IDs, paths, history, sources, profile, preferences and late results across two creators."
+      ],
+      "acceptance": [
+        "Authenticated B cannot access A through an older endpoint or file path.",
+        "Global Markdown/SQLite/process environment cannot select another creator's author data.",
+        "Static SPA fallback and unknown /api behavior remain correct."
+      ],
+      "review_focus": "Securing only the new endpoints",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": ".",
+          "program": "{python}",
+          "args": [
+            "-m",
+            "pytest",
+            "tests/test_workflow_route_access.py",
+            "-q"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C48",
+      "title": "Rehearse migration and durable recovery",
+      "phase": "hosted",
+      "depends_on": [
+        "C47"
+      ],
+      "kind": "implementation",
+      "allowed_write_paths": [
+        "tests/test_workflow_recovery.py"
+      ],
+      "test_path": "tests/test_workflow_recovery.py",
+      "steps": [
+        "Use backed-up isolated legacy data with explicit owner assignments.",
+        "Exercise interrupted save/import, repeated migration and restart/redeploy recovery.",
+        "Verify unchanged historical artifacts and source/approval associations.",
+        "Exercise export of an unapproved recovery backup separately from final approval."
+      ],
+      "acceptance": [
+        "Failed/partial operations preserve recoverable data.",
+        "Seed updates and repeat migrations cannot overwrite creator edits.",
+        "Known synthetic and uncertain records are handled according to their actual provenance."
+      ],
+      "review_focus": "A successful fresh install mistaken for safe migration",
+      "gate": null,
+      "checks": [
+        {
+          "cwd": ".",
+          "program": "{python}",
+          "args": [
+            "-m",
+            "pytest",
+            "tests/test_workflow_recovery.py",
+            "-q"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C49",
+      "title": "Complete keyboard, screen-reader and responsive journeys",
+      "phase": "verification",
+      "depends_on": [
+        "C48"
+      ],
+      "kind": "implementation_with_gate",
+      "allowed_write_paths": [
+        "ui/src/components/workflow/WorkflowJourney.test.jsx",
+        "docs/implementation/workflow-ui-verification.md"
+      ],
+      "test_path": "ui/src/components/workflow/WorkflowJourney.test.jsx",
+      "steps": [
+        "Controller exercises own notes, discovery, existing draft, explicit AI skip and manual export.",
+        "Check focus/labels/errors/linear comparison using keyboard and a screen reader.",
+        "Check 320 CSS-pixel reflow, 200% text resize, long content and phone keyboard.",
+        "Record actual evidence, failures and unperformed checks. Repair the owning code packet for each observed failure."
+      ],
+      "acceptance": [
+        "All text and primary actions stay reachable and readable.",
+        "Icons have visible labels or accessible names and statuses have textual meaning.",
+        "A screenshot or worker claim alone cannot mark a manual scenario passed."
+      ],
+      "review_focus": "Invented browser/accessibility evidence",
+      "gate": "ui_journeys_reviewed",
+      "checks": [
+        {
+          "cwd": "ui",
+          "program": "{npm}",
+          "args": [
+            "test",
+            "--",
+            "src/components/workflow/WorkflowJourney.test.jsx",
+            "--maxWorkers=2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C50",
+      "title": "Run full release verification and final diff review",
+      "phase": "verification",
+      "depends_on": [
+        "C49"
+      ],
+      "kind": "controller_gate",
+      "allowed_write_paths": [
+        "docs/implementation/workflow-release-evidence.md"
+      ],
+      "test_path": null,
+      "steps": [
+        "Controller reruns collected focused tests, the full pytest suite, mandated unittest discovery, frontend suite and production build.",
+        "Verify the complete retained-platform matrix including both Instagram deliverables.",
+        "Review staged, unstaged, untracked and generated output against the accepted checkpoint baseline.",
+        "Record exact command exit codes, revision/diff digest, manual evidence, remaining limitations and release disposition."
+      ],
+      "acceptance": [
+        "Every required test/check was actually run against the reviewed revision.",
+        "Tracked ui/dist matches the accepted source build.",
+        "All mandatory product gates pass before release is marked ready."
+      ],
+      "review_focus": "Rubber-stamped completion, stale build artifacts and unreviewed final edits",
+      "gate": "release_reviewed",
+      "checks": []
+    }
+  ],
+  "packet_kinds": [
+    "controller_gate",
+    "implementation",
+    "implementation_with_gate",
+    "controller_split"
+  ],
+  "common_read_policy": {
+    "before_C01_acceptance": [
+      "AGENTS.md",
+      "docs/ui-workflow-plan.md"
+    ],
+    "after_C01_acceptance": [
+      "AGENTS.md",
+      "docs/implementation/workflow-contract.md",
+      "docs/ui-style-system.md"
+    ]
+  },
+  "verified_executables": {
+    "python": "C:/Users/mamat/AppData/Local/Microsoft/WindowsApps/PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0/python.exe",
+    "node22": "C:/Users/mamat/AppData/Local/Temp/content-machine-node22/node_modules/node/bin/node.exe",
+    "freebuff_launcher": "C:/Users/mamat/AppData/Local/Temp/content-machine-freebuff-0.2.36/node_modules/.bin/freebuff.cmd"
+  }
+}
