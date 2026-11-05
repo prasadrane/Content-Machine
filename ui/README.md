@@ -28,7 +28,6 @@ ui/
 │   │   ├── interview.js            # /api/interview/brief and synthesize
 │   │   ├── linkedin.js             # /api/linkedin/status and sync
 │   │   ├── profile.js              # /api/profile endpoint
-│   │   ├── comments.js             # /api/comments endpoint
 │   │   ├── audio.js                # /api/transcribe and /api/mic/status
 │   │   ├── lessons.js              # /api/lessons endpoint
 │   │   └── distribute.js           # /api/distribute endpoint
@@ -65,11 +64,6 @@ ui/
 │       │   ├── AnchorForm.jsx      # Post input and platform toggles
 │       │   ├── OutputPreviews.jsx  # Generated outputs for X, Video, etc.
 │       │   └── PlatformConfigModal.jsx # Per-platform customization
-│       ├── commenting/             # Comment Generation
-│       │   ├── CommentingTab.jsx   # Orchestrator
-│       │   ├── InputPanel.jsx      # Post text and tone selection
-│       │   ├── PolishCard.jsx      # Polish card with alternatives
-│       │   └── CommentsHistory.jsx # Past generated comments
 │       ├── lessons/                # Subsystem 5: Governed Lessons Store
 │       │   ├── LessonsTab.jsx      # Orchestrator
 │       │   ├── RulesLists.jsx      # Active codified rules
@@ -92,6 +86,7 @@ ui/
 2. **Open-Closed Tab Registry**: New tabs are added to `ui/src/app/tabs.js` with their corresponding props selector without modifying `App.jsx`.
 3. **File Size Budget**: Target ≤300 lines/file; hard cap 350 lines (orchestrators only). Root `App.jsx` ≤120 lines.
 4. **Offline Testability**: All unit test suites run 100% offline with zero external network access.
+5. **Shared Editorial Theme**: Use the `cm-*` component styles in `src/index.css`, following [the styling contract](../docs/ui-style-system.md). Keep primary actions, fields, typography, and feedback consistent across all pages.
 
 ---
 

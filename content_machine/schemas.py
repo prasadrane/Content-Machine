@@ -82,55 +82,6 @@ class HumanizeTone(str, Enum):
     CONVERSATIONAL_PEER = "conversational_peer"
 
 
-class CommentAngle(str, Enum):
-    INSIGHTFUL = "insightful"
-    CONTRARIAN = "contrarian"
-    QUESTION = "question"
-
-
-class GenerateCommentRequest(BaseModel):
-    post_content: str = Field(min_length=10, description="Raw content of the LinkedIn post being commented on")
-    angle: CommentAngle = CommentAngle.INSIGHTFUL
-    perspective_text: str | None = None
-    humanize: bool = Field(default=True, description="Apply Humanize Transformer polish pass")
-    tone: HumanizeTone = Field(default=HumanizeTone.PUNCHY_DIRECT, description="Target human tone")
-
-
-class CommentRunResponse(BaseModel):
-    comment_id: str
-    initial_draft: str
-    final_comment: str
-    iteration: int
-    peak_score: float
-    verdict: str
-    actions: list[str] = Field(default_factory=list)
-    judge_scores: dict[str, float] = Field(default_factory=dict)
-    judge_critiques: dict[str, str] = Field(default_factory=dict)
-    humanized: bool = Field(default=True)
-    humanize_tone: str = Field(default="punchy_direct")
-    burstiness_score: float = Field(default=0.0)
-
-
-class CommentHistoryItem(BaseModel):
-    id: str
-    post_content: str
-    angle: str
-    perspective_text: str | None = None
-    final_comment: str
-    iteration_count: int
-    peak_score: float
-    verdict: str
-    humanized: bool = False
-    humanize_tone: str | None = None
-    burstiness_score: float | None = 0.0
-    created_at: str
-
-
-class CommentHistoryResponse(BaseModel):
-    items: list[CommentHistoryItem] = Field(default_factory=list)
-    total: int
-
-
 class ProfileData(BaseModel):
     """Codified author persona, voice profile, and domain invariants."""
 
@@ -151,7 +102,6 @@ class UpdateProfileRequest(BaseModel):
 
 
 class HumanizeChannel(str, Enum):
-    LINKEDIN_COMMENT = "linkedin_comment"
     LINKEDIN_POST = "linkedin_post"
     X_THREAD = "x_thread"
     VIDEO_SCRIPT = "video_script"

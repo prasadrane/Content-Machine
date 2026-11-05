@@ -2,7 +2,7 @@ import React, { useMemo } from 'react'
 import { Flame } from 'lucide-react'
 import { PresetChipGroup, selectedSetFrom } from './PresetEditorPane'
 
-const GROUP_LABEL_CLASS = 'text-[10px] text-[#87867f] font-mono block mb-1'
+const GROUP_LABEL_CLASS = 'cm-label block mb-2'
 
 export default function RssPane({
   rssUrls,
@@ -26,22 +26,22 @@ export default function RssPane({
       <button
         type="button"
         onClick={onLoadViralRadar}
-        className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-[#c6613f] to-[#d97757] hover:from-[#b55535] hover:to-[#c6613f] text-[#faf9f5] text-xs font-medium flex items-center justify-center gap-2 shadow-xs transition duration-150 group"
+        className="cm-button cm-button-secondary w-full flex items-center justify-center gap-2 duration-150 group"
         title="Populate top viral newsletters, Reddit communities, and Techmeme"
       >
-        <Flame className="w-3.5 h-3.5 text-[#faf9f5] group-hover:scale-110 transition-transform" />
+        <Flame className="w-3.5 h-3.5 text-anthropic-ivory-light group-hover:scale-110 transition-transform" />
         <span>🔥 Load Viral Tech Radar (8 Signals)</span>
       </button>
 
       <div className="flex items-center justify-between">
-        <label htmlFor="oracle-rss-feeds" className="block text-xs font-medium text-[#141413]">RSS / Atom Feeds</label>
+        <label htmlFor="oracle-rss-feeds" className="cm-label block">RSS / Atom Feeds</label>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-mono text-[#87867f]">{rssCount} configured</span>
+          <span className="text-sm text-anthropic-cloud-dark">{rssCount} configured</span>
           {rssCount > 0 && (
             <button
               type="button"
               onClick={() => setRssUrls('')}
-              className="text-[10px] font-mono text-[#c6613f] hover:underline"
+              className="cm-button cm-button-quiet hover:underline"
             >
               Clear
             </button>
@@ -56,7 +56,7 @@ export default function RssPane({
         value={rssUrls}
         onChange={(e) => setRssUrls(e.target.value)}
         placeholder="https://example.com/feed.xml"
-        className="w-full text-xs font-mono bg-[#faf9f5] border border-[#e3dacc] rounded-xl p-3 text-[#141413] focus:outline-none focus:border-[#141413] focus:ring-1 focus:ring-[#141413] placeholder-[#b0aea5]"
+        className="cm-textarea w-full font-mono"
       />
 
       {/* Quick Presets with Visual Selection State */}

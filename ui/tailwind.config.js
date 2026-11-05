@@ -13,7 +13,7 @@ export default {
           'ivory-medium': '#f0eee6',
           'slate-dark': '#141413',
           'cloud-medium': '#b0aea5',
-          'cloud-dark': '#87867f',
+          'cloud-dark': '#68675f',
           'oat': '#e3dacc',
           'accent': '#c6613f',
           'clay': '#d97757',

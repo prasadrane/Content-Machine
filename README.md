@@ -39,10 +39,6 @@ Governed lessons store:
 
 ![Governed lessons store](docs/screenshots/04-lessons.jpg)
 
-Comments history:
-
-![Comments history](docs/screenshots/05-comments.jpg)
-
 Screenshots show the seeded demo dataset (`content_machine/demo_seed.py`: public article metadata + synthetic scores, placeholder persona), not production data.
 
 ## Architecture
@@ -75,7 +71,6 @@ Content-Machine/
 │   ├── interview/       # Subsystem 3: Deep Technical Interview & Thesis Synthesis
 │   ├── council/         # Subsystem 4: Writer's Council Multi-Model Deliberation Loop
 │   ├── humanize/        # Subsystem 5: Two-tier Anti-AI Transformer & Burstiness Guardrails
-│   ├── commenting/      # Subsystem 6: Grounded LinkedIn Comment Generation & History
 │   ├── distribution/    # Subsystem 7: Multi-Channel Cross-Distribution (X threads, Video scripts)
 │   ├── lessons/         # Subsystem 8: Governed Editorial Rule Store & Diff Extractor
 │   ├── imaging/         # Per-post image-prompt generation (fills visual master-prompt §28 template)
@@ -105,7 +100,6 @@ Content-Machine/
   - Purges 41 canonical AI-tell variants (*delve, tapestry, pivotal, testament, cornerstone, robust, etc.*) and 26 multi-word puffery phrases.
   - Refined em-dash normalization that preserves CLI flags (`--flag`) and Markdown dividers (`---`).
   - Burstiness measurement: sentence-length standard deviation computed and reported per output as `burstiness_score`.
-- **LinkedIn Commenting Tool**: Synthesizes 2–3 sentence senior comments from 3 strategic angles (`Insightful`, `Contrarian`, `Question`) with voice dictation and post-council polish.
 - **Cross-Channel Distribution**: Transforms approved anchor posts into platform-native X/Twitter threads, spoken short-form video scripts (with `[Visual Cue]` and `[Camera Zoom]` markers), and newsletter digests.
 - **Governed Lessons Store**: Editorial rules extracted from draft-vs-published diffs stay `pending` until a human approves them; rules typed by the operator are activated directly. Conflicting rules are flagged by embedding similarity.
 
@@ -197,9 +191,6 @@ python -m content_machine oracle --rss https://dev.to/feed
 
 # Run Writer's Council evaluation on a draft post
 python -m content_machine council draft.md
-
-# Generate a grounded LinkedIn comment
-python -m content_machine comment --post "Kafka partition rebalance issues..." --angle insightful
 
 # De-AI and humanize any draft text
 python -m content_machine humanize draft.txt --channel linkedin_post --tone pragmatic_architect

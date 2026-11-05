@@ -98,7 +98,7 @@ The module sets, via `os.environ.setdefault` (so an explicit platform value woul
 
 It then imports the same ASGI `app` used locally and runs `_cold_start()` at import time: `paths.ensure_tree()` (skips seed-copy under demo mode, see below) opens the SQLite database and calls `content_machine.demo_seed.seed_demo(conn)`. Finally it installs `RateLimitMiddleware` with `limit_per_min=10`.
 
-`seed_demo` is idempotent — it short-circuits when any `demo-%` spike row already exists — and inserts a wholly synthetic showcase: 10 demo spikes (scores/verdicts fabricated, some source URLs are real public articles), 6 style lessons, a 3-iteration council history with judge-score rows for one spike, 2 demo comments, and two distribution bundles. Before the idempotency guard it always rewrites the runtime voice guide to the synthetic "John Doe" persona (a fictional senior-engineer identity defined in `content_machine/demo_seed.py`), so a real author's guide can never surface in the demo.
+`seed_demo` is idempotent — it short-circuits when any `demo-%` spike row already exists — and inserts a wholly synthetic showcase: 10 demo spikes (scores/verdicts fabricated, some source URLs are real public articles), 6 style lessons, a 3-iteration council history with judge-score rows for one spike, and two distribution bundles. Before the idempotency guard it always rewrites the runtime voice guide to the synthetic "John Doe" persona (a fictional senior-engineer identity defined in `content_machine/demo_seed.py`), so a real author's guide can never surface in the demo.
 
 ### Rate limiting (`content_machine/api/rate_limit.py`)
 

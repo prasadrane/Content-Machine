@@ -127,19 +127,6 @@ class HumanizeTransformer:
             was_modified=(cleaned != original),
         )
 
-    def humanize_comment(
-        self,
-        comment: str,
-        tone: HumanizeTone = HumanizeTone.PUNCHY_DIRECT,
-        max_sentences: int = 3,
-    ) -> HumanizeResult:
-        return self.transform(
-            comment,
-            channel=HumanizeChannel.LINKEDIN_COMMENT,
-            tone=tone,
-            max_sentences=max_sentences,
-        )
-
     def humanize_post(
         self,
         post: str,

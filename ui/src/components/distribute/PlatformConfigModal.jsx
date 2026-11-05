@@ -16,15 +16,15 @@ export default function PlatformConfigModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#141413]/60 backdrop-blur-sm animate-fadeIn">
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Platform Distribution Formats" className="bg-[#faf9f5] border border-[#e3dacc] rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl space-y-0">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Platform Distribution Formats" className="cm-dialog w-full max-w-lg space-y-0">
         {/* Modal Header */}
-        <div className="p-5 border-b border-[#e3dacc] flex items-center justify-between">
+        <div className="cm-page-header p-5">
           <div>
-            <h3 className="font-serif text-base font-semibold text-[#141413] flex items-center gap-2">
+            <h3 className="cm-panel-title flex items-center gap-2">
               <Sliders className="w-4 h-4 text-[#c6613f]" />
               <span>Platform Distribution Formats</span>
             </h3>
-            <p className="text-xs text-[#87867f] mt-0.5">
+            <p className="cm-muted mt-0.5">
               Select which platforms to generate. LinkedIn is set as default.
             </p>
           </div>
@@ -32,7 +32,7 @@ export default function PlatformConfigModal({
             type="button"
             aria-label="Close platform settings"
             onClick={onClose}
-            className="p-1 rounded-full text-[#87867f] hover:text-[#141413] hover:bg-[#f0eee6] transition"
+            className="cm-icon-button"
           >
             <X className="w-4 h-4" />
           </button>
@@ -45,29 +45,25 @@ export default function PlatformConfigModal({
             return (
               <label
                 key={fmt.id}
-                className={`p-4 rounded-xl border transition cursor-pointer flex items-start gap-3.5 ${
-                  isEnabled
-                    ? 'bg-[#f0eee6] border-[#b0aea5]'
-                    : 'bg-[#faf9f5] border-[#e3dacc] opacity-60'
-                }`}
+                className="cm-subpanel cursor-pointer flex items-start gap-3"
               >
                 <input
                   type="checkbox"
                   checked={Boolean(isEnabled)}
                   aria-label={fmt.label}
                   onChange={() => onToggleFormat(fmt.id)}
-                  className="mt-1 rounded text-[#141413] focus:ring-0 focus:outline-none"
+                  className="mt-1"
                 />
                 <div className="flex-1 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className={`text-xs font-medium ${isEnabled ? 'text-[#141413]' : 'text-[#87867f]'}`}>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="cm-label">
                       {fmt.label}
                     </span>
-                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${fmt.tagColor}`}>
+                    <span className="cm-badge">
                       {fmt.tag}
                     </span>
                   </div>
-                  <p className="text-[11px] text-[#87867f] leading-normal">
+                  <p className="cm-muted">
                     {fmt.desc}
                   </p>
                 </div>
@@ -77,12 +73,12 @@ export default function PlatformConfigModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 bg-[#f0eee6] border-t border-[#e3dacc] flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="cm-divider p-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={onSelectAll}
-              className="text-[11px] font-mono text-[#87867f] hover:text-[#141413] px-2 py-1 rounded hover:bg-[#e3dacc]/50 transition"
+              className="cm-button cm-button-secondary"
             >
               Select All
             </button>
@@ -90,7 +86,7 @@ export default function PlatformConfigModal({
             <button
               type="button"
               onClick={onResetDefaults}
-              className="text-[11px] font-mono text-[#87867f] hover:text-[#141413] px-2 py-1 rounded hover:bg-[#e3dacc]/50 transition"
+              className="cm-button cm-button-secondary"
             >
               Reset Defaults
             </button>
@@ -99,7 +95,7 @@ export default function PlatformConfigModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 bg-[#141413] hover:bg-[#252524] text-[#faf9f5] rounded-full text-xs font-medium transition shadow-sm"
+            className="cm-button cm-button-primary"
           >
             Apply & Close
           </button>

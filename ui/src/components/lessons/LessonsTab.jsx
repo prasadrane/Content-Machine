@@ -89,12 +89,14 @@ export default function LessonsTab() {
   }
 
   return (
-    <div className="space-y-8 animate-fadeIn">
-      <div className="border-b border-[#e3dacc] pb-5">
-        <h2 className="font-serif text-2xl font-medium tracking-tight text-[#141413]">Editorial Lessons</h2>
-        <p className="text-sm text-[#87867f] mt-1 font-sans">
-          Codified writing rules and approved stylistic constraints.
-        </p>
+    <div className="cm-page animate-fadeIn">
+      <div className="cm-page-header">
+        <div>
+          <h2 className="cm-page-title">Editorial Lessons</h2>
+          <p className="cm-page-description">
+            Codified writing rules and approved stylistic constraints.
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">

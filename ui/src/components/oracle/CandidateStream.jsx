@@ -50,13 +50,13 @@ export default function CandidateStream({
 
   return (
     <div className="md:col-span-2 space-y-4">
-      <div className="flex items-center justify-between pb-2 border-b border-[#e3dacc]">
-        <h3 className="text-xs uppercase font-mono tracking-wider text-[#87867f]">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-anthropic-oat">
+        <h3 className="cm-panel-title">
           Scored Candidates {candidates.length > 0 && filteredCandidates.length !== candidates.length 
             ? `(${filteredCandidates.length} of ${candidates.length})` 
             : `(${candidates.length})`}
         </h3>
-        <span className="text-[11px] text-[#87867f] font-mono">Gate: 8.0 &bull; Margin: &plusmn;0.5</span>
+        <span className="text-sm text-anthropic-cloud-dark">Gate: 8.0 &bull; Margin: &plusmn;0.5</span>
       </div>
 
       {/* ScanProgressHUD: 3-Phase Stepper, Zero-Token Badge, Scoring Progress */}
@@ -69,26 +69,26 @@ export default function CandidateStream({
       )}
 
       {candidates.length === 0 && !loading && !scanProgress && (
-        <div className="border border-dashed border-[#b0aea5] rounded-2xl p-12 text-center text-[#87867f] bg-[#f0eee6]/30">
-          <Compass className="w-8 h-8 mx-auto mb-3 stroke-1 text-[#b0aea5]" />
-          <p className="text-sm font-medium text-[#141413]">No candidates scored in this scan yet.</p>
-          <p className="text-sm text-[#58574f] mt-1">Scan your configured sources or explore previously saved signals.</p>
-          {onBrowseArchive && <button type="button" onClick={onBrowseArchive} className="mt-4 px-4 py-2 rounded-full border border-[#87867f] text-sm text-[#141413]">Browse feed archive</button>}
+        <div className="cm-empty">
+          <Compass className="w-8 h-8 mx-auto mb-3 stroke-1 text-anthropic-cloud-medium" />
+          <p className="cm-prose">No candidates scored in this scan yet.</p>
+          <p className="cm-prose mt-1">Scan your configured sources or explore previously saved signals.</p>
+          {onBrowseArchive && <button type="button" onClick={onBrowseArchive} className="cm-button cm-button-secondary mt-4">Browse feed archive</button>}
         </div>
       )}
 
       {loading && candidates.length === 0 && (
-        <div className="border border-dashed border-[#e3dacc] rounded-2xl p-8 text-center text-[#87867f] bg-[#faf9f5]/50 animate-fadeIn">
-          <Sparkles className="w-5 h-5 mx-auto mb-2 text-[#d97757] animate-pulse" />
-          <p className="text-xs font-serif text-[#141413]">Listening to real-time signal stream...</p>
-          <p className="text-[11px] text-[#87867f] mt-0.5">Scored candidates will materialize here dynamically as consensus is reached.</p>
+        <div className="cm-empty animate-fadeIn">
+          <Sparkles className="w-5 h-5 mx-auto mb-2 text-anthropic-clay animate-pulse" />
+          <p className="cm-prose">Listening to real-time signal stream...</p>
+          <p className="cm-prose mt-0.5">Scored candidates will materialize here dynamically as consensus is reached.</p>
         </div>
       )}
 
       {!loading && candidates.length === 0 && scanProgress && (
-        <div className="border border-dashed border-[#e3dacc] rounded-2xl p-8 text-center text-[#87867f] bg-[#faf9f5]/50 animate-fadeIn">
-          <p className="text-xs font-serif text-[#141413]">No signals met the score threshold (≥8.0) in this batch.</p>
-          <p className="text-[11px] text-[#87867f] mt-0.5">All items were either deduplicated from SQLite cache or scored below threshold.</p>
+        <div className="cm-empty animate-fadeIn">
+          <p className="cm-prose">No signals met the score threshold (≥8.0) in this batch.</p>
+          <p className="cm-prose mt-0.5">All items were either deduplicated from SQLite cache or scored below threshold.</p>
         </div>
       )}
 
@@ -108,13 +108,13 @@ export default function CandidateStream({
 
       {/* Zero Filter Matches State */}
       {candidates.length > 0 && filteredCandidates.length === 0 && (
-        <div className="border border-dashed border-[#b0aea5] rounded-2xl p-8 text-center text-[#87867f] bg-[#f0eee6]/30 animate-fadeIn">
-          <Search className="w-6 h-6 mx-auto mb-2 text-[#b0aea5]" />
-          <p className="text-xs font-medium text-[#141413]">No candidates match the active filters.</p>
+        <div className="cm-empty animate-fadeIn">
+          <Search className="w-6 h-6 mx-auto mb-2 text-anthropic-cloud-medium" />
+          <p className="cm-prose">No candidates match the active filters.</p>
           <button
             type="button"
             onClick={() => { setBatchSearch(''); setBatchTopic('All'); }}
-            className="text-[11px] text-[#c6613f] hover:underline mt-1.5 inline-block font-mono"
+            className="cm-button cm-button-quiet hover:underline mt-1.5 inline-block"
           >
             Reset batch filters &rarr;
           </button>

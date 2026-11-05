@@ -28,7 +28,6 @@ class TestHumanizeSchemasAndConstants(unittest.TestCase):
         self.assertEqual(HumanizeTone.PRAGMATIC_ARCHITECT.value, "pragmatic_architect")
         self.assertEqual(HumanizeTone.CONVERSATIONAL_PEER.value, "conversational_peer")
 
-        self.assertEqual(HumanizeChannel.LINKEDIN_COMMENT.value, "linkedin_comment")
         self.assertEqual(HumanizeChannel.LINKEDIN_POST.value, "linkedin_post")
         self.assertEqual(HumanizeChannel.X_THREAD.value, "x_thread")
         self.assertEqual(HumanizeChannel.VIDEO_SCRIPT.value, "video_script")
@@ -72,7 +71,7 @@ class TestHumanizeSchemasAndConstants(unittest.TestCase):
 
         # Check prompts
         self.assertIn(HumanizeTone.PUNCHY_DIRECT, TONE_SYSTEM_PROMPTS)
-        self.assertIn(HumanizeChannel.LINKEDIN_COMMENT, CHANNEL_PROMPTS)
+        self.assertIn(HumanizeChannel.LINKEDIN_POST, CHANNEL_PROMPTS)
 
 
 class TestHumanizeSanitizer(unittest.TestCase):
@@ -189,7 +188,7 @@ class FakeRouter:
 
 
 class TestHumanizeTransformer(unittest.TestCase):
-    def test_transform_comment_enforces_max_sentences(self):
+    def test_transform_enforces_explicit_max_sentences(self):
         from content_machine.humanize.transformer import HumanizeTransformer
 
         fake_reply = (
@@ -199,8 +198,8 @@ class TestHumanizeTransformer(unittest.TestCase):
         router = FakeRouter(response_text=fake_reply)
         transformer = HumanizeTransformer(router=router, voice_guide="Author voice guide")
 
-        res = transformer.humanize_comment("Raw comment text", max_sentences=3)
-        self.assertEqual(res.channel, HumanizeChannel.LINKEDIN_COMMENT)
+        res = transformer.transform("Raw technical text", channel=HumanizeChannel.GENERAL, tone=HumanizeTone.PUNCHY_DIRECT, max_sentences=3)
+        self.assertEqual(res.channel, HumanizeChannel.GENERAL)
         self.assertEqual(res.tone, HumanizeTone.PUNCHY_DIRECT)
         self.assertEqual(res.sentence_count, 3)
         self.assertNotIn("point four", res.humanized_text)

@@ -14,8 +14,8 @@ export default function GithubPane({
   return (
     <div className="space-y-3 animate-fadeIn">
       <div className="flex items-center justify-between">
-        <label htmlFor="oracle-github-repos" className="block text-xs font-medium text-[#141413]">GitHub Repositories</label>
-        <span className="text-[10px] font-mono text-[#87867f]">{ghCount} configured</span>
+        <label htmlFor="oracle-github-repos" className="cm-label block">GitHub Repositories</label>
+        <span className="text-sm text-anthropic-cloud-dark">{ghCount} configured</span>
       </div>
       <textarea
         id="oracle-github-repos"
@@ -25,13 +25,13 @@ export default function GithubPane({
         value={githubRepos}
         onChange={(e) => setGithubRepos(e.target.value)}
         placeholder="owner/repo (one per line)"
-        className="w-full text-xs font-mono bg-[#faf9f5] border border-[#e3dacc] rounded-xl p-2.5 text-[#141413] focus:outline-none focus:border-[#141413] focus:ring-1 focus:ring-[#141413] placeholder-[#b0aea5]"
+        className="cm-textarea w-full font-mono"
       />
-      <span className="text-[11px] text-[#87867f] block">e.g. facebook/react or rust-lang/rust</span>
+      <span className="text-sm text-anthropic-cloud-dark block">e.g. facebook/react or rust-lang/rust</span>
 
       <PresetChipGroup
         label="Quick Presets:"
-        labelClass="text-[10px] text-[#87867f] font-mono block mb-1"
+        labelClass="cm-label block mb-2"
         wrapClass="space-y-2 pt-1"
         presets={githubPresets}
         valueKey="repo"

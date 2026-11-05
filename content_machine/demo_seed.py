@@ -47,20 +47,6 @@ DEMO_LESSONS = [
     "Cite concrete failure modes (timeouts, retries, schema drift) instead of vague generalities.",
 ]
 
-DEMO_COMMENTS = [
-    (
-        "We moved our cache layer to a probabilistic early-expiry strategy last quarter.",
-        "insightful",
-        "The early-expiry move matches what we saw: the stampede window shrinks to almost nothing once readers refresh ahead of TTL. Worth pairing it with a per-key mutex for the cold path.",
-    ),
-    (
-        "Our team standardized on UUIDv7 for all new primary keys this year.",
-        "contrarian",
-        "UUIDv7 fixed our write locality, but the migration story is the part nobody warns about: dual-write windows and index rebuilds dominate the project, not the key format.",
-    ),
-]
-
-
 _REAL_URLS = {
     "demo-rustls-decade": "https://rustls.dev/blog/2026-09-08-a-decade-of-rustls/",
     "demo-primary-keys": "https://anchorsandlinks.com/posts/primary-keys/",
@@ -86,7 +72,7 @@ def seed_demo(conn: sqlite3.Connection) -> dict[str, int]:
     _write_demo_voice_guide()  # before the guard: cheap, content-identical rewrite
     existing = conn.execute("SELECT COUNT(*) FROM spikes WHERE id LIKE 'demo-%'").fetchone()[0]
     if existing:
-        return {"spikes": 0, "lessons": 0, "iterations": 0, "comments": 0}
+        return {"spikes": 0, "lessons": 0, "iterations": 0}
 
     for i, (sid, thesis, score, status, topic, source, days_ago) in enumerate(DEMO_SPIKES):
         scores = {
@@ -166,20 +152,12 @@ def seed_demo(conn: sqlite3.Connection) -> dict[str, int]:
                 (slot, "gemini-2.5-pro", "demo-cache-stampede", iteration, dim, review["scores"][slot], None, _ts(0.5)),
             )
 
-    for i, (post, angle, final) in enumerate(DEMO_COMMENTS, start=1):
-        conn.execute(
-            "INSERT INTO comments (id, post_content, angle, perspective_text, initial_draft, final_comment, iteration_count, peak_score, verdict, judge_critiques, created_at, humanized, humanize_tone, burstiness_score) "
-            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-            (f"demo-comment-{i}", post, angle, "synthetic perspective", final, final, 1, 9.1, "pass", "[]", _ts(0.2), 1, "pragmatic_architect", 4.1),
-        )
-
     conn.commit()
     _write_bundles()
     return {
         "spikes": len(DEMO_SPIKES),
         "lessons": len(DEMO_LESSONS),
         "iterations": 3,
-        "comments": len(DEMO_COMMENTS),
     }
 
 

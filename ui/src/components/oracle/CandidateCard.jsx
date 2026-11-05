@@ -8,7 +8,6 @@ import {
   X,
 } from 'lucide-react'
 import { DIMENSION_LABELS } from '../../lib/constants'
-import { getTopicBadgeClass } from '../../lib/topics'
 import { useCopyToClipboard } from '../../hooks/useCopyToClipboard'
 
 export default function CandidateCard({ candidate, onSendToCouncil, onOpenInterview, onDismiss }) {
@@ -69,10 +68,10 @@ export default function CandidateCard({ candidate, onSendToCouncil, onOpenInterv
         {chips.map(({ label, val }) => (
           <span
             key={label}
-            className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-[#f0eee6] text-[#5c5a55] border border-[#e3dacc] flex items-center gap-1"
+            className="cm-badge flex items-center gap-1"
           >
-            <span className="text-[#87867f]">{label}:</span>
-            <span className="font-semibold text-[#141413]">{val}</span>
+            <span className="text-anthropic-cloud-dark">{label}:</span>
+            <span className="font-semibold text-anthropic-slate-dark">{val}</span>
           </span>
         ))}
       </div>
@@ -85,20 +84,20 @@ export default function CandidateCard({ candidate, onSendToCouncil, onOpenInterv
   const verdictText = (candidate.verdict || 'PASS').toUpperCase()
 
   return (
-    <div className="bg-[#faf9f5] hover:bg-[#f0eee6]/30 transition-all duration-200 border border-[#e3dacc] hover:border-[#b0aea5] rounded-2xl p-5 space-y-3.5 shadow-anthropic group">
+    <div className="cm-panel duration-200 space-y-3.5 group">
       {/* Top Row: Topic Badge & Score Capsule */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2 flex-wrap">
           {candidate.topic_tag && (
-            <span className={`text-[10px] font-medium px-2.5 py-0.5 rounded-full border ${getTopicBadgeClass(candidate.topic_tag)}`}>
+            <span className="cm-badge">
               {candidate.topic_tag}
             </span>
           )}
-          <span className="text-[11px] text-[#87867f] font-mono">{candidate.source}</span>
+          <span className="text-sm text-anthropic-cloud-dark">{candidate.source}</span>
           {candidate.published_at && (
             <>
-              <span className="text-[#b0aea5]">&bull;</span>
-              <span className="text-[11px] text-[#87867f] font-mono">
+              <span className="text-anthropic-cloud-medium">&bull;</span>
+              <span className="text-sm text-anthropic-cloud-dark">
                 {new Date(candidate.published_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
               </span>
             </>
@@ -107,14 +106,14 @@ export default function CandidateCard({ candidate, onSendToCouncil, onOpenInterv
 
         {/* Score Capsule: PASS 8.95 */}
         <div className="flex items-center shrink-0">
-          <span className={`text-xs font-mono font-semibold px-2.5 py-0.5 rounded-full border flex items-center gap-1.5 ${
+          <span className={` cm-badge flex items-center gap-1.5 ${
             isPass
-              ? 'bg-[#c6613f]/10 text-[#c6613f] border-[#c6613f]/30'
+              ? ""
               : isReview
-              ? 'bg-[#d97757]/10 text-[#d97757] border-[#d97757]/30'
-              : 'bg-[#f0eee6] text-[#87867f] border-[#e3dacc]'
-          }`}>
-            <span className="text-[10px] uppercase font-bold tracking-wider">{verdictText}</span>
+              ? ""
+              : ""
+          }  `}>
+            <span className="text-sm uppercase font-bold tracking-wider">{verdictText}</span>
             <span className="font-bold">{scoreFormatted}</span>
           </span>
         </div>
@@ -127,12 +126,12 @@ export default function CandidateCard({ candidate, onSendToCouncil, onOpenInterv
             href={candidate.url}
             target="_blank"
             rel="noreferrer"
-            className="text-base font-serif font-medium text-[#141413] hover:text-[#c6613f] transition leading-snug inline-block"
+            className="cm-panel-title leading-snug inline-block"
           >
             {candidate.title}
           </a>
         ) : (
-          <h4 className="text-base font-serif font-medium text-[#141413] leading-snug">
+          <h4 className="cm-panel-title leading-snug">
             {candidate.title}
           </h4>
         )}
@@ -141,7 +140,7 @@ export default function CandidateCard({ candidate, onSendToCouncil, onOpenInterv
       {/* 2-line Clean Excerpt Preview */}
       {candidate.body_snippet && (
         <p
-          className="text-xs text-[#5c5a55] font-sans leading-relaxed line-clamp-2"
+          className="cm-prose leading-relaxed line-clamp-2"
           style={{
             display: '-webkit-box',
             WebkitLineClamp: 2,
@@ -154,10 +153,10 @@ export default function CandidateCard({ candidate, onSendToCouncil, onOpenInterv
       )}
 
       {/* Dimension Scores Micro-Chips */}
-      {candidate.dimension_scores && <details className="text-sm text-[#58574f]"><summary className="cursor-pointer">Score breakdown</summary>{renderDimensionScores()}</details>}
+      {candidate.dimension_scores && <details className="text-sm text-anthropic-cloud-dark"><summary className="cursor-pointer">Score breakdown</summary>{renderDimensionScores()}</details>}
 
       {/* Card Footer Action Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#e3dacc]">
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-anthropic-oat">
         {/* Quick Actions */}
         <div className="flex items-center gap-1.5 flex-wrap">
           {/* Brief & Perspective (Subsystem 2) */}
@@ -165,10 +164,10 @@ export default function CandidateCard({ candidate, onSendToCouncil, onOpenInterv
             <button
               type="button"
               onClick={() => onSendToCouncil(candidate)}
-              className="text-xs text-[#87867f] hover:text-[#141413] px-2.5 py-1 rounded-full hover:bg-[#e3dacc]/50 transition flex items-center gap-1 font-medium"
+              className="cm-button cm-button-quiet flex items-center gap-1"
               title="Start a draft directly without an interview"
             >
-              <Sparkles className="w-3 h-3 text-[#d97757]" />
+              <Sparkles className="w-3 h-3 text-anthropic-clay" />
               <span>Review a draft</span>
             </button>
           )}
@@ -177,11 +176,11 @@ export default function CandidateCard({ candidate, onSendToCouncil, onOpenInterv
           <button
             type="button"
             onClick={handleCopySummary}
-            className={`text-xs px-2.5 py-1 rounded-full transition flex items-center gap-1 font-mono ${
+            className={` cm-button cm-button-quiet flex items-center gap-1 ${
               copied
-                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                : 'text-[#87867f] hover:text-[#141413] hover:bg-[#e3dacc]/50'
-            }`}
+                ? "cm-status-success"
+                : ""
+            }  `}
             title="Copy title, link, and excerpt to clipboard"
           >
             {copied ? (
@@ -203,7 +202,7 @@ export default function CandidateCard({ candidate, onSendToCouncil, onOpenInterv
               href={candidate.url}
               target="_blank"
               rel="noreferrer"
-              className="text-xs text-[#87867f] hover:text-[#141413] px-2 py-1 rounded-full hover:bg-[#e3dacc]/50 transition inline-flex items-center gap-1 font-mono"
+              className="cm-link inline-flex items-center gap-1"
               title="Open source URL in new tab"
             >
               <span>Open Source</span>
@@ -215,7 +214,7 @@ export default function CandidateCard({ candidate, onSendToCouncil, onOpenInterv
           <button
             type="button"
             onClick={() => onDismiss(candidate)}
-            className="text-xs text-[#87867f] hover:text-rose-600 px-2 py-1 rounded-full hover:bg-rose-50 transition flex items-center gap-1 font-mono"
+            className="cm-button cm-button-quiet flex items-center gap-1"
             title="Dismiss candidate from active batch"
           >
             <X className="w-3 h-3" />
@@ -227,7 +226,7 @@ export default function CandidateCard({ candidate, onSendToCouncil, onOpenInterv
         <button
           type="button"
           onClick={() => onOpenInterview ? onOpenInterview(candidate) : onSendToCouncil(candidate)}
-          className="py-1.5 px-4 bg-[#141413] hover:bg-[#252524] text-[#faf9f5] rounded-full text-xs font-medium transition flex items-center gap-1.5 shadow-sm ml-auto shrink-0"
+          className="cm-button cm-button-primary flex items-center gap-1.5 ml-auto shrink-0"
         >
           <span>{onOpenInterview ? 'Add my perspective' : 'Send to Council'}</span>
           <ArrowRight className="w-3.5 h-3.5" />

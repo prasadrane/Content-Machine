@@ -20,16 +20,16 @@ export default function DomainsEditor({
   onKeyDown,
 }) {
   return (
-    <div className="bg-[#f0eee6]/60 border border-[#e3dacc] rounded-2xl p-5 sm:p-6 space-y-3.5 shadow-anthropic">
-      <div className="flex items-center justify-between">
-        <label className="text-xs uppercase font-mono tracking-wider text-[#87867f] font-semibold">
+    <div className="cm-panel space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h3 className="cm-panel-title">
           Technical Domains &amp; Competencies
-        </label>
-        <span className="text-[10px] font-mono text-[#87867f]">
+        </h3>
+        <span className="cm-muted">
           {domains.length} domains
         </span>
       </div>
-      <p className="text-xs text-[#87867f] font-sans">
+      <p className="cm-muted">
         Display and manage authoritative technical domains applied across drafts:
       </p>
 
@@ -38,39 +38,41 @@ export default function DomainsEditor({
         {domains.map((domain, idx) => (
           <span
             key={idx}
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono bg-[#faf9f5] border border-[#e3dacc] text-[#141413] shadow-xs group hover:border-[#b0aea5] transition"
+            className="cm-badge inline-flex items-center gap-1"
           >
             <span>{domain}</span>
             <button
               type="button"
               onClick={() => onRemove(domain)}
-              className="p-0.5 rounded-full text-[#87867f] hover:text-[#c6613f] transition"
+              className="cm-icon-button"
               title={`Remove ${domain}`}
+              aria-label={`Remove ${domain}`}
             >
               <X className="w-3 h-3" />
             </button>
           </span>
         ))}
         {domains.length === 0 && (
-          <span className="text-xs text-[#87867f] italic">No domains configured.</span>
+          <span className="cm-muted">No domains configured.</span>
         )}
       </div>
 
       {/* Add Domain Input */}
       <div className="flex items-center gap-2 pt-2">
         <input
+          aria-label="Add technical domain"
           type="text"
           value={newDomainInput}
           onChange={(e) => onInputChange(e.target.value)}
           onKeyDown={onKeyDown}
           placeholder="Add domain (e.g., Event-Driven Architecture) and press Enter..."
-          className="flex-1 text-xs font-mono bg-[#faf9f5] border border-[#e3dacc] rounded-xl px-3.5 py-2 text-[#141413] focus:outline-none focus:border-[#141413] placeholder-[#b0aea5] shadow-xs"
+          className="cm-input min-w-0 flex-1"
         />
         <button
           type="button"
           onClick={onAdd}
           disabled={!newDomainInput.trim()}
-          className="px-4 py-2 bg-[#141413] hover:bg-[#252524] disabled:opacity-50 text-[#faf9f5] rounded-xl text-xs font-medium font-mono transition shrink-0 shadow-xs flex items-center gap-1.5"
+          className="cm-button cm-button-secondary shrink-0"
         >
           <Plus className="w-3.5 h-3.5" />
           <span>Add</span>

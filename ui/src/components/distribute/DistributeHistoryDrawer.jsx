@@ -48,15 +48,15 @@ export default function DistributeHistoryDrawer({
       {/* Click outside backdrop to close */}
       <div className="absolute inset-0" onClick={onClose} />
 
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Content history" className="relative bg-[#faf9f5] border-l border-[#e3dacc] w-full max-w-xl h-full shadow-2xl flex flex-col z-10">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Content history" className="cm-dialog relative w-full max-w-xl h-full flex flex-col z-10">
         {/* Drawer Header */}
-        <div className="p-5 border-b border-[#e3dacc] flex items-center justify-between shrink-0">
+        <div className="cm-page-header p-5 shrink-0">
           <div>
-            <h3 className="font-serif text-base font-semibold text-[#141413] flex items-center gap-2">
+            <h3 className="cm-panel-title flex items-center gap-2">
               <History className="w-4 h-4 text-[#c6613f]" />
               <span>Content History & Past Posts</span>
             </h3>
-            <p className="text-xs text-[#87867f] mt-0.5">
+            <p className="cm-muted mt-0.5">
               Browse past Council peak drafts and previously distributed platform bundles.
             </p>
           </div>
@@ -64,14 +64,14 @@ export default function DistributeHistoryDrawer({
             type="button"
             aria-label="Close history drawer"
             onClick={onClose}
-            className="p-1 rounded-full text-[#87867f] hover:text-[#141413] hover:bg-[#f0eee6] transition"
+            className="cm-icon-button"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Search & Filter Controls */}
-        <div className="p-4 border-b border-[#e3dacc] bg-[#f0eee6]/40 space-y-3 shrink-0">
+        <div className="cm-subpanel space-y-3 shrink-0">
           {/* Search bar */}
           <div className="relative">
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#87867f]" />
@@ -81,14 +81,14 @@ export default function DistributeHistoryDrawer({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by slug or content keywords..."
-              className="w-full text-xs font-mono bg-[#faf9f5] border border-[#e3dacc] rounded-xl pl-9 pr-3.5 py-2 text-[#141413] placeholder-[#b0aea5] focus:outline-none focus:border-[#141413]"
+              className="cm-input w-full pl-10 pr-12"
             />
             {search && (
               <button
                 type="button"
                 aria-label="Clear history search"
                 onClick={() => setSearch('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#87867f] hover:text-[#141413]"
+                className="cm-icon-button absolute right-1 top-1/2 -translate-y-1/2"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -96,37 +96,25 @@ export default function DistributeHistoryDrawer({
           </div>
 
           {/* Filter Tabs */}
-          <div className="flex items-center gap-1.5 text-xs font-mono">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => setFilter('all')}
-              className={`px-3 py-1 rounded-full border transition ${
-                filter === 'all'
-                  ? 'bg-[#141413] text-[#faf9f5] border-[#141413] font-medium'
-                  : 'bg-[#faf9f5] text-[#87867f] border-[#e3dacc] hover:border-[#b0aea5]'
-              }`}
+              className={`cm-chip ${filter === 'all' ? 'cm-chip-active' : ''}`}
             >
               All ({items.length})
             </button>
             <button
               type="button"
               onClick={() => setFilter('distributed')}
-              className={`px-3 py-1 rounded-full border transition ${
-                filter === 'distributed'
-                  ? 'bg-[#141413] text-[#faf9f5] border-[#141413] font-medium'
-                  : 'bg-[#faf9f5] text-[#87867f] border-[#e3dacc] hover:border-[#b0aea5]'
-              }`}
+              className={`cm-chip ${filter === 'distributed' ? 'cm-chip-active' : ''}`}
             >
               Distributed ({distributedCount})
             </button>
             <button
               type="button"
               onClick={() => setFilter('council')}
-              className={`px-3 py-1 rounded-full border transition ${
-                filter === 'council'
-                  ? 'bg-[#141413] text-[#faf9f5] border-[#141413] font-medium'
-                  : 'bg-[#faf9f5] text-[#87867f] border-[#e3dacc] hover:border-[#b0aea5]'
-              }`}
+              className={`cm-chip ${filter === 'council' ? 'cm-chip-active' : ''}`}
             >
               Council Drafts ({councilCount})
             </button>
@@ -136,17 +124,17 @@ export default function DistributeHistoryDrawer({
         {/* History Items Scrollable List */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {loading && (
-            <div className="p-12 text-center text-[#87867f] space-y-2">
+            <div className="cm-muted text-center space-y-2">
               <RotateCw className="w-5 h-5 mx-auto animate-spin text-[#c6613f]" />
-              <p className="text-xs font-mono">Loading past posts...</p>
+              <p className="cm-prose">Loading past posts...</p>
             </div>
           )}
 
           {!loading && filteredItems.length === 0 && (
-            <div className="border border-dashed border-[#b0aea5] rounded-2xl p-10 text-center text-[#87867f] bg-[#f0eee6]/30">
+            <div className="cm-empty text-center">
               <Layers className="w-8 h-8 mx-auto mb-2.5 text-[#b0aea5] stroke-1" />
-              <p className="text-xs font-medium text-[#141413]">No matching posts found.</p>
-              <p className="text-[11px] text-[#87867f] mt-0.5">
+              <p className="cm-prose font-medium">No matching posts found.</p>
+              <p className="cm-muted mt-0.5">
                 {search ? 'Try adjusting your search keywords.' : 'Run Council iterations or distribution to build history.'}
               </p>
             </div>
@@ -163,26 +151,22 @@ export default function DistributeHistoryDrawer({
                   aria-label={`Load ${item.slug}`}
                   key={item.slug}
                   onClick={() => onSelect(item)}
-                  className="w-full text-left bg-[#f0eee6]/60 hover:bg-[#f0eee6] border border-[#e3dacc] hover:border-[#b0aea5] rounded-xl p-4 transition cursor-pointer space-y-2 shadow-xs group"
+                  className="cm-subpanel block w-full text-left cursor-pointer space-y-3 group"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono text-xs font-semibold text-[#141413] truncate">
+                    <span className="font-sans text-sm font-semibold text-[#141413] truncate">
                       {item.slug}
                     </span>
                     <div className="flex items-center gap-1.5 shrink-0">
                       {hasScore && (
                         <span
-                          className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${
-                            isPass
-                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200 font-semibold'
-                              : 'bg-[#c6613f]/10 text-[#c6613f] border-[#c6613f]/30'
-                          }`}
+                          className={`cm-badge ${isPass ? 'cm-status-success' : 'cm-status-warning'}`}
                         >
                           Peak: {item.peak_score.toFixed(2)}
                         </span>
                       )}
                       {item.has_bundle && (
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#141413] text-[#faf9f5]">
+                        <span className="cm-badge">
                           Bundled
                         </span>
                       )}
@@ -190,24 +174,24 @@ export default function DistributeHistoryDrawer({
                   </div>
 
                   {item.title && (
-                    <h4 className="text-xs font-serif font-medium text-[#141413] line-clamp-1">
+                    <h4 className="cm-panel-title line-clamp-1">
                       {item.title}
                     </h4>
                   )}
 
                   {item.anchor_text && (
-                    <p className="text-[11px] text-[#87867f] font-mono line-clamp-2 bg-[#faf9f5] p-2 rounded-lg border border-[#e3dacc]/70 leading-relaxed">
+                    <p className="cm-subpanel line-clamp-2">
                       {item.anchor_text}
                     </p>
                   )}
 
-                  <div className="flex items-center justify-between pt-1 text-[10px] font-mono text-[#87867f]">
+                  <div className="cm-muted flex flex-wrap items-center justify-between gap-3">
                     {/* Formats badges */}
                     <div className="flex items-center gap-1 flex-wrap">
                       {item.available_formats?.map((fmt) => (
                         <span
                           key={fmt}
-                          className="px-1.5 py-0.5 rounded bg-[#faf9f5] border border-[#e3dacc] text-[#141413]"
+                          className="cm-badge"
                         >
                           {FORMAT_LABELS[fmt] || fmt}
                         </span>

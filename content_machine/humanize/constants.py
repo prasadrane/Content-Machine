@@ -89,11 +89,6 @@ TONE_SYSTEM_PROMPTS: dict[HumanizeTone, str] = {
 }
 
 CHANNEL_PROMPTS: dict[HumanizeChannel, str] = {
-    HumanizeChannel.LINKEDIN_COMMENT: (
-        "Transform this into a 2-3 sentence LinkedIn comment. "
-        "Jump straight into the technical argument or counter-point. Never say 'Great post!' or 'Spot on!'. "
-        "Never exceed 3 sentences. High burstiness."
-    ),
     HumanizeChannel.LINKEDIN_POST: (
         f"Transform this into an authentic, concise LinkedIn post (strictly {WORD_COUNT_MIN}-{WORD_COUNT_MAX} words) written as a senior engineer's personal field note. "
         "Ground in lived technical friction with specific failure modes (e.g., HTTP 429s, partial responses, payload validation, contract drift) rather than generic phrases like 'debugging edge cases'. "

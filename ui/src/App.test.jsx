@@ -27,11 +27,12 @@ vi.mock('./api/profile', () => ({
 }))
 
 describe('App shell', () => {
-  it('renders all 7 nav buttons from registry', () => {
+  it('renders the post workflow without a Comments entry', () => {
     render(<App />)
-    for (const label of ['Oracle', 'Council', 'Distribute', 'Lessons', 'Audio', 'Comments', 'Profile']) {
+    for (const label of ['Oracle', 'Council', 'Distribute', 'Lessons', 'Audio', 'Profile']) {
       expect(screen.getByRole('button', { name: new RegExp(label, 'i') })).toBeInTheDocument()
     }
+    expect(screen.queryByRole('button', { name: /^comments$/i })).not.toBeInTheDocument()
   })
   it('switches tabs on nav click', async () => {
     render(<App />)

@@ -432,102 +432,6 @@ class TestLessonsCLI(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# comment subcommand
-# ---------------------------------------------------------------------------
-
-class TestCommentCLI(unittest.TestCase):
-
-    def test_comment_generates_and_prints_output(self):
-        """comment --post ... --angle contrarian --perspective ... invokes CommentingEngine and prints result."""
-        from content_machine.schemas import CommentAngle, CommentRunResponse
-
-        mock_resp = CommentRunResponse(
-            comment_id="comment_123",
-            initial_draft="Draft comment.",
-            final_comment="Polished senior comment with real substance.",
-            iteration=1,
-            peak_score=8.75,
-            verdict="PASS",
-            actions=["Tighten opening"],
-            judge_scores={"perell": 8.8, "purcell": 8.7},
-            judge_critiques={"perell": "High punchiness and zero fluff."},
-        )
-
-        with patch("content_machine.__main__.CommentingEngine") as MockEngine, \
-             patch("content_machine.__main__._make_router"), \
-             patch("content_machine.__main__._make_db"), \
-             patch("content_machine.config.load_config"):
-            mock_inst = MagicMock()
-            mock_inst.generate_comment.return_value = mock_resp
-            MockEngine.return_value = mock_inst
-
-            code, out, err = _run_cli(
-                "comment",
-                "--post", "Post content about distributed systems scaling limits.",
-                "--angle", "contrarian",
-                "--perspective", "We experienced split-brain issues at 50 nodes."
-            )
-
-        self.assertEqual(code, 0)
-        MockEngine.return_value.generate_comment.assert_called_once_with(
-            post_content="Post content about distributed systems scaling limits.",
-            angle=CommentAngle.CONTRARIAN,
-            perspective_text="We experienced split-brain issues at 50 nodes.",
-        )
-        self.assertIn("Polished senior comment with real substance.", out)
-        self.assertIn("PASS", out)
-        self.assertIn("8.75", out)
-        self.assertIn("Council Breakdown:", out)
-        self.assertIn("perell", out)
-        self.assertIn("High punchiness", out)
-
-    def test_comment_defaults(self):
-        """comment with only --post defaults to insightful angle and None perspective."""
-        from content_machine.schemas import CommentAngle, CommentRunResponse
-
-        mock_resp = CommentRunResponse(
-            comment_id="comment_456",
-            initial_draft="Draft.",
-            final_comment="Insightful comment.",
-            iteration=1,
-            peak_score=8.2,
-            verdict="PASS",
-            actions=[],
-            judge_scores={},
-            judge_critiques={},
-        )
-
-        with patch("content_machine.__main__.CommentingEngine") as MockEngine, \
-             patch("content_machine.__main__._make_router"), \
-             patch("content_machine.__main__._make_db"), \
-             patch("content_machine.config.load_config"):
-            mock_inst = MagicMock()
-            mock_inst.generate_comment.return_value = mock_resp
-            MockEngine.return_value = mock_inst
-
-            code, out, _ = _run_cli("comment", "--post", "Observability matters in production.")
-
-        self.assertEqual(code, 0)
-        MockEngine.return_value.generate_comment.assert_called_once_with(
-            post_content="Observability matters in production.",
-            angle=CommentAngle.INSIGHTFUL,
-            perspective_text=None,
-        )
-        self.assertIn("Insightful comment.", out)
-
-    def test_comment_missing_post_fails(self):
-        """comment without --post prints usage/error and exits non-zero."""
-        code, _, err = _run_cli("comment")
-        self.assertNotEqual(code, 0)
-
-    def test_comment_short_post_fails(self):
-        """comment with post < 10 chars prints error and exits 1."""
-        code, _, err = _run_cli("comment", "--post", "short")
-        self.assertEqual(code, 1)
-        self.assertIn("--post must be at least 10 characters long", err)
-
-
-# ---------------------------------------------------------------------------
 # humanize subcommand
 # ---------------------------------------------------------------------------
 
@@ -747,7 +651,7 @@ if __name__ == "__main__":
     loader = unittest.TestLoader()
     suite = unittest.TestSuite()
     for cls in [TestCLIHelp, TestOracleCLI, TestCouncilCLI,
-                TestTranscribeCLI, TestLessonsCLI, TestCommentCLI, TestHumanizeCLI, TestIdeaBankCLI,
+                TestTranscribeCLI, TestLessonsCLI, TestHumanizeCLI, TestIdeaBankCLI,
                 TestImagePromptsCLI]:
         suite.addTests(loader.loadTestsFromTestCase(cls))
 

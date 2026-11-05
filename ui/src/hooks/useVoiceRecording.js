@@ -2,16 +2,15 @@ import { useEffect, useRef, useState } from 'react'
 import { transcribeAudio } from '../api/interview'
 
 // Sentinel target for call sites that start recording without an explicit
-// target (CommentingTab has a single dictation destination).
+// target; interview callers can select a specific answer destination.
 const DEFAULT_TARGET = '__voice_default__'
 
-// Hard cap for the optional seconds timer, mirroring CommentingTab's
-// 120-second automatic recording stop safeguard.
+// Hard cap for the optional recording-seconds timer.
 const MAX_SECONDS = 120
 
 /**
- * useVoiceRecording — merged voice-input machinery from InterviewModal and
- * CommentingTab. Wraps Web Speech API (live dictation) with a MediaRecorder +
+ * useVoiceRecording — voice input for perspective intake.
+ * Wraps Web Speech API (live dictation) with a MediaRecorder +
  * backend transcribe fallback.
  *
  * options:

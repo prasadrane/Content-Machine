@@ -23,40 +23,42 @@ export default function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onApp
   }
   useEffect(() => { setReplacement(null) }, [draft, spikeId, councilIdentity?.itemId, councilIdentity?.version])
   return (
-    <div className="space-y-8 animate-fadeIn">
+    <div className="cm-page">
       {/* Editorial Title */}
-      <div>
-        <h2 className="font-serif text-2xl font-medium tracking-tight text-[#141413]">Writer's Council</h2>
-        <p className="text-sm text-[#87867f] mt-1 font-sans">
-          Review and improve your draft. Editorial scores do not verify factual claims.
-        </p>
+      <div className="cm-page-header">
+        <div>
+          <h2 className="cm-page-title">Writer's Council</h2>
+          <p className="cm-page-description">
+            Review and improve your draft. Editorial scores do not verify factual claims.
+          </p>
+        </div>
       </div>
 
       {/* Historical Peak Banner */}
       {best && (
-        <div className="p-5 bg-[#f0eee6] border border-[#e3dacc] rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-anthropic">
+        <div className="cm-panel flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start gap-3.5">
-            <div className="p-2.5 bg-[#c6613f]/10 text-[#c6613f] rounded-xl shrink-0 mt-0.5 border border-[#c6613f]/20">
+            <div className="cm-subpanel shrink-0 mt-0.5">
               <Trophy className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#c6613f]">Highest-scoring reviewed version</span>
-                <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-[#faf9f5] text-[#141413] border border-[#e3dacc]">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="cm-panel-title">Highest-scoring reviewed version</span>
+                <span className="cm-badge">
                   Iteration {best.iteration}
                 </span>
                 {best.score >= 8.0 && (
-                  <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                  <span className="cm-badge cm-status-success">
                     PASS
                   </span>
                 )}
               </div>
               <div className="text-2xl font-serif font-semibold text-[#141413] mt-0.5">
                 {best.score.toFixed(3)}
-                <span className="text-xs font-normal text-[#87867f] ml-2 font-mono">/ 10.0</span>
+                <span className="cm-muted ml-2">/ 10.0</span>
               </div>
-              <p className="text-xs text-[#87867f] mt-0.5">
-                Highest scoring version recorded for <span className="font-mono text-[#141413] font-medium">{spikeId}</span>.
+              <p className="cm-muted mt-0.5">
+                Highest scoring version recorded for <span className="font-sans text-[#141413] font-medium">{spikeId}</span>.
               </p>
             </div>
           </div>
@@ -66,7 +68,7 @@ export default function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onApp
               <button
                 type="button"
                 onClick={() => compareReplacement(best.draft)}
-                className="px-4 py-2 bg-[#faf9f5] hover:bg-[#e3dacc]/50 text-[#141413] rounded-full text-xs font-medium transition flex items-center gap-1.5 border border-[#e3dacc] shadow-sm"
+                className="cm-button cm-button-secondary flex items-center gap-1.5"
               >
                 <RotateCw className="w-3.5 h-3.5 text-[#87867f]" />
                 <span>Load Peak Draft</span>
@@ -77,7 +79,7 @@ export default function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onApp
                 type="button"
                 onClick={() => handleHumanize(best.draft)}
                 disabled={humanizing}
-                className="px-4 py-2 bg-[#faf9f5] hover:bg-[#e3dacc]/50 text-[#c6613f] border border-[#c6613f]/40 hover:border-[#c6613f] rounded-full text-xs font-medium transition flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                className="cm-button cm-button-secondary flex items-center gap-1.5"
               >
                 {humanizing ? (
                   <RotateCw className="w-3.5 h-3.5 animate-spin text-[#c6613f]" />
@@ -91,7 +93,7 @@ export default function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onApp
               <button
                 type="button"
                 onClick={() => requestApproval(best.draft, { verdict: best.threshold_met ? 'pass' : best.verdict || 'revise', score: best.score })}
-                className="px-4 py-2 bg-[#c6613f] hover:bg-[#b55535] text-[#faf9f5] rounded-full text-xs font-medium transition flex items-center gap-1.5 shadow-sm"
+                className="cm-button cm-button-primary flex items-center gap-1.5"
               >
                 <Share2 className="w-3.5 h-3.5" />
                 <span>Approve Peak Post</span>
@@ -112,7 +114,7 @@ export default function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onApp
       )}
 
       {polishIsEarlier && (
-        <p role="status" className="text-sm text-amber-900">Polished wording belongs to an earlier version of {humanizedResult.reviewInput.slug}. Your current draft has not been replaced.</p>
+        <p role="status" className="cm-status cm-status-warning">Polished wording belongs to an earlier version of {humanizedResult.reviewInput.slug}. Your current draft has not been replaced.</p>
       )}
       {/* Humanized Peak Draft Card */}
       <HumanizedDraftCard
@@ -134,7 +136,7 @@ export default function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onApp
       />}
 
       {humanizeError && (
-        <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center gap-2 animate-fadeIn">
+        <div className="cm-status cm-status-error flex items-center gap-2 animate-fadeIn">
           <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
           <span>{humanizeError}</span>
         </div>
@@ -157,17 +159,17 @@ export default function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onApp
         />
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between pb-2 border-b border-[#e3dacc]">
-            <h3 className="text-xs uppercase font-mono tracking-wider text-[#87867f]">Editorial Verdict</h3>
+          <div className="cm-divider flex items-center justify-between">
+            <h3 className="cm-panel-title">Editorial Verdict</h3>
             <div className="flex items-center gap-3">
               {result && (
-                <span className="text-[11px] font-mono text-[#87867f]">Iteration {result.iteration}</span>
+                <span className="cm-muted">Iteration {result.iteration}</span>
               )}
               {historyData?.history?.length > 0 && (
                 <button
                   type="button"
                   onClick={() => setShowHistory(!showHistory)}
-                  className="text-[11px] font-mono text-[#87867f] hover:text-[#141413] flex items-center gap-1 transition"
+                  className="cm-button cm-button-quiet flex items-center gap-1"
                 >
                   <History className="w-3 h-3" />
                   <span>{showHistory ? 'Hide History' : `History (${historyData.history.length})`}</span>
@@ -177,23 +179,23 @@ export default function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onApp
           </div>
 
           {!result && !loading && (
-            <div className="border border-dashed border-[#b0aea5] rounded-2xl p-12 text-center text-[#87867f] bg-[#f0eee6]/30">
+            <div className="cm-empty text-center">
               <Users className="w-8 h-8 mx-auto mb-3 stroke-1 text-[#b0aea5]" />
-              <p className="text-sm font-medium text-[#141413]">No active evaluation.</p>
-              <p className="text-xs text-[#87867f] mt-1">Submit your draft or load a historical peak iteration to view the multi-judge evaluation.</p>
+              <p className="cm-prose font-medium">No active evaluation.</p>
+              <p className="cm-muted mt-1">Submit your draft or load a historical peak iteration to view the multi-judge evaluation.</p>
             </div>
           )}
 
           {loading && (
-            <div className="border border-[#e3dacc] rounded-2xl p-12 text-center text-[#87867f] space-y-3 bg-[#f0eee6]/50 shadow-anthropic">
+            <div className="cm-subpanel text-center space-y-3">
               <RotateCw className="w-6 h-6 mx-auto animate-spin text-[#c6613f]" />
-              <p role="status" className="text-sm font-medium text-[#141413]">Reviewing the submitted draft...</p>
-              <p className="text-xs text-[#87867f]">You can keep editing. The review will remain linked to the submitted version.</p>
+              <p role="status" className="cm-prose font-medium">Reviewing the submitted draft...</p>
+              <p className="cm-muted">You can keep editing. The review will remain linked to the submitted version.</p>
             </div>
           )}
 
           {resultIsEarlier && (
-            <div role="status" className="p-3 bg-amber-50 text-amber-900 rounded-xl text-sm">
+            <div role="status" className="cm-status cm-status-warning">
               Review of an earlier version of {result.reviewInput.slug}. Your current draft has not been replaced.
             </div>
           )}

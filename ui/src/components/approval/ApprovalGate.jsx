@@ -9,16 +9,16 @@ export default function ApprovalGate({ text, verdict, score, onConfirm, onCancel
   const override = verdict && verdict !== 'pass'
 
   return (
-    <div role="dialog" aria-label="Approve draft" className="bg-[#faf9f5] border border-[#141413] rounded-2xl p-5 space-y-4 shadow-anthropic">
+    <div role="dialog" aria-label="Approve draft" className="cm-panel space-y-4">
       <div className="flex items-center gap-2">
-        <ShieldCheck className="w-4 h-4 text-[#c6613f]" />
-        <h4 className="text-xs font-mono uppercase tracking-wider text-[#141413]">Approve for distribution</h4>
+        <ShieldCheck className="w-5 h-5 text-[var(--cm-accent)]" />
+        <h4 className="cm-panel-title">Approve for distribution</h4>
       </div>
 
-      <pre className="max-h-48 overflow-auto whitespace-pre-wrap text-xs font-mono leading-relaxed bg-[#f0eee6]/70 border border-[#e3dacc] rounded-xl p-3 text-[#141413]">{text}</pre>
+      <pre className="cm-subpanel cm-prose font-sans max-h-64 overflow-auto whitespace-pre-wrap">{text}</pre>
 
       {override && (
-        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs flex items-start gap-2">
+        <div className="cm-status cm-status-warning flex items-start gap-2">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
           <span>
             Council verdict is <strong>{verdict}</strong>{typeof score === 'number' ? ` (${score.toFixed(3)})` : ''}. Approving overrides the judges; that is your call.
@@ -26,20 +26,20 @@ export default function ApprovalGate({ text, verdict, score, onConfirm, onCancel
         </div>
       )}
 
-      <label className="flex items-start gap-2 text-xs text-[#141413] cursor-pointer">
+      <label className="cm-prose flex items-start gap-3 cursor-pointer">
         <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} className="mt-0.5" />
         <span>I have read this exact text and approve it for distribution. Editing it later requires approving again.</span>
       </label>
 
-      <div className="flex items-center justify-end gap-2">
-        <button type="button" onClick={onCancel} className="px-4 py-2 rounded-full text-xs font-medium border border-[#e3dacc] text-[#87867f] hover:text-[#141413]">
+      <div className="cm-page-actions justify-end">
+        <button type="button" onClick={onCancel} className="cm-button cm-button-secondary">
           Cancel
         </button>
         <button
           type="button"
           disabled={!confirmed}
           onClick={onConfirm}
-          className="px-4 py-2 rounded-full text-xs font-medium bg-[#141413] text-[#faf9f5] disabled:opacity-40"
+          className="cm-button cm-button-primary"
         >
           Approve &amp; send to Distribute
         </button>

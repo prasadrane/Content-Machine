@@ -78,22 +78,22 @@ export default function DistributeTab(props) {
   })
 
   return (
-    <div className="space-y-8 animate-fadeIn">
+    <div className="cm-page">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e3dacc] pb-5">
+      <div className="cm-page-header">
         <div>
-          <h2 className="font-serif text-2xl font-medium tracking-tight text-[#141413]">Distribute</h2>
-          <p className="text-sm text-[#87867f] mt-1 font-sans">
+          <h2 className="cm-page-title">Distribute</h2>
+          <p className="cm-page-description">
             Generate channel-native formats from text you explicitly approve.
           </p>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
+        <div className="cm-page-actions">
           <button
             type="button"
             onClick={() => setShowHistoryDrawer(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-mono bg-[#faf9f5] border border-[#e3dacc] hover:border-[#b0aea5] hover:text-[#141413] text-[#87867f] transition shadow-anthropic"
+            className="cm-button cm-button-secondary inline-flex items-center gap-2"
           >
             <History className="w-3.5 h-3.5 text-[#c6613f]" />
             <span>History ({historyItems.length})</span>
@@ -102,7 +102,7 @@ export default function DistributeTab(props) {
           <button
             type="button"
             onClick={() => setShowConfigModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-mono bg-[#f0eee6] border border-[#e3dacc] hover:border-[#b0aea5] text-[#141413] transition shadow-anthropic"
+            className="cm-button cm-button-secondary inline-flex items-center gap-2"
           >
             <Sliders className="w-3.5 h-3.5 text-[#c6613f]" />
             <span>Platforms ({activeFormatKeys.length}/5)</span>
@@ -111,7 +111,7 @@ export default function DistributeTab(props) {
       </div>
 
       {bundle?.replayed && (
-        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs">
+        <div className="cm-status cm-status-warning">
           Replayed sample output: live model quota was unavailable, so these are stored derivatives of a seeded post, not generated from your text.
         </div>
       )}

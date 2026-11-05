@@ -28,57 +28,58 @@ export default function IdentityCard({
   return (
     <>
       {/* Author Identity Card */}
-      <div className="bg-[#f0eee6]/60 border border-[#e3dacc] rounded-2xl p-5 sm:p-6 space-y-4 shadow-anthropic">
+      <div className="cm-panel space-y-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-[#141413] text-[#faf9f5] flex items-center justify-center font-serif text-lg font-semibold shrink-0 shadow-sm">
+            <div className="cm-chip cm-chip-active w-12 h-12 justify-center shrink-0">
               PR
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-serif text-lg font-medium text-[#141413]">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="cm-panel-title">
                   {profile?.name || 'Prasad Rane'}
                 </h3>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                <span className="cm-badge cm-status-success inline-flex items-center gap-1">
                   <ShieldCheck className="w-3 h-3 text-emerald-600" />
                   <span>Verified Persona</span>
                 </span>
               </div>
-              <p className="text-xs text-[#87867f] mt-0.5 font-sans leading-relaxed">
+              <p className="cm-muted mt-1">
                 {profile?.headline || 'Senior Software & AI Systems Engineer'} &mdash; The Bridge between Enterprise Systems and Modern AI
               </p>
             </div>
           </div>
         </div>
-        <div className="pt-3 border-t border-[#e3dacc]/70 grid grid-cols-2 gap-3 text-[11px] font-mono text-[#87867f]">
+        <div className="cm-divider pt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 cm-muted">
           <div>
             <span className="text-[#141413] font-medium">Domain:</span> Enterprise &bull; Distributed &bull; AI
           </div>
-          <div className="text-right">
+          <div className="sm:text-right">
             <span className="text-[#141413] font-medium">Anchor:</span> Local-First Engine Grounding
           </div>
         </div>
       </div>
 
       {/* Current Focus Card */}
-      <div className="bg-[#f0eee6]/60 border border-[#e3dacc] rounded-2xl p-5 sm:p-6 space-y-3 shadow-anthropic">
-        <div className="flex items-center justify-between">
-          <label className="text-xs uppercase font-mono tracking-wider text-[#87867f] font-semibold">
+      <div className="cm-panel space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <label htmlFor="profile-current-focus" className="cm-label">
             Current Operational Reality
           </label>
-          <span className="text-[10px] font-mono text-[#87867f]">
+          <span className="cm-muted">
             Active Hands-on Focus
           </span>
         </div>
-        <p className="text-xs text-[#87867f] font-sans">
+        <p className="cm-muted">
           Edit current upskilling and hands-on building focus. Injected dynamically into generation prompts:
         </p>
         <textarea
+          id="profile-current-focus"
           rows={4}
           value={currentFocus}
           onChange={(e) => onFocusChange(e.target.value)}
           placeholder="e.g., Agentic AI systems, local multi-model orchestration, distributed patterns..."
-          className="w-full text-xs font-sans bg-[#faf9f5] border border-[#e3dacc] rounded-xl p-3.5 text-[#141413] focus:outline-none focus:border-[#141413] focus:bg-[#faf9f5] transition placeholder-[#b0aea5] leading-relaxed shadow-xs"
+          className="cm-textarea"
         />
       </div>
     </>

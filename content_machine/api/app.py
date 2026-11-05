@@ -30,17 +30,12 @@ from content_machine.lessons.store import LessonsStore
 from content_machine.oracle.oracle import OracleOrchestrator
 from content_machine.oracle.scorer import IdeaScorer
 from content_machine.interview.engine import InterviewEngine
-from content_machine.commenting.engine import CommentingEngine
 from content_machine.profile.manager import ProfileManager
 from content_machine.schemas import (
     TopicBriefRequest,
     TopicBriefing,
     SynthesizeDraftRequest,
     SynthesizeDraftResponse,
-    GenerateCommentRequest,
-    CommentRunResponse,
-    CommentHistoryResponse,
-    CommentHistoryItem,
     ProfileData,
     UpdateProfileRequest,
     DistributeRunRequest,
@@ -1129,41 +1124,6 @@ async def interview_transcribe(audio: UploadFile = File(...)):
 
 
 # ---------------------------------------------------------------------------
-# Commenting
-# ---------------------------------------------------------------------------
-
-@app.post("/api/comments/generate", response_model=CommentRunResponse)
-def comments_generate(req: GenerateCommentRequest):
-    from content_machine.config import load_config
-    cfg = load_config()
-    router = _make_router()
-    db_conn = _make_db()
-    engine = CommentingEngine(router=router, cfg=cfg, db_conn=db_conn)
-    try:
-        return engine.generate_comment(
-            post_content=req.post_content,
-            angle=req.angle,
-            perspective_text=req.perspective_text,
-            humanize=req.humanize,
-            tone=req.tone,
-        )
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Comment generation failed: {str(e)}")
-
-
-@app.get("/api/comments/history", response_model=CommentHistoryResponse)
-def comments_history(limit: int = Query(default=50, ge=1, le=200)):
-    db_conn = _make_db()
-    from content_machine.config import load_config
-    cfg = load_config()
-    router = _make_router()
-    engine = CommentingEngine(router=router, cfg=cfg, db_conn=db_conn)
-    items = engine.get_history(limit=limit)
-    return CommentHistoryResponse(items=items, total=len(items))
-
-
-# ---------------------------------------------------------------------------
 # Author Profile & Voice Grounding
 # ---------------------------------------------------------------------------
 
@@ -1200,6 +1160,8 @@ def humanize_text_endpoint(req: HumanizeRequest):
 
 @app.get("/{full_path:path}")
 def spa_fallback(full_path: str):
+    if full_path == "api" or full_path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="Not Found")
     index = _UI_DIST / "index.html"
     if index.exists():
         return FileResponse(str(index))

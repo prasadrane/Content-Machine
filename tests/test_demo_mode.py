@@ -80,7 +80,7 @@ def test_seed_idempotent_on_second_cold_start(tmp_path, monkeypatch):
         first = seed_demo(conn)
         second = seed_demo(conn)
         assert first["spikes"] == 10
-        assert second == {"spikes": 0, "lessons": 0, "iterations": 0, "comments": 0}
+        assert second == {"spikes": 0, "lessons": 0, "iterations": 0}
         n = conn.execute("SELECT COUNT(*) FROM spikes WHERE id LIKE 'demo-%'").fetchone()[0]
         assert n == 10
     finally:

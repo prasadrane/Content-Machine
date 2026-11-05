@@ -63,37 +63,37 @@ export default function SourceCockpit({
   return (
     <form 
       onSubmit={onRun} 
-      className="min-w-0 bg-[#f0eee6]/60 rounded-2xl border border-[#e3dacc] shadow-anthropic overflow-hidden"
+      className="cm-panel min-w-0 space-y-4"
     >
       <details open={!compact}>
-        <summary className="cursor-pointer p-4 text-sm font-semibold text-[#141413] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-4px]">
-          Edit sources and limits <span className="font-normal text-[#58574f]">({totalSources} sources configured)</span>
+        <summary className="cm-label cursor-pointer min-h-10 flex flex-wrap items-center gap-2">
+          Edit sources and limits <span className="font-normal text-anthropic-cloud-dark">({totalSources} sources configured)</span>
         </summary>
       {/* Cockpit Header & Sub-Tab Navigation */}
-      <div className="p-4 pb-3 border-b border-[#e3dacc] shrink-0 space-y-3 bg-[#f0eee6]/80">
+      <div className="pb-4 border-b border-anthropic-oat shrink-0 space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-xs uppercase font-mono tracking-wider text-[#87867f]">Source Cockpit</h3>
-          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#faf9f5] text-[#87867f] border border-[#e3dacc]">
+          <h3 className="cm-panel-title">Source Cockpit</h3>
+          <span className="cm-badge">
             {totalSources} Active
           </span>
         </div>
 
         {/* Sub-Tab Navigation Header with item counts */}
-        <div className="grid grid-cols-3 gap-1 bg-[#faf9f5] p-1 rounded-xl border border-[#e3dacc]">
+        <div className="cm-subpanel grid grid-cols-3 gap-1">
           <button
             type="button"
             aria-pressed={sourceSubTab === 'rss'}
             onClick={() => onSubTabChange('rss')}
-            className={`py-1.5 px-2 rounded-lg text-xs font-medium transition flex items-center justify-center gap-1.5 ${
+            className={` cm-chip flex items-center justify-center gap-1.5 ${
               sourceSubTab === 'rss'
-                ? 'bg-[#141413] text-[#faf9f5] shadow-xs'
-                : 'text-[#87867f] hover:text-[#141413] hover:bg-[#e3dacc]/40'
-            }`}
+                ? "cm-chip-active"
+                : ""
+            }  `}
           >
             <span>RSS Feeds</span>
-            <span className={`font-mono text-[10px] px-1.5 py-0.2 rounded-full ${
-              sourceSubTab === 'rss' ? 'bg-[#2a2a28] text-[#faf9f5]' : 'bg-[#f0eee6] text-[#87867f]'
-            }`}>
+            <span className={` text-sm px-1.5 py-0.2 rounded-full ${
+              sourceSubTab === 'rss' ? "bg-anthropic-slate-dark text-anthropic-ivory-light" : "bg-anthropic-ivory-medium text-anthropic-cloud-dark"
+            }  `}>
               {rssCount}
             </span>
           </button>
@@ -102,16 +102,16 @@ export default function SourceCockpit({
             type="button"
             aria-pressed={sourceSubTab === 'github'}
             onClick={() => onSubTabChange('github')}
-            className={`py-1.5 px-2 rounded-lg text-xs font-medium transition flex items-center justify-center gap-1.5 ${
+            className={` cm-chip flex items-center justify-center gap-1.5 ${
               sourceSubTab === 'github'
-                ? 'bg-[#141413] text-[#faf9f5] shadow-xs'
-                : 'text-[#87867f] hover:text-[#141413] hover:bg-[#e3dacc]/40'
-            }`}
+                ? "cm-chip-active"
+                : ""
+            }  `}
           >
             <span>GitHub</span>
-            <span className={`font-mono text-[10px] px-1.5 py-0.2 rounded-full ${
-              sourceSubTab === 'github' ? 'bg-[#2a2a28] text-[#faf9f5]' : 'bg-[#f0eee6] text-[#87867f]'
-            }`}>
+            <span className={` text-sm px-1.5 py-0.2 rounded-full ${
+              sourceSubTab === 'github' ? "bg-anthropic-slate-dark text-anthropic-ivory-light" : "bg-anthropic-ivory-medium text-anthropic-cloud-dark"
+            }  `}>
               {ghCount}
             </span>
           </button>
@@ -120,16 +120,16 @@ export default function SourceCockpit({
             type="button"
             aria-pressed={sourceSubTab === 'linkedin'}
             onClick={() => onSubTabChange('linkedin')}
-            className={`py-1.5 px-2 rounded-lg text-xs font-medium transition flex items-center justify-center gap-1.5 ${
+            className={` cm-chip flex items-center justify-center gap-1.5 ${
               sourceSubTab === 'linkedin'
-                ? 'bg-[#141413] text-[#faf9f5] shadow-xs'
-                : 'text-[#87867f] hover:text-[#141413] hover:bg-[#e3dacc]/40'
-            }`}
+                ? "cm-chip-active"
+                : ""
+            }  `}
           >
             <span>LinkedIn</span>
-            <span className={`font-mono text-[10px] px-1.5 py-0.2 rounded-full ${
-              sourceSubTab === 'linkedin' ? 'bg-[#2a2a28] text-[#faf9f5]' : 'bg-[#f0eee6] text-[#87867f]'
-            }`}>
+            <span className={` text-sm px-1.5 py-0.2 rounded-full ${
+              sourceSubTab === 'linkedin' ? "bg-anthropic-slate-dark text-anthropic-ivory-light" : "bg-anthropic-ivory-medium text-anthropic-cloud-dark"
+            }  `}>
               {liCount}
             </span>
           </button>
@@ -137,7 +137,7 @@ export default function SourceCockpit({
       </div>
 
       {/* Scrollable Sub-Tab Body */}
-      <div className="p-4 space-y-4 overflow-y-auto flex-1">
+      <div className="space-y-4 overflow-y-auto flex-1">
         {sourceSubTab === 'rss' && (
           <RssPane
             rssUrls={rssUrls}
@@ -184,10 +184,10 @@ export default function SourceCockpit({
       </div>
       </details>
       {/* Sticky Footer: Freshness, Limits & Trigger Bar */}
-      <div className="p-4 bg-[#f0eee6] border-t border-[#e3dacc] space-y-3">
+      <div className="pt-4 border-t border-anthropic-oat space-y-3">
         <div className="grid grid-cols-2 gap-2.5 max-w-md">
           <div>
-            <label className="block text-[11px] font-medium text-[#141413] mb-1">Max Age</label>
+            <label className="cm-label block mb-1">Max Age</label>
             <div className="relative">
               <input
                 type="number"
@@ -197,13 +197,13 @@ export default function SourceCockpit({
                 value={maxAgeDays}
                 onChange={(e) => setMaxAgeDays(e.target.value)}
                 placeholder="10"
-                className="w-full text-xs font-mono bg-[#faf9f5] border border-[#e3dacc] rounded-xl p-2 pr-10 text-[#141413] focus:outline-none focus:border-[#141413]"
+                className="cm-input w-full pr-10"
               />
-              <span className="absolute right-2.5 top-2 text-[10px] text-[#87867f] font-mono">days</span>
+              <span className="absolute right-2.5 top-2 text-sm text-anthropic-cloud-dark">days</span>
             </div>
           </div>
           <div>
-            <label className="block text-[11px] font-medium text-[#141413] mb-1">Cap / Feed</label>
+            <label className="cm-label block mb-1">Cap / Feed</label>
             <div className="relative">
               <input
                 type="number"
@@ -213,43 +213,43 @@ export default function SourceCockpit({
                 value={maxItemsPerFeed}
                 onChange={(e) => setMaxItemsPerFeed(e.target.value)}
                 placeholder="25"
-                className="w-full text-xs font-mono bg-[#faf9f5] border border-[#e3dacc] rounded-xl p-2 pr-11 text-[#141413] focus:outline-none focus:border-[#141413]"
+                className="cm-input w-full pr-11"
               />
-              <span className="absolute right-2.5 top-2 text-[10px] text-[#87867f] font-mono">posts</span>
+              <span className="absolute right-2.5 top-2 text-sm text-anthropic-cloud-dark">posts</span>
             </div>
           </div>
         </div>
 
         <div className="flex items-center justify-between pt-0.5">
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-mono px-2.5 py-1 rounded-full bg-[#faf9f5] text-[#87867f] border border-[#e3dacc]">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#c6613f]"></span>
+          <span className="cm-badge inline-flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-anthropic-accent"></span>
             <span>{totalSources} sources configured</span>
           </span>
-          <span className="text-[10px] font-mono text-[#87867f]">
+          <span className="text-sm text-anthropic-cloud-dark">
             {loading ? 'Evaluating...' : 'Ready'}
           </span>
         </div>
 
         {error && (
-          <div role="alert" id="oracle-source-error" className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center gap-2">
+          <div role="alert" id="oracle-source-error" className="cm-status cm-status-error flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
-            <span className="text-[11px] leading-tight">{error}</span>
+            <span className="text-sm leading-tight">{error}</span>
           </div>
         )}
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-2.5 px-4 bg-[#141413] hover:bg-[#252524] disabled:opacity-50 text-[#faf9f5] rounded-full text-xs font-medium transition flex items-center justify-center gap-2 shadow-sm"
+          className="cm-button cm-button-primary w-full disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {loading ? (
             <>
-              <RotateCw className="w-3.5 h-3.5 animate-spin text-[#faf9f5]" />
+              <RotateCw className="w-3.5 h-3.5 animate-spin text-anthropic-ivory-light" />
               <span>Evaluating Samples...</span>
             </>
           ) : (
             <>
-              <Sparkles className="w-3.5 h-3.5 text-[#d97757]" />
+              <Sparkles className="w-3.5 h-3.5 text-anthropic-clay" />
               <span>Scan & Score Candidates</span>
             </>
           )}

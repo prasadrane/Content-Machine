@@ -12,6 +12,14 @@ vi.mock('../../api/lessons', () => ({
 }))
 
 describe('LessonsTab', () => {
+  it('exposes named rule and comparison inputs', async () => {
+    lessonsApi.getLessons.mockResolvedValue({ rules: [], pending: [] })
+    render(<LessonsTab />)
+    expect(screen.getByRole('textbox', { name: /declarative rule/i })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /original draft/i })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /published text/i })).toBeInTheDocument()
+    await waitFor(() => expect(lessonsApi.getLessons).toHaveBeenCalled())
+  })
   it('loads lessons on mount and lists active rules', async () => {
     lessonsApi.getLessons.mockResolvedValue({
       rules: [{ id: 'r1', rule_text: 'Never use buzzwords' }],

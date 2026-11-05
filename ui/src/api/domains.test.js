@@ -3,7 +3,6 @@ import { runCouncil, getCouncilHistory, getCouncilSpikes } from './council'
 import { getLessons, addCustomLesson, diffLessons, approveLesson, rejectLesson } from './lessons'
 import { runDistribute, getDistributeHistory } from './distribute'
 import { getBrief, synthesizeDraft, transcribeAudio } from './interview'
-import { generateComments, getCommentsHistory } from './comments'
 import { getProfile, saveProfile } from './profile'
 import { runHumanize } from './humanize'
 
@@ -43,14 +42,6 @@ describe('domain api modules hit exact endpoints', () => {
     await getBrief({ title: 't' });        expect(fetch.mock.calls[0][0]).toBe('/api/interview/brief')
     await synthesizeDraft({ responses: [] }); expect(fetch.mock.calls[1][0]).toBe('/api/interview/synthesize')
   })
-  it('comments', async () => {
-    stub()
-    await generateComments({ post_content: 'p' }); expect(fetch.mock.calls[0][0]).toBe('/api/comments/generate')
-    await getCommentsHistory(50)
-    expect(fetch.mock.calls[1][0]).toBe('/api/comments/history?limit=50')
-    await getCommentsHistory()
-    expect(fetch.mock.calls[2][0]).toBe('/api/comments/history?limit=50')
-  })
   it('profile get/save', async () => {
     stub()
     await getProfile();                 expect(fetch.mock.calls[0][0]).toBe('/api/profile')
@@ -66,7 +57,7 @@ describe('domain api modules hit exact endpoints', () => {
     expect(opts.method).toBe('POST')
     expect(opts.body).toBeInstanceOf(FormData)
     expect(opts.headers).toBeUndefined()
-    // source uses field name 'audio' (InterviewModal + CommentingTab)
+    // source uses field name 'audio' (InterviewModal)
     expect(opts.body.get('audio')).toBeInstanceOf(File)
     const file = opts.body.get('audio')
     expect(file.name).toBe('recording.webm')

@@ -22,7 +22,6 @@ export const DISTRIBUTION_FORMATS = [
     tag: 'Primary Platform',
     desc: 'High-performing, whitespace-optimized narrative with punchy hook, key operational lessons & relevant hashtags.',
     defaultOn: true,
-    tagColor: 'text-[#141413] bg-[#e3dacc]/60 border-[#b0aea5]',
   },
   {
     id: 'x_thread',
@@ -31,7 +30,6 @@ export const DISTRIBUTION_FORMATS = [
     tag: '6-8 Cards',
     desc: 'Numbered insight cards (1/, 2/) with viral single-line hook and closing operational takeaway.',
     defaultOn: true,
-    tagColor: 'text-[#141413] bg-[#e3dacc]/60 border-[#b0aea5]',
   },
   {
     id: 'video_script_short',
@@ -40,7 +38,6 @@ export const DISTRIBUTION_FORMATS = [
     tag: 'Reels / Shorts (60-90s)',
     desc: 'Rapid-fire spoken script with [Visual Cue], [Camera Zoom], and pattern interrupts.',
     defaultOn: true,
-    tagColor: 'text-[#c6613f] bg-[#c6613f]/10 border-[#c6613f]/30',
   },
   {
     id: 'video_script_long',
@@ -49,7 +46,6 @@ export const DISTRIBUTION_FORMATS = [
     tag: 'YouTube (5-10 min)',
     desc: 'Comprehensive technical breakdown script with chapters, B-roll, and code overlays.',
     defaultOn: false,
-    tagColor: 'text-[#d97757] bg-[#d97757]/10 border-[#d97757]/30',
   },
   {
     id: 'newsletter',
@@ -58,7 +54,6 @@ export const DISTRIBUTION_FORMATS = [
     tag: 'Executive Digest',
     desc: '300-400 word executive briefing with markdown headers and core strategic takeaways.',
     defaultOn: true,
-    tagColor: 'text-emerald-800 bg-emerald-50 border-emerald-200',
   },
 ]
 

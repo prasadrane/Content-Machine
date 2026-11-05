@@ -50,21 +50,21 @@ export default function DemoBanner({ activeTab, approved = false, onStart, onGot
 
   return (
     <>
-      <div className="bg-[#f0eee6] border-b border-[#e3dacc] px-4 py-3">
+      <div className="cm-banner">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center gap-3 text-sm">
-          <p role="status" className="text-[#58574f]">Public demo · Explore the workflow with illustrative sample data.</p>
-          {onStart && <button type="button" onClick={start} disabled={starting} className="min-h-10 px-4 py-2 rounded-full bg-[#141413] text-[#faf9f5] disabled:opacity-50">{starting ? 'Loading...' : 'Explore a completed example'}</button>}
-          <details className="text-[#58574f]">
-            <summary className="cursor-pointer min-h-10 flex items-center">Demo limits</summary>
-            <p className="max-w-2xl py-2">Runs on free-tier Gemini quota. Generation may fail or stop. When quota runs out, stored samples may be replayed; they are labeled and are not generated from your custom text. Demo data is temporary.</p>
+          <p role="status" className="cm-muted">Public demo · Explore the workflow with illustrative sample data.</p>
+          {onStart && <button type="button" onClick={start} disabled={starting} className="cm-button cm-button-primary">{starting ? 'Loading...' : 'Explore a completed example'}</button>}
+          <details className="cm-muted">
+            <summary className="cm-button cm-button-quiet cursor-pointer">Demo limits</summary>
+            <p className="cm-prose max-w-2xl py-2">Runs on free-tier Gemini quota. Generation may fail or stop. When quota runs out, stored samples may be replayed; they are labeled and are not generated from your custom text. Demo data is temporary.</p>
           </details>
-          {onGoto && <button type="button" aria-expanded={showGuide} aria-controls="demo-workflow" onClick={() => setShowGuide(v => !v)} className="min-h-10 px-3 py-2 rounded-lg border border-[#b0aea5]">{showGuide ? 'Hide workflow guide' : 'Show workflow guide'}</button>}
-          {startError && <p role="alert" className="text-rose-800">{startError}</p>}
+          {onGoto && <button type="button" aria-expanded={showGuide} aria-controls="demo-workflow" onClick={() => setShowGuide(v => !v)} className="cm-button cm-button-secondary">{showGuide ? 'Hide workflow guide' : 'Show workflow guide'}</button>}
+          {startError && <p role="alert" className="cm-status cm-status-error">{startError}</p>}
         </div>
       </div>
       {showGuide && onGoto && (
-        <nav id="demo-workflow" aria-label="Demo workflow" className="bg-[#f0eee6] border-b border-[#e3dacc] px-6 py-2">
-          <div className="max-w-7xl mx-auto flex items-center gap-3 flex-wrap text-xs font-mono">
+        <nav id="demo-workflow" aria-label="Demo workflow" className="cm-banner">
+          <div className="max-w-7xl mx-auto flex items-center gap-3 flex-wrap">
             <ol className="flex items-center gap-2 flex-wrap">
               {DEMO_STEPS.map((s, i) => (
                 <li key={s.id}>
@@ -73,11 +73,7 @@ export default function DemoBanner({ activeTab, approved = false, onStart, onGot
                     title={s.hint}
                     aria-current={current === s.id ? 'step' : undefined}
                     onClick={() => onGoto && onGoto(s.tab)}
-                    className={`px-2.5 py-1 rounded-full border ${
-                      current === s.id
-                        ? 'bg-[#c6613f] text-[#faf9f5] border-[#c6613f]'
-                        : 'bg-[#faf9f5] text-[#87867f] border-[#e3dacc] hover:text-[#141413]'
-                    }`}
+                    className={`cm-chip ${current === s.id ? 'cm-chip-active' : ''}`}
                   >
                     {i + 1}. {s.title}
                   </button>
@@ -85,7 +81,7 @@ export default function DemoBanner({ activeTab, approved = false, onStart, onGot
               ))}
             </ol>
             {current && (
-              <span className="text-[#87867f]">{DEMO_STEPS.find((s) => s.id === current).hint}</span>
+              <span className="cm-muted">{DEMO_STEPS.find((s) => s.id === current).hint}</span>
             )}
           </div>
         </nav>

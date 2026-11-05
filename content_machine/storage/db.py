@@ -92,29 +92,11 @@ CREATE TABLE IF NOT EXISTS seen_feed_items(
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 
-CREATE TABLE IF NOT EXISTS comments (
-    id TEXT PRIMARY KEY,
-    post_content TEXT NOT NULL,
-    angle TEXT NOT NULL,
-    perspective_text TEXT,
-    initial_draft TEXT NOT NULL,
-    final_comment TEXT NOT NULL,
-    iteration_count INTEGER NOT NULL,
-    peak_score REAL NOT NULL,
-    verdict TEXT NOT NULL,
-    judge_critiques TEXT,
-    humanized INTEGER NOT NULL DEFAULT 0,
-    humanize_tone TEXT,
-    burstiness_score REAL,
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
 CREATE INDEX IF NOT EXISTS idx_seen_feed_items_feed ON seen_feed_items(feed_url);
 CREATE INDEX IF NOT EXISTS idx_history_judge
   ON judge_score_history(judge_slot, model_config, created_at);
 CREATE INDEX IF NOT EXISTS idx_iterations_spike ON iterations(spike_id, iteration);
 CREATE INDEX IF NOT EXISTS idx_transcripts_spike ON transcripts(spike_id);
-CREATE INDEX IF NOT EXISTS idx_comments_created_at ON comments(created_at DESC);
 """
 
 
@@ -181,14 +163,6 @@ def init_db(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE spikes ADD COLUMN topic_tag TEXT NOT NULL DEFAULT 'General Engineering'")
     if "source_url" not in spike_cols:
         conn.execute("ALTER TABLE spikes ADD COLUMN source_url TEXT")
-
-    comment_cols = [c[1] for c in conn.execute("PRAGMA table_info(comments)").fetchall()]
-    if "humanized" not in comment_cols:
-        conn.execute("ALTER TABLE comments ADD COLUMN humanized INTEGER NOT NULL DEFAULT 0")
-    if "humanize_tone" not in comment_cols:
-        conn.execute("ALTER TABLE comments ADD COLUMN humanize_tone TEXT")
-    if "burstiness_score" not in comment_cols:
-        conn.execute("ALTER TABLE comments ADD COLUMN burstiness_score REAL")
 
     rows_to_backfill = conn.execute(
         "SELECT id, hook_thesis FROM spikes WHERE topic_tag = 'General Engineering' OR topic_tag IS NULL"

@@ -3,7 +3,6 @@ import CouncilTab from '../components/council/CouncilTab'
 import DistributeTab from '../components/distribute/DistributeTab'
 import LessonsTab from '../components/lessons/LessonsTab'
 import AudioTab from '../components/audio/AudioTab'
-import CommentingTab from '../components/commenting/CommentingTab'
 import ProfileTab from '../components/profile/ProfileTab'
 
 export const TABS = [
@@ -45,6 +44,5 @@ export const TABS = [
   },
   { id: 'lessons', label: 'Lessons', Component: LessonsTab },
   { id: 'audio', label: 'Audio', Component: AudioTab },
-  { id: 'commenting', label: 'Comments', Component: CommentingTab },
   { id: 'profile', label: 'Profile', Component: ProfileTab },
 ]

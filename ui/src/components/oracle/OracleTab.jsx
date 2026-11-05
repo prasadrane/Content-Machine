@@ -209,27 +209,27 @@ export default function OracleTab({ onSendToCouncil, onSendToCouncilWithDraft, i
   }
 
   return (
-    <div className="space-y-8 animate-fadeIn">
+    <div className="cm-page animate-fadeIn">
       {/* Header & View Switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e3dacc] pb-5">
+      <div className="cm-page-header">
         <div>
-          <h2 className="font-serif text-2xl font-medium tracking-tight text-[#141413]">The Oracle</h2>
-          <p className="text-sm text-[#87867f] mt-1 font-sans">
+          <h2 className="cm-page-title">The Oracle</h2>
+          <p className="cm-page-description">
             Discover, filter, and score engineering topics from your feeds.
           </p>
         </div>
 
         {/* View Switcher Tabs */}
-        <div className="flex items-center gap-1 bg-[#f0eee6] p-1 rounded-full border border-[#e3dacc] shrink-0 self-start sm:self-auto shadow-anthropic">
+        <div className="cm-page-actions">
           <button
             type="button"
             aria-pressed={oracleView === 'active'}
             onClick={() => { initialArchiveLoaded.current = true; setOracleView('active') }}
-            className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium transition ${
+            className={` cm-chip flex items-center gap-2 ${
               oracleView === 'active'
-                ? 'bg-[#141413] text-[#faf9f5] shadow-sm'
-                : 'text-[#87867f] hover:text-[#141413] hover:bg-[#e3dacc]/50'
-            }`}
+                ? "cm-chip-active"
+                : ""
+            }  `}
           >
             <Compass className="w-3.5 h-3.5" />
             <span>Active Scanner</span>
@@ -242,11 +242,11 @@ export default function OracleTab({ onSendToCouncil, onSendToCouncilWithDraft, i
               setOracleView('archive')
               fetchArchive()
             }}
-            className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium transition ${
+            className={` cm-chip flex items-center gap-2 ${
               oracleView === 'archive'
-                ? 'bg-[#141413] text-[#faf9f5] shadow-sm'
-                : 'text-[#87867f] hover:text-[#141413] hover:bg-[#e3dacc]/50'
-            }`}
+                ? "cm-chip-active"
+                : ""
+            }  `}
           >
             <Database className="w-3.5 h-3.5" />
             <span>Feed Archive ({archiveTotal})</span>

@@ -31,11 +31,11 @@ export function PresetChipGroup({
               type="button"
               aria-pressed={isSelected}
               onClick={() => onAdd(value)}
-              className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full border transition duration-150 flex items-center gap-1 ${
+              className={` cm-chip duration-150 flex items-center gap-1 ${
                 isSelected
-                  ? 'bg-[#141413] text-[#faf9f5] border-[#141413] font-semibold shadow-xs'
-                  : 'bg-[#faf9f5] text-[#87867f] hover:text-[#141413] border-[#e3dacc] hover:border-[#b0aea5]'
-              }`}
+                  ? "cm-chip-active"
+                  : ""
+              }  `}
               title={isSelected ? `Remove ${value}` : `Add ${value}`}
             >
               <span>{isSelected ? '✓' : '+'}</span>

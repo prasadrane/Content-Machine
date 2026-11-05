@@ -135,7 +135,7 @@ export default function InterviewModal({ item, onClose, onSynthesizeComplete, on
   if (!isActive) return null
   return createPortal(
     <div 
-      className="fixed inset-0 z-[100] w-screen h-screen bg-[#141413]/70 backdrop-blur-sm flex items-center justify-center p-6 sm:p-8 md:p-10 overflow-y-auto"
+      className="fixed inset-0 z-[100] w-screen h-screen bg-anthropic-slate-dark/70 backdrop-blur-sm flex items-center justify-center p-6 sm:p-8 md:p-10 overflow-y-auto"
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       <div 
@@ -143,18 +143,18 @@ export default function InterviewModal({ item, onClose, onSynthesizeComplete, on
         role="dialog"
         aria-modal="true"
         aria-label={`Perspective on ${item.title}`}
-        className="bg-[#faf9f5] border border-[#e3dacc] rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl animate-fadeIn max-h-[calc(100vh-5rem)] flex flex-col justify-between my-auto shrink-0"
+        className="cm-dialog p-4 sm:p-6 max-w-2xl w-full space-y-6 animate-fadeIn max-h-[calc(100vh-5rem)] flex flex-col justify-between my-auto shrink-0"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 border-b border-[#e3dacc] pb-4 shrink-0">
+        <div className="flex items-start justify-between gap-4 border-b border-anthropic-oat pb-4 shrink-0">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-[#c6613f]/10 text-[#c6613f] border border-[#c6613f]/30">
+              <span className="cm-badge">
                 Topic Briefing & Perspective
               </span>
             </div>
-            <h2 className="text-xl font-serif font-medium text-[#141413] leading-snug">
+            <h2 className="text-xl font-serif font-medium text-anthropic-slate-dark leading-snug">
               {item.title}
             </h2>
             {item.url && (
@@ -162,7 +162,7 @@ export default function InterviewModal({ item, onClose, onSynthesizeComplete, on
                 href={item.url}
                 target="_blank"
                 rel="noreferrer"
-                className="text-[11px] font-mono text-[#87867f] hover:text-[#141413] flex items-center gap-1 inline-flex"
+                className="cm-link inline-flex items-center gap-1"
               >
                 <span>{item.source || 'Source Article'}</span>
                 <ExternalLink className="w-2.5 h-2.5" />
@@ -173,7 +173,7 @@ export default function InterviewModal({ item, onClose, onSynthesizeComplete, on
             type="button"
             aria-label="Close perspective interview"
             onClick={onClose}
-            className="p-1.5 rounded-full text-[#87867f] hover:text-[#141413] hover:bg-[#e3dacc]/50 transition shrink-0"
+            className="cm-icon-button shrink-0"
           >
             <X className="w-4 h-4" />
           </button>
@@ -208,7 +208,7 @@ export default function InterviewModal({ item, onClose, onSynthesizeComplete, on
           />
 
           {synthError && (
-            <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center gap-2">
+            <div className="cm-status cm-status-error flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
               <span>{synthError}</span>
             </div>
@@ -216,14 +216,14 @@ export default function InterviewModal({ item, onClose, onSynthesizeComplete, on
         </div>
 
         {/* Modal Actions */}
-        {completedDraft && <div role="status" className="p-3 bg-emerald-50 text-emerald-900 rounded-xl text-sm">
+        {completedDraft && <div role="status" className="cm-status cm-status-success">
           Your draft finished while you were elsewhere. Your notes are preserved.
-          <button type="button" className="ml-2 underline" onClick={() => onSynthesizeComplete(completedDraft.draft, completedDraft.spike_id)}>Open completed draft</button>
+          <button type="button" className="cm-button cm-button-quiet ml-2 underline" onClick={() => onSynthesizeComplete(completedDraft.draft, completedDraft.spike_id)}>Open completed draft</button>
         </div>}
-        <div className="flex items-center justify-between pt-5 mt-2 border-t border-[#e3dacc] shrink-0 gap-3">
+        <div className="flex flex-wrap items-center justify-between pt-5 mt-2 border-t border-anthropic-oat shrink-0 gap-3">
           <button
             onClick={() => onSkipToCouncil(item)}
-            className="text-xs font-mono text-[#87867f] hover:text-[#141413] px-3.5 py-2 rounded-full hover:bg-[#e3dacc]/50 transition"
+            className="cm-button cm-button-quiet"
           >
             Skip to Manual Drafting &rarr;
           </button>
@@ -231,7 +231,7 @@ export default function InterviewModal({ item, onClose, onSynthesizeComplete, on
           <button
             onClick={handleSynthesize}
             disabled={synthesizing || loadingBriefing}
-            className="py-2.5 px-5 bg-[#c6613f] hover:bg-[#a54c2d] disabled:opacity-50 text-[#faf9f5] rounded-full text-xs font-medium transition flex items-center gap-2 shadow-sm"
+            className="cm-button cm-button-primary disabled:opacity-50 flex items-center gap-2"
           >
             {synthesizing ? (
               <>

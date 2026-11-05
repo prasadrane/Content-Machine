@@ -14,7 +14,7 @@ verified against code, it is stated as such. Numbers come from code and
 
 Content Machine is a local-first modular monolith with a REST API and a single-page
 UI. One FastAPI process hosts the API, the subsystem logic (Oracle, Council,
-Humanize, Commenting, Distribution, Lessons, Profile, Interview, ASR, Imaging), and —
+Humanize, Distribution, Lessons, Profile, Interview, ASR, Imaging), and —
 when a UI build exists — the static SPA bundle itself
 ([api/app.py](content_machine/api/app.py), `_UI_DIST` mount and SPA fallback route).
 There is no separate worker tier, no service mesh, and no message broker; subsystems
@@ -54,7 +54,7 @@ Established by code and repo docs:
 
 Non-goals evident from what is absent or explicitly excluded: multi-user accounts,
 authentication, and authorization (section 13); autonomous publishing (every flow
-ends in operator review — lessons "never auto-append", comments/posts are drafts);
+ends in operator review — lessons "never auto-append", posts are drafts);
 scheduled background execution (the "08:00 cadence" in the Oracle docstring is a
 usage convention, not a scheduler — no cron/APScheduler exists in the codebase).
 The guiding invariant stated in [README.md](README.md) ("AI as extraction, synthesis,
@@ -123,7 +123,7 @@ flowchart TB
   UI[React SPA ui/dist] --> API[FastAPI app.py]
   API --> ORC[Oracle + connectors]
   API --> COU[Council + Humanize]
-  API --> COM[Commenting + Interview + Profile]
+  API --> COM[Interview + Profile]
   API --> DST[Distribution + Lessons]
   API --> ASR[ASR + Imaging]
   ORC --> RT[ModelRouter]
@@ -136,12 +136,11 @@ flowchart TB
 
 | Component | Responsibility | Technology | Inbound | Outbound | Owned data |
 | --- | --- | --- | --- | --- | --- |
-| UI SPA | 7 tabs (Oracle, Council, Distribute, Lessons, Audio, Comments, Profile), SSE scan progress, history views ([ui/src/app/tabs.js](ui/src/app/tabs.js)) | React 18, Vite, Tailwind ([ui/package.json](ui/package.json)) | user browser | same-origin `/api/*` fetch ([ui/src/api/client.js](ui/src/api/client.js)), SSE via fetch ReadableStream ([ui/src/api/sse.js](ui/src/api/sse.js)) | none (no client-side store observed beyond component state) |
+| UI SPA | 6 tabs (Oracle, Council, Distribute, Lessons, Audio, Profile), SSE scan progress, history views ([ui/src/app/tabs.js](ui/src/app/tabs.js)) | React 18, Vite, Tailwind ([ui/package.json](ui/package.json)) | user browser | same-origin `/api/*` fetch ([ui/src/api/client.js](ui/src/api/client.js)), SSE via fetch ReadableStream ([ui/src/api/sse.js](ui/src/api/sse.js)) | none (no client-side store observed beyond component state) |
 | FastAPI server | REST surface, static UI serving, error mapping, CORS | FastAPI/uvicorn ([api/app.py](content_machine/api/app.py)) | HTTP | all subsystems below | request/response models in [schemas.py](content_machine/schemas.py) |
 | Oracle | connector pull → URL dedup → rehydrate cached → N-sample score → persist | [oracle/oracle.py](content_machine/oracle/oracle.py), [oracle/scorer.py](content_machine/oracle/scorer.py), [oracle/classifier.py](content_machine/oracle/classifier.py) | API/CLI | connectors, router, `spikes` table | scored spike rows |
-| Council | 4-judge parallel scoring, margin resample, revise loop, persistence | [council/loop.py](content_machine/council/loop.py), [gate.py](content_machine/council/gate.py), [normalize.py](content_machine/council/normalize.py), [obfuscate.py](content_machine/council/obfuscate.py) | API/CLI, Commenting | router, `iterations`, `judge_score_history`, `audit_log` | deliberation history |
-| Humanize | LLM rewrite + deterministic sanitizer + burstiness metric | [humanize/transformer.py](content_machine/humanize/transformer.py), [sanitizer.py](content_machine/humanize/sanitizer.py), [constants.py](content_machine/humanize/constants.py) | API/CLI, Council exit path, Distribution, Commenting | router | none (pure transforms) |
-| Commenting | LinkedIn comment synthesis, council vetting, history | [commenting/engine.py](content_machine/commenting/engine.py) | API/CLI | router, `run_council`, humanizer, `comments` table | comment rows |
+| Council | 4-judge parallel scoring, margin resample, revise loop, persistence | [council/loop.py](content_machine/council/loop.py), [gate.py](content_machine/council/gate.py), [normalize.py](content_machine/council/normalize.py), [obfuscate.py](content_machine/council/obfuscate.py) | API/CLI | router, `iterations`, `judge_score_history`, `audit_log` | deliberation history |
+| Humanize | LLM rewrite + deterministic sanitizer + burstiness metric | [humanize/transformer.py](content_machine/humanize/transformer.py), [sanitizer.py](content_machine/humanize/sanitizer.py), [constants.py](content_machine/humanize/constants.py) | API/CLI, Council exit path, Distribution | router | none (pure transforms) |
 | Distribution | anchor post → platform bundle, save to project dir | [distribution/engine.py](content_machine/distribution/engine.py) | API/CLI | router, humanizer, filesystem | bundle files under `projects/<slug>/distribution/` |
 | Lessons | governed rule store (propose/approve/reject, conflict, cap), diff extraction | [lessons/store.py](content_machine/lessons/store.py), [differ.py](content_machine/lessons/differ.py) | API/CLI | router, `lessons` table | `lessons` rows |
 | Profile | author persona / voice guide CRUD with non-negotiable invariant re-injection | [profile/manager.py](content_machine/profile/manager.py) | API | runtime `knowledge/02_voice-guide.md` | voice-guide markdown |
@@ -165,7 +164,7 @@ route or UI tab — grep of `content_machine/`, `tests/`, `ui/src/` shows only
   (routes enumerated in section 7 / section 13 of this doc); demo-only middleware in
   [api/index.py](api/index.py) and [content_machine/api/rate_limit.py](content_machine/api/rate_limit.py).
 - **CLI entry point**: [content_machine/\_\_main\_\_.py](content_machine/__main__.py)
-  (`oracle`, `council`, `transcribe`, `lessons`, `distribute`, `serve`, `comment`,
+  (`oracle`, `council`, `transcribe`, `lessons`, `distribute`, `serve`,
   `humanize`, `idea-bank`, `imageprompts`). CLI and API share wiring factories in
   [content_machine/bootstrap.py](content_machine/bootstrap.py).
 - **Persistence**: [content_machine/storage/](content_machine/storage/) —
@@ -275,7 +274,7 @@ sequenceDiagram
   LP-->>API: best draft, threshold_met=False, blocking actions
 ```
 
-Two scope notes, both from code:
+Scope note from code:
 
 - The **HTTP API never runs the full 3-iteration loop**:
   `CouncilRunRequest.max_iterations` defaults to 1 and `demo_council_max_iterations`
@@ -284,8 +283,6 @@ Two scope notes, both from code:
   command, which calls `run_council` without `max_iterations` (falls back to
   `thresholds.council_max_iterations = 3`). This is an observed implementation
   behavior, not a documented decision.
-- The Commenting subsystem reuses `run_council` with `max_iterations=2` and then a
-  3-sentence humanize clamp ([commenting/engine.py](content_machine/commenting/engine.py)).
 
 ### 7.3 Vercel demo cold start
 
@@ -315,7 +312,7 @@ sequenceDiagram
   `_apply_demo_overrides`). Gated on `DEMO_MODE == "1"` **and** `GEMINI_API_KEY`
   present.
 - `seed_demo` writes 10 demo spikes (real public article titles/URLs, synthetic
-  scores/verdicts), 6 demo lessons, 2 demo comments, two distribution bundles, and a
+  scores/verdicts), 6 demo lessons, two distribution bundles, and a
   synthetic voice guide via `ProfileManager` ([demo_seed.py](content_machine/demo_seed.py)).
   It short-circuits when any `demo-%` spike exists ("Idempotent: skips if already
   seeded"), though the voice-guide rewrite runs unguarded before the check (observed
@@ -339,7 +336,6 @@ constant; there are no numbered migration files — `init_db` performs additive
 | `iterations` | one row per council iteration (draft path + full review JSON, raw/normalized composites, `draft_content`) | Council `_persist` |
 | `judge_score_history` | per-judge-slot, per-dimension raw scores — the corpus for z-normalization after n ≥ 30 | Council `_persist` |
 | `lessons` | governed rules with provenance, embedding blob, status (pending/active/rejected), UNIQUE `rule_text` | LessonsStore |
-| `comments` | comment runs with initial/final text, peak score, humanize metadata, burstiness | CommentingEngine |
 | `audit_log` | timestamped event rows (`idea_scored`, `item_skipped_already_scored`, `council_iteration`, `connector_error`, `storage_init`) | `log_event` and direct inserts |
 | `feed_cache` | per-feed ETag / Last-Modified tokens | [connectors/rss.py](content_machine/connectors/rss.py) |
 | `seen_feed_items` | GUIDs already ingested per feed | RSS connector (`record_seen_guids`) |
@@ -406,7 +402,7 @@ Mechanisms that exist in code:
   (ui/vite.config.js). No explicit timeout is set on connector `requests` calls
   (rss/github/linkedin use `requests.get/post` with no `timeout=` argument observed),
   which is an observed gap.
-- **Council loop bounds**: iteration cap (config 3; comment path 2; API path 1),
+- **Council loop bounds**: iteration cap (config 3; API path 1),
   judge quorum of 3 with failed judges recorded as notes rather than crashing
   (loop.py `_evaluate_once`), margin resample once per iteration, and an exhausted
   loop returns the best draft plus blocking issues rather than failing.
@@ -511,8 +507,7 @@ Stated precisely, without claims about strength:
   `CONTENT_MACHINE_HOME`, `GITHUB_PAT`, `LINKEDIN_LI_AT`.
 - **Input validation at the boundary** via pydantic request models with explicit
   constraints (e.g. `CouncilRunRequest.draft` `min_length=1`,
-  `DistributeRunRequest.anchor_post` `min_length=10`, comment-history `limit` clamped
-  1–200) and FastAPI `response_model` typing (api/app.py). LLM structured outputs
+  `DistributeRunRequest.anchor_post` `min_length=10`) and FastAPI `response_model` typing (api/app.py). LLM structured outputs
   are validated against `IdeaScore`/`CouncilScores` (0–10 bounds) before use.
 - **Path safety**: `project_dir` rejects slugs containing `/`, `\`, or a leading dot
   ([storage/paths.py](content_machine/storage/paths.py)).
@@ -698,3 +693,11 @@ the ADR directory for the curated list and its promotion status.
   (e.g. free-tier quota), the API returns a seeded result with `replayed: true`
   ([demo_seed.py](content_machine/demo_seed.py) `replay_council` / `replay_bundle`).
   The UI labels it as a stored sample, never as a review of the user's draft.
+
+### Retired LinkedIn comments feature
+
+The Comments tab, API endpoints, CLI command, comment-generation engine and
+comment-specific polish channel were removed. New databases and demo seeds do
+not create comments. Initialization leaves any legacy `comments` table and its
+rows untouched; removing the feature does not purge user history. LinkedIn post
+ingestion, post drafting, Council review and distribution remain available.

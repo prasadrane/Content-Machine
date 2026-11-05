@@ -69,7 +69,7 @@ Content-Machine/
     │   ├── App.jsx               # Declarative root shell (≤70 lines)
     │   ├── main.jsx              # Vite entrypoint
     │   ├── app/                  # App-level registry & orchestration (tabs, useServerHealth, useSharedFlow)
-    │   ├── api/                  # Dedicated API clients (oracle, council, distribute, profile, comments, etc.)
+    │   ├── api/                  # Dedicated API clients (oracle, council, distribute, profile, etc.)
     │   ├── hooks/                # Reusable UI hooks (useVoiceRecording, useCopyToClipboard)
     │   ├── lib/                  # Shared domain constants & topic helpers (topics, constants)
     │   └── components/           # Feature slices & presentational components
@@ -77,7 +77,6 @@ Content-Machine/
     │       ├── oracle/           # Subsystem 1: Cockpit, CandidateStream, HUD, Archive, Interview
     │       ├── council/          # Subsystem 4: DraftingStudio, VerdictPanel, HistoryTimeline, HumanizedDraftCard
     │       ├── distribute/       # Subsystem 6: AnchorForm, OutputPreviews, PlatformConfigModal
-    │       ├── commenting/       # InputPanel, PolishCard, CommentsHistory
     │       ├── lessons/          # Subsystem 5: RulesLists, ProposalsQueue, DiffExtractor, CustomRuleCard
     │       ├── audio/            # Subsystem 2: Voice intake, transcript recorder
     │       └── profile/          # Author persona, core themes, voice invariants
@@ -153,6 +152,7 @@ npm test          # or npx vitest run
 - **No raw fetch() outside `ui/src/api/`**: All network calls must go through typed domain clients.
 - **Open-Closed Principle (OCP)**: New tabs are registered in `ui/src/app/tabs.js` without modifying `App.jsx`.
 - **Target ≤300 lines/file**: Hard cap 350 lines (orchestrators only). App.jsx target ≤120 lines.
+- **Consistent editorial theme**: Use the shared `cm-*` styles and tokens in `ui/src/index.css` for page headers, panels, fields, actions, and feedback. Follow `docs/ui-style-system.md`; avoid conflicting local visual overrides.
 
 ### Live Smoke Verification
 To run the live council smoke test with actual LLM calls (requires active relay & credentials):

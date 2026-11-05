@@ -105,22 +105,24 @@ export default function ProfileTab() {
   )
 
   return (
-    <div className="space-y-8 animate-fadeIn max-w-7xl mx-auto">
+    <div className="cm-page animate-fadeIn">
       {/* 1. Header */}
-      <div className="border-b border-[#e3dacc] pb-5">
+      <div className="cm-page-header">
+        <div>
         {hasChanges && (
           <div className="mb-2">
-            <span className="text-[10px] uppercase font-mono px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+            <span className="cm-badge cm-status-warning">
               Unsaved Changes
             </span>
           </div>
         )}
-        <h2 className="font-serif text-2xl font-medium tracking-tight text-[#141413]">
+        <h2 className="cm-page-title">
           Author Voice &amp; Profile
         </h2>
-        <p className="text-sm text-[#87867f] mt-1 font-sans">
+        <p className="cm-page-description">
           Codified engineering persona, active upskilling focus, and non-negotiable voice invariants.
         </p>
+        </div>
       </div>
 
       {/* Main Two-Column Layout */}
@@ -153,14 +155,14 @@ export default function ProfileTab() {
           {/* Save Action & Feedback */}
           <div className="space-y-3">
             {error && (
-              <div className="p-3 bg-rose-50 text-rose-800 text-xs rounded-xl border border-rose-200 flex items-center gap-2">
+              <div className="cm-status cm-status-error flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
                 <span>{error}</span>
               </div>
             )}
 
             {saveSuccess && (
-              <div className="p-3 bg-emerald-50 text-emerald-800 text-xs rounded-xl border border-emerald-200 flex items-center gap-2 animate-fadeIn">
+              <div className="cm-status cm-status-success flex items-center gap-2 animate-fadeIn">
                 <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
                 <span>Voice profile saved &amp; synced with active editorial pipeline!</span>
               </div>
@@ -170,11 +172,7 @@ export default function ProfileTab() {
               type="button"
               onClick={handleSave}
               disabled={saving || loading}
-              className={`w-full py-3 px-5 rounded-full text-xs font-medium transition flex items-center justify-center gap-2 shadow-sm ${
-                hasChanges
-                  ? 'bg-[#c6613f] hover:bg-[#a54c2d] text-[#faf9f5]'
-                  : 'bg-[#141413] hover:bg-[#252524] text-[#faf9f5]'
-              } disabled:opacity-50`}
+              className="cm-button cm-button-primary w-full"
             >
               {saving ? (
                 <>
@@ -193,18 +191,18 @@ export default function ProfileTab() {
 
         {/* Right Column: Live Voice Guide Markdown Preview */}
         <div className="space-y-4">
-          <div className="bg-[#f0eee6]/60 border border-[#e3dacc] rounded-2xl p-5 sm:p-6 space-y-4 shadow-anthropic">
-            <div className="flex items-center justify-between gap-3 border-b border-[#e3dacc]/80 pb-3.5">
+          <div className="cm-panel space-y-4">
+            <div className="cm-panel-header flex flex-wrap items-start justify-between gap-3">
               <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-xs uppercase font-mono tracking-wider text-[#87867f] font-semibold">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="cm-panel-title">
                     Live Voice Guide Preview
                   </h3>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#faf9f5] text-[#141413] border border-[#e3dacc]">
+                  <span className="cm-badge font-mono">
                     02_voice-guide.md
                   </span>
                 </div>
-                <p className="text-[11px] text-[#87867f] font-sans mt-0.5">
+                <p className="cm-muted mt-1">
                   Exact context injected into editorial &amp; council models
                 </p>
               </div>
@@ -213,7 +211,7 @@ export default function ProfileTab() {
                 <button
                   type="button"
                   onClick={handleCopyMarkdown}
-                  className="p-1.5 text-[#87867f] hover:text-[#141413] hover:bg-[#e3dacc]/50 rounded-full transition"
+                  className="cm-icon-button"
                   title="Copy markdown"
                 >
                   {copiedMarkdown ? (
@@ -226,7 +224,7 @@ export default function ProfileTab() {
                   type="button"
                   onClick={() => fetchProfile(true)}
                   disabled={refreshing || loading}
-                  className="p-1.5 text-[#87867f] hover:text-[#141413] hover:bg-[#e3dacc]/50 rounded-full transition disabled:opacity-50"
+                  className="cm-icon-button"
                   title="Refresh voice guide from backend"
                 >
                   <RotateCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-[#c6613f]' : ''}`} />
@@ -236,16 +234,16 @@ export default function ProfileTab() {
 
             {/* Markdown Preview Content */}
             {loading && !profile ? (
-              <div className="bg-[#faf9f5] border border-[#e3dacc] rounded-2xl p-8 text-center text-[#87867f] font-mono text-xs animate-pulse">
+              <div className="cm-empty animate-pulse">
                 Loading active voice guide...
               </div>
             ) : (
-              <div className="bg-[#faf9f5] border border-[#e3dacc] rounded-2xl p-5 font-mono text-xs text-[#141413] leading-relaxed max-h-[720px] overflow-y-auto whitespace-pre-wrap select-text shadow-xs">
+              <div className="cm-subpanel text-base font-mono leading-relaxed max-h-[720px] overflow-y-auto whitespace-pre-wrap break-words select-text">
                 {profile?.full_markdown || '// Voice guide markdown will load here'}
               </div>
             )}
 
-            <div className="flex items-center justify-between text-[10px] font-mono text-[#87867f] pt-1">
+            <div className="flex flex-wrap items-center justify-between gap-2 cm-muted pt-1">
               <span>
                 Length: {profile?.full_markdown ? `${profile.full_markdown.length} chars | ${profile.full_markdown.split('\n').length} lines` : '-'}
               </span>

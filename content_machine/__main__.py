@@ -6,7 +6,6 @@ oracle      Pull connectors, score ideas, print ranked candidates.
 council     Run Writer's Council on a draft file.
 transcribe  Batch-transcribe an audio file with faster-whisper.
 lessons     Manage the governed lessons store.
-comment     Synthesize and vet senior-level LinkedIn comments.
 imageprompts  Generate per-post §28 image prompts for the Windmill Idea Bank.
 
 Examples
@@ -19,7 +18,6 @@ Examples
     python -m content_machine lessons list
     python -m content_machine lessons approve 12
     python -m content_machine lessons reject 12
-    python -m content_machine comment --post "Scaling MySQL to 10M rows" --angle insightful
 """
 
 from __future__ import annotations
@@ -31,7 +29,6 @@ from pathlib import Path
 
 # ---- subsystem imports (each imported at top so patch() works in tests) ----
 from content_machine.asr.batch import BatchTranscriber
-from content_machine.commenting.engine import CommentingEngine
 from content_machine.connectors.github import GitHubConnector
 from content_machine.connectors.idea_bank import IdeaBankConnector
 from content_machine.connectors.linkedin import LinkedInConnector
@@ -391,58 +388,6 @@ def _cmd_serve(args: argparse.Namespace) -> int:
     return 0
 
 
-# ---------------------------------------------------------------------------
-# comment
-# ---------------------------------------------------------------------------
-
-def _cmd_comment(args: argparse.Namespace) -> int:
-    from content_machine.config import load_config
-    from content_machine.schemas import CommentAngle
-
-    post_content = getattr(args, "post", None)
-    if not post_content or len(post_content.strip()) < 10:
-        print("error: --post must be at least 10 characters long", file=sys.stderr)
-        return 1
-
-    angle_raw = getattr(args, "angle", "insightful")
-    try:
-        angle = CommentAngle(angle_raw.lower())
-    except (ValueError, AttributeError):
-        angle = CommentAngle.INSIGHTFUL
-
-    perspective = getattr(args, "perspective", None)
-
-    cfg = load_config()
-    router = _make_router()
-    db_conn = _make_db()
-
-    engine = CommentingEngine(router=router, cfg=cfg, db_conn=db_conn)
-    result = engine.generate_comment(
-        post_content=post_content,
-        angle=angle,
-        perspective_text=perspective,
-    )
-
-    print(f"\nPolished Comment ({result.verdict} — peak score: {result.peak_score:.2f}, iteration: {result.iteration}):")
-    print("-" * 60)
-    print(result.final_comment)
-    print("-" * 60)
-    if result.judge_scores:
-        print("Council Breakdown:")
-        for judge, score in result.judge_scores.items():
-            critique = result.judge_critiques.get(judge, "")
-            if critique:
-                print(f"  * {judge}: {score:.2f} — {critique}")
-            else:
-                print(f"  * {judge}: {score:.2f}")
-    if result.actions:
-        print("Required Actions:")
-        for action in result.actions:
-            print(f"  - {action}")
-    print()
-    return 0
-
-
 def _cmd_humanize(args: argparse.Namespace) -> int:
     path_or_text = getattr(args, "path", None) or getattr(args, "text", "")
     if not path_or_text:
@@ -704,21 +649,12 @@ def _build_parser() -> argparse.ArgumentParser:
     p_serve.add_argument("--port", type=int, default=8000, help="Port to bind (default: 8000)")
     p_serve.add_argument("--reload", action="store_true", help="Enable auto-reload for dev.")
 
-    # comment
-    p_comment = sub.add_parser("comment", help="Synthesize and vet senior-level LinkedIn comments.")
-    p_comment.add_argument("--post", required=True, help="Content of the target LinkedIn post.")
-    p_comment.add_argument("--angle", default="insightful",
-                           choices=["insightful", "contrarian", "question"],
-                           help="Comment angle: insightful, contrarian, question (default: insightful).")
-    p_comment.add_argument("--perspective", default=None,
-                           help="Operator's lived perspective or grounding context.")
-
     # humanize
     p_humanize = sub.add_parser("humanize", help="Humanize draft text, stripping AI tells and increasing burstiness.")
     p_humanize.add_argument("path", metavar="PATH_OR_TEXT", help="Draft text or path to markdown file.")
     p_humanize.add_argument("--channel", default="general",
-                            choices=["linkedin_post", "linkedin_comment", "x_thread", "video_script", "general"],
-                            help="Target channel: linkedin_post, linkedin_comment, x_thread, video_script, general (default: general).")
+                            choices=["linkedin_post", "x_thread", "video_script", "general"],
+                            help="Target channel: linkedin_post, x_thread, video_script, general (default: general).")
     p_humanize.add_argument("--tone", default="pragmatic_architect",
                             choices=["punchy_direct", "pragmatic_architect", "conversational_peer"],
                             help="Target tone: punchy_direct, pragmatic_architect, conversational_peer (default: pragmatic_architect).")
@@ -788,7 +724,6 @@ def main() -> None:
         "lessons": _cmd_lessons,
         "distribute": _cmd_distribute,
         "serve": _cmd_serve,
-        "comment": _cmd_comment,
         "humanize": _cmd_humanize,
         "idea-bank": _cmd_idea_bank,
         "imageprompts": _cmd_imageprompts,

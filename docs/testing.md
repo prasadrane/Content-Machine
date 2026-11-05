@@ -17,7 +17,7 @@ There is no pytest configuration file in the repository (no `pytest.ini`, `pypro
 
 ### Backend unit tests (`tests/`, plain `unittest`, 30 files)
 
-Coverage is organized around the pipeline subsystems: `test_oracle.py`, `test_oracle_classifier.py`, `test_oracle_dedup.py`, `test_council.py`, `test_council_gate.py`, `test_council_history.py`, `test_commenting.py`, `test_humanize.py`, `test_distribution.py`, `test_distribute_history.py`, `test_editorial_rules.py`, `test_editorial_context.py`, `test_lessons.py`, `test_interview.py`, `test_asr.py`, `test_image_prompts.py`, `test_profile.py`, `test_storage.py`, `test_bootstrap.py`, `test_connectors.py`, `test_idea_bank_connector.py`, `test_linkedin_connector.py`, `test_linkedin_automation.py`, `test_rate_limit.py`, `test_router.py`, `test_router_gemini.py`, `test_cli.py`, `test_api.py`, `test_demo_mode.py`, `test_doc_drift.py`.
+Coverage is organized around the pipeline subsystems: `test_oracle.py`, `test_oracle_classifier.py`, `test_oracle_dedup.py`, `test_council.py`, `test_council_gate.py`, `test_council_history.py`, `test_comments_removed.py`, `test_humanize.py`, `test_distribution.py`, `test_distribute_history.py`, `test_editorial_rules.py`, `test_editorial_context.py`, `test_lessons.py`, `test_interview.py`, `test_asr.py`, `test_image_prompts.py`, `test_profile.py`, `test_storage.py`, `test_bootstrap.py`, `test_connectors.py`, `test_idea_bank_connector.py`, `test_linkedin_connector.py`, `test_linkedin_automation.py`, `test_rate_limit.py`, `test_router.py`, `test_router_gemini.py`, `test_cli.py`, `test_api.py`, `test_demo_mode.py`, `test_doc_drift.py`.
 
 Notable: `test_cli.py` exercises the argparse command surface of `python -m content_machine` with patched components, and `test_demo_mode.py` pins the behavior of `DEMO_MODE` (model overrides in `content_machine/config.py`, the `/tmp` demo home, seeded-data survival).
 
@@ -40,7 +40,7 @@ Six additional `test_failure_logic_*` tests mutate inline fixtures to prove each
 
 ### UI tests (`ui/`, 25 files, vitest)
 
-Vitest 5.0.0 with `jsdom` environment, configured in `ui/vite.config.js` (`test.environment: 'jsdom'`, `setupFiles: './src/setupTests.js'`, globals on, 15 s timeout, max 4 workers). `src/setupTests.js` imports `@testing-library/jest-dom/vitest`; component assertions use `@testing-library/react` and `@testing-library/user-event`. Test files cover the API client, SSE handling, tab wiring, each feature tab component (oracle, council, commenting, lessons, distribute, profile, audio), the demo banner, shared hooks, and the `lib/` helpers (`textStats`, `angles`, `constants`, `topics`).
+Vitest 5.0.0 with `jsdom` environment, configured in `ui/vite.config.js` (`test.environment: 'jsdom'`, `setupFiles: './src/setupTests.js'`, globals on, 15 s timeout, max 4 workers). `src/setupTests.js` imports `@testing-library/jest-dom/vitest`; component assertions use `@testing-library/react` and `@testing-library/user-event`. Test files cover the API client, SSE handling, tab wiring, each feature tab component (oracle, council, lessons, distribute, profile, audio), the demo banner, shared hooks, and the `lib/` helpers (`constants`, `topics`).
 
 No network is made from UI tests: the API client is exercised against stubbed `fetch`/transport seams.
 
