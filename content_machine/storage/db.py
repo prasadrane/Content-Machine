@@ -11,6 +11,8 @@ import argparse
 import sqlite3
 from pathlib import Path
 
+from content_machine.workflow.migrations import migrate_workflow
+
 from .paths import home_root
 
 DB_NAME = "content_machine.db"
@@ -175,6 +177,9 @@ def init_db(conn: sqlite3.Connection) -> None:
             topic = classify_content_topic(hook_thesis)
             if topic != "General Engineering":
                 conn.execute("UPDATE spikes SET topic_tag = ? WHERE id = ?", (topic, row_id))
+
+    # Additive workflow schema; its savepoint keeps legacy data intact on failure.
+    migrate_workflow(conn)
     conn.commit()
 
 
