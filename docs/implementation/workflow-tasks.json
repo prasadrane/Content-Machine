@@ -2,7 +2,7 @@
   "schema_version": 1,
   "product": "Content Machine creator workflow",
   "created_on": "2026-11-05",
-  "status": "planned_checkpoints",
+  "status": "blocked_provider_policy",
   "product_plan": "docs/ui-workflow-plan.md",
   "reference_commit": "34405a5530a6340aee17a9b1f0f5f61dfc1bd091",
   "execution": {
@@ -10,7 +10,7 @@
     "pinned_package": "freebuff@0.2.36",
     "package_integrity": "sha512-Cb2/8ux8EexLHW8M9wa4a2ZBg32bZCWxRJ9zNsUF+VJnUgt6Tclnd1isOlWLfdtEL6VpXMhQUlEottHl3sy7MQ==",
     "transport": "interactive_terminal",
-    "transport_status": "three_round_trips_verified_with_fixture_read_cancellation_and_recovery",
+    "transport_status": "historical_round_trips_verified_current_C10_handoff_rejected_by_provider_usage_policy",
     "reviewer": "Codex orchestrator",
     "parallel_implementers": 1,
     "max_repair_attempts_per_checkpoint": 3,
@@ -29,7 +29,8 @@
       "Interrupted AI records also have isComplete=true. Controller cancellation state overrides completion."
     ],
     "baseline_status": "passed_on_reference_source",
-    "source_handoff_status": "C09_accepted_C10_dispatched",
+    "source_handoff_status": "C09_accepted_C10_rejected_before_model_dispatch",
+    "blocking_reason": "Freebuff Driven by another agent usage policy rejected automated implementation. Awaiting user selection of a supported implementation route.",
     "baseline_results": {
       "pytest": {
         "passed": 375,
@@ -61,7 +62,7 @@
     },
     "frontend_baseline_notes": "Earlier Node 24 runs were interrupted during a long startup. No causal Node-version conclusion is established.",
     "probe_process_status": "implementation_session_active",
-    "current_gate": "C10_history_approval_export_api",
+    "current_gate": "C10_implementer_selection",
     "hosted_provider_decision": "User selected Supabase Auth and Postgres; prepare code and migration configuration",
     "sign_in_method": "Google",
     "guest_demo_decision": "Seeded guest mode with live AI, persisted guest work and explicit sign-in transfer confirmed; revise C38/C39/C43/C46 packets",

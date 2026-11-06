@@ -5,6 +5,10 @@ Date 2026-11-05
 This runbook translates the reviewed product plan into 51 supervised checkpoints.
 Freebuff is the implementer. Codex supplies bounded prompts, independently verifies the work, issues repairs and controls advancement.
 
+## Current execution gate
+
+Freebuff rejected the C10 handoff on November 6, 2026 UTC under its **Driven by another agent** usage policy. The provider withheld the message from its model. Automatic Freebuff submissions have stopped while the user chooses a supported implementation route. C00 through C09 are accepted, and C10 is pending. The supervision protocol below remains the checkpoint/review design for the selected implementation route. [Rejection evidence and accepted checkpoints](freebuff-integration.md)
+
 The latest user decisions select Supabase Auth and Postgres with Google sign-in and add an explicit guest demo with seeded examples and live AI. Guest work persists across return visits, and Google sign-in offers an explicit transfer. C38, C39, C43 and the hosted children must preserve this opt-in guest experience while keeping creator workspaces private and free of automatic sample seeding. The hosted packets must verify guest and authenticated ownership throughout retention and transfer.
 
 [Product requirements](../ui-workflow-plan.md) govern user outcomes.
