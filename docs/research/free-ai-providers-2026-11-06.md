@@ -4,6 +4,8 @@ Verified against official sources on 2026-11-06 UTC. This review covers backend 
 
 I recommend evaluating Cloudflare Workers AI and Groq first. Gemini is the quickest additional candidate for the existing codebase, with a separate decision about its unpaid-service data terms. OpenRouter is useful for controlled model experiments and low-volume fallback.
 
+The creator selected Cloudflare Workers AI for the first evaluation. Use non-sensitive engineering samples. Account credentials, enabled model IDs and live evaluation results remain pending. Keep this choice explicit in configuration and retain the existing relay until the new route passes its adapter and normal-entry-point checks.
+
 | Provider | Current free access | Fit for this application | Official evidence |
 | --- | --- | --- | --- |
 | Cloudflare Workers AI | 10,000 neurons daily on Workers Free. Usage stops at the allocation. Several frontier models require paid access. | First candidate for a bounded guest pool. Current smaller-model candidates include Gemma 4 26B A4B and Qwen 3.8 27B. | [Pricing](https://developers.cloudflare.com/workers-ai/platform/pricing/), [current model migration notice](https://developers.cloudflare.com/changelog/post/2026-11-05-planned-model-deprecations/) |
@@ -38,5 +40,18 @@ Prepare three small provider packets after selecting the initial account and mod
 3. Add shared guest budgeting across server instances using the durable workspace store. Honor provider limits and retry hints. A free-only guest route must require an explicit configuration decision before it can use a paid fallback. Keep quota controls in the backend and preserve drafts when AI is unavailable.
 
 The reviewed configuration has four Council judge slots and three samples per scored idea. Provider request counts therefore translate into fewer completed workflows. Measure actual prompt/output tokens, retries and editorial quality before presenting a capacity estimate. A provider's promotional speed or model ranking cannot establish writing quality for this app.
+
+## First Cloudflare evaluation
+
+Windows account/token setup and redacted verification commands are in [the setup guide](../implementation/cloudflare-workers-ai-setup.md).
+
+The official compatible base URL is `https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1`. Text generation uses `POST /chat/completions` with a Bearer API token and an explicit Cloudflare model ID. The Responses API is limited to GPT-OSS models, so the initial adapter should use Chat Completions. Keep the API token server-side. [Compatible endpoints](https://developers.cloudflare.com/workers-ai/configuration/open-ai-compatibility/)
+
+1. Configure `CLOUDFLARE_ACCOUNT_ID` and a scoped `CLOUDFLARE_API_TOKEN` in the local server environment. These were absent from the controller environment when checked. Record only whether configuration is present. Exclude secrets from Freebuff prompts, reports, fixtures and browser bundles.
+2. Confirm the account's Workers plan, remaining daily allocation and current model catalog. Select a free-eligible model from the current catalog. Avoid the models listed as requiring paid billing. Set an explicit request/token ceiling for the evaluation and require a new configuration decision for paid fallback. [Pricing and paid-model conditions](https://developers.cloudflare.com/workers-ai/platform/pricing/)
+3. Have Freebuff add the compatible adapter in its own reviewed packet. Test plain text and locally validated structured output, malformed/empty/truncated content, unsupported response formats, timeout, rate limits, authentication failures and exhausted allocation. Verify the shared API/CLI bootstrap and retained factory construct the adapter. HTTP mocks must assert the exact URL, Bearer header and provider-native model ID.
+4. Run a bounded opt-in live test through the application's normal router using three non-sensitive fixtures. Cover a source-grounded engineering post, an explicit refusal to invent a personal anecdote or metric, and a structured editorial review. Record exact model ID, date, status, latency, prompt/output usage and validation results. Do not count model-generated factual claims as verified source material.
+5. Review the actual responses for grounding, useful specificity, preserved meaning, readable prose and valid Council output. Keep model preference and measured outcomes separate. Confirm an exhausted-provider response leaves saved content intact and never reports successful generation or review.
+6. Connect the accepted route explicitly to the selected workflow roles. Apply durable guest-budget controls before enabling public guest traffic across server instances. Display an actionable temporary-unavailability message after quota exhaustion while preserving drafts.
 
 Groq also publishes Whisper transcription allowances. This is a candidate for hosted dictation if the deployment needs remote ASR, with the actual audio-processing path explained beside microphone controls. The local CPU transcription path remains available for local operation. [Groq limits](https://console.groq.com/docs/rate-limits)
