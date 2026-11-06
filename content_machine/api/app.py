@@ -9,7 +9,9 @@ import os
 from pathlib import Path
 from typing import Optional, Any
 
-from fastapi import FastAPI, HTTPException, Query, File, UploadFile
+from fastapi import FastAPI, HTTPException, Query, File, Request, UploadFile
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -31,6 +33,13 @@ from content_machine.oracle.oracle import OracleOrchestrator
 from content_machine.oracle.scorer import IdeaScorer
 from content_machine.interview.engine import InterviewEngine
 from content_machine.profile.manager import ProfileManager
+from content_machine.workflow.errors import WorkflowError
+from content_machine.workflow.http import (
+    WORKFLOW_PREFIX,
+    workflow_error_response,
+    workflow_validation_response,
+)
+from content_machine.workflow.routes import router as workflow_router
 from content_machine.schemas import (
     TopicBriefRequest,
     TopicBriefing,
@@ -82,6 +91,25 @@ def demo_council_max_iterations(requested: int | None) -> int:
 # ---------------------------------------------------------------------------
 
 app = FastAPI(title="Content Machine", version="0.1.0")
+app.include_router(workflow_router)
+
+
+@app.exception_handler(WorkflowError)
+async def workflow_error_handler(
+    request: Request, error: WorkflowError
+):
+    return workflow_error_response(error)
+
+
+@app.exception_handler(RequestValidationError)
+async def workflow_validation_error_handler(
+    request: Request, error: RequestValidationError
+):
+    path = request.url.path
+    if path == WORKFLOW_PREFIX or path.startswith(WORKFLOW_PREFIX + "/"):
+        return workflow_validation_response(error)
+    return await request_validation_exception_handler(request, error)
+
 
 app.add_middleware(
     CORSMiddleware,
