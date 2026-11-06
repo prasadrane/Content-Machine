@@ -1,7 +1,7 @@
-# Content Machine: creator workflow product plan
+# Content Machine creator workflow product plan
 
-Date: 2026-11-05
-Status: revised proposal; five specialist and five independent whole-product reviews complete. Application implementation has not started.
+Updated 2026-11-05
+Implementation is underway through the supervised Freebuff checkpoints. Five specialist and five whole-product reviews informed the plan. The latest confirmed changes add Supabase, Google sign-in and an explicit guest demo.
 
 This is the current proposal for future UX work. It supersedes the November 4 demo-led plan; existing implementation/validation documents remain historical evidence. AI expert critique is not a usability study with representative creators. Detailed evidence and decisions are in [the review record](reviews/2026-11-05-workflow/decision-log.md).
 
@@ -9,8 +9,11 @@ This is the current proposal for future UX work. It supersedes the November 4 de
 
 Help a technical creator turn an idea and their own perspective into content they can publish. The product succeeds when the creator can find their work, develop a faithful deliverable, knowingly approve it, and obtain it without manual transfers between tools.
 
-Confirmed by the user:
+The user confirmed these decisions.
+
 - Each creator has a private workspace.
+- Hosted private workspaces use Supabase Auth and Postgres with Google sign-in.
+- Offer an explicit guest entry seeded with clearly labelled demo content and isolated from private creator workspaces. Guests can edit content and use live AI. Preserve guest work for return visits and offer transfer after Google sign-in.
 - Workflow opens to saved ideas and drafts, with a prominent Resume action.
 - Own ideas/notes and discovering configured sources receive equal prominence.
 - Choose one target platform first; optional adaptations come afterward.
@@ -20,7 +23,7 @@ Confirmed by the user:
 - The initial audience is technical and engineering creators.
 - Incorporate four stages into Workflow; remove the standalone Audio destination and place dictation at text intake.
 - Remove guide toggles, demo noise and decorative UI emoji; use professional action/topic icons and recognizable platform logos.
-- Use actual editable/configurable records, without fabricated persona, content, scores, reviews or unrelated sample replay.
+- Private workspaces use actual editable and configurable records. Sample content belongs to the labelled guest demo. Operation results and review status reflect actual activity in each mode.
 - Preserve the consistent editorial theme. Comments stays retired; historical user data stays preserved.
 
 Proposed design decisions, not additional user facts: three top-level destinations (Workflow, Lessons, Settings); stage labels below; one explicit approval button as consent; one reusable-preferences editor. Validate their wording and discoverability with creators.
@@ -39,7 +42,7 @@ The current navigation follows internal subsystems. A creator instead asks: What
 | Lessons | Avoid repeating the same writing corrections | Rule governance/diff machinery and incomplete edit/failure behavior obscure the benefit (S1-S4) | Optional, small reusable-preferences editor with truthful activation |
 | Settings | Control factual author context and sources | Fixed identity, raw injected context and overwrite risks (S5-S9) | Optional factual profile and configured sources; link to the same preference editor |
 | Audio | Speaking is an input method | Separate destination adds a transfer without advancing the writing task | Remove the page; field-adjacent dictation and editable transcripts |
-| Guides, samples and demo chrome | No independent creator job in the private workflow | Competing navigation and synthetic/replayed content add noise | Remove from real work; retain only specific operating notices when they matter |
+| Guest demo | Try the workflow before signing in | Automatic showcase seeding obscures real saved work | Explicit guest entry, labelled editable examples and isolated guest state |
 
 Current-state evidence is source-based, not a new rendered audit. The source cockpit is already collapsed; the proposal is to simplify its remaining controls and relocate reusable configuration, not claim it is wholly expanded.
 
@@ -162,7 +165,7 @@ Defer automated Learn from these edits until actual version-pair provenance and 
 
 ## 7. Shared integrity, privacy and recovery
 
-- **Private means server-enforced ownership.** A hosted release requires sign-in and ownership checks for content, settings, sources, attachments, review results, history, approvals and exported/file artifacts. Filtered UI or private-looking URLs are insufficient. Do not choose an auth/storage vendor in this UX plan.
+- **Private means server-enforced ownership.** Hosted creator workspaces use verified Supabase identities and owner checks for content, settings, sources, attachments, review results, history, approvals and exports. Google sign-in is confirmed. Project configuration and live verification remain hosted release gates.
 - **Saved means acknowledged durable writes.** Autosave working content independently of AI. Show Saving, Saved with time, or Not saved/Retry from real results. Preferences/settings activate through their deliberate save actions. Failed saves retain exact input.
 - **Resume means recovered acknowledged state.** Persist notes, context, versions and actual review/approval associations. Opening another item preserves the first; identical titles cannot collide. Do not advertise recovery across reload/restart/deploy until verified.
 - **History is not the content list.** Within an item, open older versions read-only with Compare and Restore as new version. Preserve current text and historical approvals; do not guess an output's source from a peak draft, slug or matching text.
@@ -170,7 +173,7 @@ Defer automated Learn from these edits until actual version-pair provenance and 
 - **Dictation is field-level input.** Provide labeled Dictate/Stop, recording/transcribing/error state, editable transcript and permission-denial recovery. Preserve typed text; if context changed, offer insertion rather than silently appending elsewhere. Leaving releases the microphone. Explain the actual browser/backend processing path; private does not imply fully local transcription.
 - **Failures stay failures.** Loading, successful empty, no matches, partial results, unavailable history, save failure and AI failure need distinct recovery. Keep previously loaded useful data when refresh fails. Do not claim AI health or save safety from a generic API Online indicator.
 - **Manual recovery remains possible.** Typed text stays selectable; a clearly labeled unapproved draft backup can preserve work after a save failure. It must not acquire final approval, Ready to publish or a publication event.
-- **Real records replace showcase state.** Remove synthetic seeding, invented scores/reviews/personas, unrelated replay fallback and invented successful briefing/synthesis. Real stored output may reopen with its actual lineage and status; it never impersonates a new run. Offline test fixtures remain isolated from user content.
+- **Real records and guest examples have distinct provenance.** Private workspaces start with creator-owned records. Entering guest mode explicitly loads labelled technical examples into isolated guest state. Curated material has visible provenance, optional factual profile fields stay blank, and AI feedback reflects actual operations. Stored output reopens with its recorded lineage and status. Offline fixtures use isolated test storage.
 - **Preserve before migrating.** Keep a recoverable copy, make migration repeatable, and quarantine proven synthetic records outside normal creator work. Preserve ambiguous records and retired Comments history. Establish ownership explicitly; never guess an owner or approval. Unmatched legacy artifacts say source/approval association unavailable.
 - **Seeds cannot overwrite edits.** Runtime profile, preferences and source records belong to the creator. Product default/knowledge updates cannot reset them on refresh, restart or deployment.
 - **Small components, shared contracts.** Keep API calls in ui/src/api, register destinations through the app registry, retain cm-* tokens, file-size constraints and existing request/microphone cleanup. No new state library, queue, event bus or background-job promise without a demonstrated need.
@@ -191,6 +194,7 @@ These are proposed acceptance scenarios, not completed checks of the redesign.
 10. Handoff: deny clipboard access or fail download initiation; keep selectable approved text and an alternate action. Report only actual Copy/Download-start events, never publication.
 11. Navigation/accessibility: complete both entries and the manual finish by keyboard and a screen reader; preserve focus and reading order through settings/history/comparison. Verify visible focus, named controls, meaningful announcements, contrast, reduced motion, forced colors, 200% text resize and 320 CSS-pixel reflow with the phone keyboard.
 12. Adaptation: create another format/destination from approved work, then cancel/fail/edit it; the original remains approved and exportable, while the adaptation needs independent approval.
+13. Guest entry opens labelled, editable ideas and drafts in its own state and supports live AI requests. Review and approval records arise from actual guest actions. Each guest uses a distinct Supabase anonymous identity verified by the backend. Guest work survives a return visit, and Google sign-in offers an explicit transfer into the creator's workspace with input and provenance preserved. Cross-workspace access remains owner-checked throughout the transfer.
 
 During implementation use meaningful failing behavioral tests first, offline frontend/backend regression suites and production build, followed by rendered browser/error/accessibility checks. Unit tests and source inspection do not prove platform quality, creator comprehension or accessibility.
 

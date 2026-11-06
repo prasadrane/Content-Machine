@@ -5,6 +5,8 @@ Date 2026-11-05
 This runbook translates the reviewed product plan into 51 supervised checkpoints.
 Freebuff is the implementer. Codex supplies bounded prompts, independently verifies the work, issues repairs and controls advancement.
 
+The latest user decisions select Supabase Auth and Postgres with Google sign-in and add an explicit guest demo with seeded examples and live AI. Guest work persists across return visits, and Google sign-in offers an explicit transfer. C38, C39, C43 and the hosted children must preserve this opt-in guest experience while keeping creator workspaces private and free of automatic sample seeding. The hosted packets must verify guest and authenticated ownership throughout retention and transfer.
+
 [Product requirements](../ui-workflow-plan.md) govern user outcomes.
 [Machine-readable checkpoints](workflow-tasks.json) define the packets.
 [Dispatch, review and repair prompts](workflow-prompts.md) define the handoff.
@@ -1354,7 +1356,7 @@ ui/src/components/workflow/ReviewPanel.test.jsx. Run the exact resolved command 
 
 **Acceptance**
 
-- No demo record becomes actual creator content by changing its label.
+- Private workspaces retain actual creator provenance. Guest examples stay labelled and scoped to their own guest workspace.
 - Unknown lineage/approval stays unknown.
 - Import twice preserves edits, record counts and recoverability.
 
@@ -1377,13 +1379,13 @@ tests/test_workflow_legacy_import.py. Run the exact resolved command from the JS
 **Implementation steps**
 
 1. Write bootstrap tests for real empty private workspace initialization.
-2. Separate product defaults and isolated test/demo fixture setup explicitly.
+2. Remove automatic sample seeding from private cold starts. Preserve the explicit guest-seeding integration point for the hosted packets.
 3. Use the selected deployment storage configuration.
 4. Initialize actual accounts without invented persona or active learned rules.
 
 **Acceptance**
 
-- Cold start never repopulates synthetic creator records.
+- Private cold starts leave new creator workspaces empty and retain existing saved records.
 - Restart/deploy cannot replace saved creator settings.
 - Temporary storage is identified until the durable hosted gate passes.
 
@@ -1500,7 +1502,7 @@ tests/test_workflow_wording_failures.py. Run the exact resolved command from the
 **Implementation steps**
 
 1. Update root navigation tests to the reviewed destinations and integrated workflow.
-2. Remove obsolete guide/sample mounting and Audio registration.
+2. Retire obsolete guide/sample components and Audio registration within the creator workflow. Preserve the guest entry and mode status in the hosted design.
 3. Use professional topic/action presentation through the shared registry.
 4. Keep original content text intact while changing interface labels.
 5. Split retirement into controller-issued child packets by navigation, obsolete components, and interface labels before dispatch. Adjust tests for the intended removal and verify rendered UI labels across every remaining destination.
@@ -1509,7 +1511,7 @@ tests/test_workflow_wording_failures.py. Run the exact resolved command from the
 
 - Normal entry points expose the agreed Workflow/Lessons/Settings structure.
 - Mic input remains available at real fields.
-- No guide toggle or sample launch competes with the creator journey.
+- Private workflows have no guide toggle or sample launcher competing with content creation. The explicit hosted guest mode remains supported.
 
 **Review focus**
 
@@ -1557,7 +1559,7 @@ ui/src/components/workflow/VersionHistory.test.jsx. Run the exact resolved comma
 
 **Implementation steps**
 
-1. Controller chooses the deployment-compatible authentication and durable-storage adapter using actual available accounts and requirements.
+1. Use the confirmed Supabase Auth and Postgres design with Google sign-in and anonymous guests. Verify the actual project, account and deployment prerequisites.
 2. Record trusted principal verification, durable store guarantees, CORS/origin configuration and credential provisioning.
 3. Produce provider-specific implementation subpackets with exact files and tests.
 4. Review the adapter before hosted implementation or real-data migration.
@@ -1716,7 +1718,7 @@ release_reviewed.
 
 ## Validation and current status
 
-The 51 checkpoints describe future implementation.
+The 51 checkpoints describe the supervised implementation sequence. C00 through C07 are accepted, and later checkpoints remain in progress or pending.
 The transport probe ran in a disposable three-file directory.
 Two automated turns completed with matching nonces and correct fixture contents.
 The persisted chat contains isComplete=true on both corresponding AI records.
@@ -1724,7 +1726,7 @@ An Escape cancellation produced an interrupted response.
 A recovery prompt and independent checks complete the remaining transport-readiness evidence.
 The recovery prompt subsequently returned its expected nonce and RECOVERED marker.
 The controller records cancellation before sending Escape. Interrupted responses also have isComplete=true, so that field alone cannot advance a checkpoint.
-The current repository-context handoff awaits the explicit external-transfer authorization described in [the integration evidence](freebuff-integration.md).
+The user authorized the repository-context handoff. The terminal integration has completed implementation and repair rounds, with evidence in [the integration record](freebuff-integration.md).
 Actual product-task acceptance records follow controller review of implemented work.
 The baseline source passed 375 pytest cases, 245 unittest cases, 132 frontend tests across 34 files and the production build. Frontend checks used temporary Node 22.23.4, matching CI's major version.
 The earlier Node 24 runs were interrupted during a long startup. The completed Node 22 result establishes the usable baseline command.

@@ -29,7 +29,7 @@
       "Interrupted AI records also have isComplete=true. Controller cancellation state overrides completion."
     ],
     "baseline_status": "passed_on_reference_source",
-    "source_handoff_status": "contract_accepted_implementation_authorized",
+    "source_handoff_status": "C07_accepted_C08_preparing",
     "baseline_results": {
       "pytest": {
         "passed": 375,
@@ -60,8 +60,12 @@
       }
     },
     "frontend_baseline_notes": "Earlier Node 24 runs were interrupted during a long startup. No causal Node-version conclusion is established.",
-    "probe_process_status": "contract_complete",
-    "current_gate": "C02_schema_implementation"
+    "probe_process_status": "implementation_session_active",
+    "current_gate": "C08_history_adaptation",
+    "hosted_provider_decision": "User selected Supabase Auth and Postgres; prepare code and migration configuration",
+    "sign_in_method": "Google",
+    "guest_demo_decision": "Seeded guest mode with live AI, persisted guest work and explicit sign-in transfer confirmed; revise C38/C39/C43/C46 packets",
+    "free_provider_research": "docs/research/free-ai-providers-2026-11-06.md; candidate evaluation pending account/model choice"
   },
   "command_bindings": {
     "python": "C:\\Users\\mamat\\AppData\\Local\\Microsoft\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\python.exe",
@@ -1671,7 +1675,7 @@
         "Make repeated import safe and preserve historical Comments/exports."
       ],
       "acceptance": [
-        "No demo record becomes actual creator content by changing its label.",
+        "Private workspaces retain actual creator provenance. Guest examples stay labelled and scoped to their own guest workspace.",
         "Unknown lineage/approval stays unknown.",
         "Import twice preserves edits, record counts and recoverability."
       ],
@@ -1706,12 +1710,12 @@
       "test_path": "tests/test_workflow_bootstrap.py",
       "steps": [
         "Write bootstrap tests for real empty private workspace initialization.",
-        "Separate product defaults and isolated test/demo fixture setup explicitly.",
+        "Remove automatic sample seeding from private cold starts. Preserve the explicit guest-seeding integration point for the hosted packets.",
         "Use the selected deployment storage configuration.",
         "Initialize actual accounts without invented persona or active learned rules."
       ],
       "acceptance": [
-        "Cold start never repopulates synthetic creator records.",
+        "Private cold starts leave new creator workspaces empty and retain existing saved records.",
         "Restart/deploy cannot replace saved creator settings.",
         "Temporary storage is identified until the durable hosted gate passes."
       ],
@@ -1873,7 +1877,7 @@
       "test_path": "ui/src/App.test.jsx",
       "steps": [
         "Update root navigation tests to the reviewed destinations and integrated workflow.",
-        "Remove obsolete guide/sample mounting and Audio registration.",
+        "Retire obsolete guide/sample components and Audio registration within the creator workflow. Preserve the guest entry and mode status in the hosted design.",
         "Use professional topic/action presentation through the shared registry.",
         "Keep original content text intact while changing interface labels.",
         "Split retirement into controller-issued child packets by navigation, obsolete components, and interface labels before dispatch. Adjust tests for the intended removal and verify rendered UI labels across every remaining destination."
@@ -1881,7 +1885,7 @@
       "acceptance": [
         "Normal entry points expose the agreed Workflow/Lessons/Settings structure.",
         "Mic input remains available at real fields.",
-        "No guide toggle or sample launch competes with the creator journey."
+        "Private workflows have no guide toggle or sample launcher competing with content creation. The explicit hosted guest mode remains supported."
       ],
       "review_focus": "Dormant old navigation and accidental modification of authored text",
       "gate": "retirement_children_reviewed",
@@ -1952,7 +1956,7 @@
       ],
       "test_path": null,
       "steps": [
-        "Controller chooses the deployment-compatible authentication and durable-storage adapter using actual available accounts and requirements.",
+        "Use the confirmed Supabase Auth and Postgres design with Google sign-in and anonymous guests. Verify the actual project, account and deployment prerequisites.",
         "Record trusted principal verification, durable store guarantees, CORS/origin configuration and credential provisioning.",
         "Produce provider-specific implementation subpackets with exact files and tests.",
         "Review the adapter before hosted implementation or real-data migration."
