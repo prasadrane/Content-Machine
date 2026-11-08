@@ -1,6 +1,7 @@
 import React from 'react'
 import { Search, Sliders, Tag, X } from 'lucide-react'
 import { formatTopicLabel } from '../../lib/topics'
+import TopicIcon from './TopicIcon'
 
 export default function TriageToolbar({
   batchSearch,
@@ -92,6 +93,7 @@ export default function TriageToolbar({
                   : ""
               }  `}
             >
+              <TopicIcon topic={topic} />
               <span>{formatTopicLabel(topic)}</span>
               <span className={` text-sm px-1.5 py-0.2 rounded-full ${
                 active ? "bg-anthropic-slate-dark text-anthropic-ivory-light" : "bg-anthropic-ivory-medium text-anthropic-cloud-dark"

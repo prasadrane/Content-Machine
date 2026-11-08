@@ -9,9 +9,9 @@ export const DIMENSION_LABELS = {
 }
 
 export const HUMANIZE_TONES = [
-  { id: 'punchy_direct', label: '⚡ Punchy & Direct', desc: 'Short sentences, raw cadence, aggressive brevity' },
-  { id: 'pragmatic_architect', label: '🏛️ Pragmatic Architect', desc: 'Senior eng rigor, operational trade-offs, zero fluff' },
-  { id: 'conversational_peer', label: '☕ Conversational Peer', desc: 'Natural peer dialogue, warm clarity, lived experience' },
+  { id: 'punchy_direct', label: 'Punchy & Direct', desc: 'Short sentences, raw cadence, aggressive brevity' },
+  { id: 'pragmatic_architect', label: 'Pragmatic Architect', desc: 'Senior eng rigor, operational trade-offs, zero fluff' },
+  { id: 'conversational_peer', label: 'Conversational Peer', desc: 'Natural peer dialogue, warm clarity, lived experience' },
 ]
 
 export const DISTRIBUTION_FORMATS = [

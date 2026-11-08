@@ -5,8 +5,24 @@ import { runDistribute, getDistributeHistory } from './distribute'
 import { getBrief, synthesizeDraft, transcribeAudio } from './interview'
 import { getProfile, saveProfile } from './profile'
 import { runHumanize } from './humanize'
+import { ApiError } from './client'
 
 afterEach(() => vi.unstubAllGlobals())
+
+it.each([
+  ['Council', runCouncil, { draft: '  Actual draft\n', spike_id: 'my-request' }, 503],
+  ['distribution', runDistribute, { anchor_post: '  Actual anchor\n' }, 502],
+  ['briefing', getBrief, { title: 'A real title' }, 503],
+  ['synthesis', synthesizeDraft, { raw_notes: '  Actual notes\n', responses: [] }, 503],
+])('%s propagates a provider failure without replacing the supplied content', async (_name, request, payload, status) => {
+  const body = { detail: 'Editorial service unavailable. Your input is preserved.' }
+  vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status, json: async () => body })))
+  const failure = await request(payload).catch(error => error)
+  expect(failure).toBeInstanceOf(ApiError)
+  expect(failure.status).toBe(status)
+  expect(failure.body).toEqual(body)
+  expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual(payload)
+})
 
 function stub(okJson = {}) {
   vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200, json: async () => okJson })))

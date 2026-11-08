@@ -86,7 +86,7 @@ export default function CouncilTab({ draft, setDraft, spikeId, setSpikeId, onApp
                 ) : (
                   <Sparkles className="w-3.5 h-3.5 text-[#c6613f]" />
                 )}
-                <span>{humanizing ? 'Humanizing...' : '🪄 Humanize Peak Draft'}</span>
+                <span>{humanizing ? 'Humanizing...' : 'Humanize Peak Draft'}</span>
               </button>
             )}
             {best.draft && onApprove && (

@@ -18,7 +18,9 @@ import sqlite3
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timedelta
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
@@ -320,9 +322,14 @@ class WorkflowHistoryTest(unittest.TestCase):
         before = items.get_item(self.conn, self.a, a["item_id"])
         version_count = self._count("workflow_versions", a["item_id"])
         approval_count = self._count("workflow_approvals", a["item_id"])
-        edited = self._save(
-            a["item_id"], expected_revision=2, artifact=text("later work")
-        )
+        edited_at = (
+            datetime.fromisoformat(before.updated_at.replace('Z', '+00:00'))
+            + timedelta(seconds=1)
+        ).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+        with patch('content_machine.workflow.items.utc_timestamp', return_value=edited_at):
+            edited = self._save(
+                a["item_id"], expected_revision=2, artifact=text("later work")
+            )
 
         historical = self._history(a["item_id"])
 
@@ -342,6 +349,7 @@ class WorkflowHistoryTest(unittest.TestCase):
         self.assertEqual(after.working_revision, 3)
         self.assertEqual(after.artifact.segments, ["later work"])
         self.assertNotEqual(before.updated_at, edited["updated_at"])
+        self.assertEqual(edited["updated_at"], edited_at)
 
         with self.assertRaises(WorkflowError) as raised:
             self._history(a["item_id"], owner=self.b)

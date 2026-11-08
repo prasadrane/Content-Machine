@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { AlertCircle, RotateCw, Users } from 'lucide-react'
+import { AlertCircle, Clock, RotateCw, Users } from 'lucide-react'
 
 export default function DraftingStudio({
   draft,
@@ -66,7 +66,8 @@ export default function DraftingStudio({
             onClick={() => onMaxIterationsChange && onMaxIterationsChange(1)}
             className={`cm-chip ${maxIterations === 1 ? 'cm-chip-active' : ''}`}
           >
-            ⚡ Single Pass (~30s)
+            <Clock aria-hidden="true" className="w-3.5 h-3.5 inline-block mr-1" />
+            Single Pass (~30s)
           </button>
           <button
             type="button"
@@ -74,7 +75,8 @@ export default function DraftingStudio({
             onClick={() => onMaxIterationsChange && onMaxIterationsChange(3)}
             className={`cm-chip ${maxIterations === 3 ? 'cm-chip-active' : ''}`}
           >
-            🔄 Full Loop (3 Iters)
+            <RotateCw aria-hidden="true" className="w-3.5 h-3.5 inline-block mr-1" />
+            Full Loop (3 Iters)
           </button>
         </div>
       </div>

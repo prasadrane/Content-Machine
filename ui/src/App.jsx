@@ -1,36 +1,22 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import TabBtn from './components/ui/TabBtn'
-import DemoBanner from './components/DemoBanner'
 import { TABS } from './app/tabs'
 import { useServerHealth } from './app/useServerHealth'
-import { useSharedFlow } from './app/useSharedFlow'
-import WorkspaceEntry from './components/WorkspaceEntry'
-import SampleStory from './components/SampleStory'
+import { useWorkspaceNavigation } from './app/useWorkspaceNavigation'
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('oracle')
-  const [visitedTabs, setVisitedTabs] = useState(['oracle'])
-  const [showSample, setShowSample] = useState(false)
+  const { route, navigate, navigateRoute } = useWorkspaceNavigation()
+  const activeTab = route.tab
+  const [visitedTabs, setVisitedTabs] = useState([activeTab])
   const workspaceRef = useRef(null)
-  const navigate = useCallback((id) => {
-    setVisitedTabs(previous => previous.includes(id) ? previous : [...previous, id])
-    setShowSample(false)
-    setActiveTab(id)
-  }, [])
+  useEffect(() => { setVisitedTabs(previous => previous.includes(activeTab) ? previous : [...previous, activeTab]) }, [activeTab])
   const serverOnline = useServerHealth()
-  const shared = useSharedFlow(navigate)
   useEffect(() => {
     workspaceRef.current?.focus({ preventScroll: true })
-  }, [activeTab, showSample])
+  }, [activeTab])
 
   return (
     <div className="cm-app-shell min-h-screen w-full flex flex-col font-sans">
-      <DemoBanner
-        activeTab={activeTab}
-        approved={Boolean(shared.approvedText)}
-        onGoto={navigate}
-        onStart={() => setShowSample(true)}
-      />
       {/* Minimalist Editorial Navigation Header */}
       <header className="cm-app-header sticky top-0 z-40 w-full">
         <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
@@ -69,12 +55,13 @@ export default function App() {
 
       {/* Main Content Area */}
       <main ref={workspaceRef} tabIndex={-1} aria-label={`${TABS.find(tab => tab.id === activeTab)?.label} workspace`} className="flex-1 min-w-0 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        {showSample && <SampleStory onClose={() => setShowSample(false)} />}
-        {activeTab === 'oracle' && !showSample && <WorkspaceEntry onNavigate={navigate} onSample={() => setShowSample(true)} />}
-        {TABS.map(({ id, Component, getProps }) =>
-          visitedTabs.includes(id) && (['oracle', 'council', 'distribute'].includes(id) || activeTab === id) ? (
-            <section key={id} hidden={showSample || activeTab !== id}>
-              <Component {...(getProps ? getProps(shared) : {})} isActive={!showSample && activeTab === id} />
+        {TABS.map(({ id, Component }) =>
+          visitedTabs.includes(id) ? (
+            <section key={id} hidden={activeTab !== id}>
+              <Component isActive={activeTab === id}
+                route={route} navigateRoute={navigateRoute}
+                onOpenSettings={() => navigate('settings')}
+                onOpenLessons={() => navigate('lessons')} />
             </section>
           ) : null
         )}

@@ -1,10 +1,14 @@
-"""Owned workflow item CRUD for the C09 API router.
+"""Owned workflow item CRUD plus the C10 action router for ``/api/workflow``.
 
 Every route resolves the trusted principal and then opens one request-scoped
-connection. Mutations pass the concrete Idempotency-Key to the accepted item
-services and commit the enclosing request-owned transaction before returning
-their status/body pair. Read responses contain actual stored content and owned
-review/approval metadata only; absent records remain null.
+connection. Mutations pass the concrete Idempotency-Key to the accepted item or
+action service and commit the enclosing request-owned transaction before
+returning their status/body pair. Read responses contain actual stored content
+and owned review/approval metadata only; absent records remain null.
+
+The action endpoints (versions, exact export, skip-review, approve, restore and
+adapt) live in :mod:`content_machine.workflow.action_routes` and are mounted on
+this same prefixed router, so they share one URL space and error envelope.
 """
 
 from __future__ import annotations
@@ -17,7 +21,17 @@ from fastapi import APIRouter, Depends, Header
 from fastapi.responses import JSONResponse
 
 from content_machine.workflow import approvals, items
+from content_machine.workflow.guests import guest_example_labels
+from content_machine.workflow.guest_routes import router as guest_router
+from content_machine.workflow.guest_transfer_routes import router as guest_transfer_router
+from content_machine.workflow.guest_transfer import transferred_example_labels
 from content_machine.workflow.access import resolve_principal
+from content_machine.workflow.action_routes import router as action_router
+from content_machine.workflow.discovery_routes import router as discovery_router
+from content_machine.workflow.preference_routes import router as preference_router
+from content_machine.workflow.operation_recovery import router as operation_recovery_router
+from content_machine.workflow.settings_routes import router as settings_router
+from content_machine.workflow.writing_routes import router as writing_router
 from content_machine.workflow.http import (
     commit_workflow_mutation,
     get_workflow_connection,
@@ -44,7 +58,7 @@ def _result_response(result: WorkflowResult) -> JSONResponse:
     return JSONResponse(status_code=result.status_code, content=result.body)
 
 
-def _summary(item: ContentItem) -> dict[str, Any]:
+def _summary(item: ContentItem, example_label: str | None = None) -> dict[str, Any]:
     return {
         "item_id": item.item_id,
         "title": item.title,
@@ -54,6 +68,7 @@ def _summary(item: ContentItem) -> dict[str, Any]:
         "working_revision": item.working_revision,
         "updated_at": item.updated_at,
         "active_approval_id": item.active_approval_id,
+        **({"guest_example_label": example_label} if example_label is not None else {}),
     }
 
 
@@ -64,7 +79,7 @@ def _review_payload(
 ) -> dict[str, Any] | None:
     row = conn.execute(
         f"{_REVIEW_SELECT} WHERE owner_id = ? AND item_id = ?"
-        " ORDER BY COALESCE(started_at, '') DESC, review_id ASC LIMIT 1",
+        " ORDER BY started_at DESC NULLS LAST, review_id ASC LIMIT 1",
         (principal.owner_id, item_id),
     ).fetchone()
     if row is None:
@@ -133,11 +148,13 @@ def list_workflow_items(
     principal: Principal = Depends(resolve_principal),
     conn: sqlite3.Connection = Depends(get_workflow_connection),
 ) -> JSONResponse:
+    example_labels = guest_example_labels(conn, principal)
+    example_labels.update(transferred_example_labels(conn, principal))
     return JSONResponse(
         status_code=200,
         content={
             "items": [
-                _summary(item)
+                _summary(item, example_labels.get(item.item_id))
                 for item in items.list_items(conn, principal)
             ]
         },
@@ -183,5 +200,14 @@ def save_workflow_item(
     )
     return _result_response(result)
 
+
+router.include_router(action_router)
+router.include_router(discovery_router)
+router.include_router(preference_router)
+router.include_router(settings_router)
+router.include_router(writing_router)
+router.include_router(operation_recovery_router)
+router.include_router(guest_router)
+router.include_router(guest_transfer_router)
 
 __all__ = ["router"]

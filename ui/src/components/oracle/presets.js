@@ -64,12 +64,12 @@ export const linkedInPresets = [
 
 export const DEFAULT_AVAILABLE_TOPICS = [
   'All',
-  '⚡ Systems & Architecture',
-  '📈 Engineering Leadership',
-  '🤖 AI & Machine Learning',
-  '☁️ Cloud & Infrastructure',
-  '🔒 Security & Reliability',
-  '🛠️ Developer Productivity',
-  '💻 General Engineering',
+  'Systems & Architecture',
+  'Engineering Leadership',
+  'AI & Machine Learning',
+  'Cloud & Infrastructure',
+  'Security & Reliability',
+  'Developer Productivity',
+  'General Engineering',
 ]
 

@@ -1,8 +1,9 @@
 """Shared HTTP seams for the workflow API.
 
 Authentication is resolved before the request-scoped database connection is
-opened. The connection factory defaults lazily to the existing app ``_make_db``
-seam, but tests and later hosted adapters may inject a trusted server-owned
+opened. In local operation, the connection factory defaults lazily to the app
+``_make_db`` seam. Hosted deployments require an explicitly configured factory;
+tests and hosted adapters may inject a trusted server-owned
 factory through ``app.state.workflow_connection_factory``. Browser input never
 supplies a database path or owner.
 
@@ -22,7 +23,7 @@ from fastapi import Depends, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from content_machine.workflow.access import resolve_principal
+from content_machine.workflow.access import _hosted_deployment, resolve_principal
 from content_machine.workflow.errors import WorkflowError
 from content_machine.workflow.schemas import Principal
 
@@ -105,6 +106,12 @@ def get_workflow_connection(
         request.app.state, "workflow_connection_factory", None
     )
     if factory is None:
+        if _hosted_deployment():
+            raise WorkflowError(
+                503,
+                STORAGE_MISCONFIGURED,
+                'Hosted workspace durable storage is not configured. Saving is unavailable.',
+            )
         from content_machine.api.app import _make_db
 
         factory = _make_db

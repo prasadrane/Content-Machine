@@ -1,5 +1,7 @@
 import React from 'react'
 import { Search, X, RotateCw, Tag, Database, ExternalLink, Sparkles, ArrowRight } from 'lucide-react'
+import { formatTopicLabel } from '../../lib/topics'
+import TopicIcon from './TopicIcon'
 
 export default function ArchiveView({
   archiveSearch,
@@ -99,7 +101,8 @@ export default function ArchiveView({
                       : ""
                   }  `}
                 >
-                  <span>{topic}</span>
+                  <TopicIcon topic={topic} />
+                  <span>{formatTopicLabel(topic)}</span>
                   {topic !== 'All' && (
                     <span className={` text-sm px-1.5 py-0.2 rounded-full ${active ? "bg-anthropic-slate-dark text-anthropic-ivory-light" : "bg-anthropic-ivory-medium text-anthropic-cloud-dark"}  `}>
                       {archiveItems.filter(i => i.topic_tag === topic).length}
@@ -140,7 +143,7 @@ export default function ArchiveView({
                   <h4 className="cm-panel-title leading-snug">{item.title}</h4>
                   <div className="flex items-center gap-2 text-sm text-anthropic-cloud-dark flex-wrap">
                     <span className="cm-badge">
-                      {item.topic_tag}
+                      {formatTopicLabel(item.topic_tag)}
                     </span>
                     <span>{item.source}</span>
                     <span className="text-anthropic-cloud-medium">&bull;</span>

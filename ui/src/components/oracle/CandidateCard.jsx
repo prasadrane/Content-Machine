@@ -8,6 +8,7 @@ import {
   X,
 } from 'lucide-react'
 import { DIMENSION_LABELS } from '../../lib/constants'
+import { formatTopicLabel } from '../../lib/topics'
 import { useCopyToClipboard } from '../../hooks/useCopyToClipboard'
 
 export default function CandidateCard({ candidate, onSendToCouncil, onOpenInterview, onDismiss }) {
@@ -90,7 +91,7 @@ export default function CandidateCard({ candidate, onSendToCouncil, onOpenInterv
         <div className="flex items-center gap-2 flex-wrap">
           {candidate.topic_tag && (
             <span className="cm-badge">
-              {candidate.topic_tag}
+              {formatTopicLabel(candidate.topic_tag)}
             </span>
           )}
           <span className="text-sm text-anthropic-cloud-dark">{candidate.source}</span>

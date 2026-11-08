@@ -1,5 +1,5 @@
 import React from 'react'
-import { Settings, AlertCircle, RotateCw, Share2, ShieldCheck } from 'lucide-react'
+import { Settings, AlertCircle, RotateCw, Share2, ShieldCheck, SlidersHorizontal } from 'lucide-react'
 import { DISTRIBUTION_FORMATS, HUMANIZE_TONES } from '../../lib/constants'
 
 export default function AnchorForm({
@@ -95,7 +95,8 @@ export default function AnchorForm({
             onClick={onHumanizeToggle}
             className={`cm-chip ${humanize ? 'cm-chip-active' : ''}`}
           >
-            <span>🪄 Humanize Polish</span>
+            <SlidersHorizontal size={16} aria-hidden="true" />
+            <span>Humanize Polish</span>{' '}
             <span className="font-semibold">
               {humanize ? 'ON' : 'OFF'}
             </span>

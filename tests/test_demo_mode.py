@@ -133,7 +133,7 @@ def _seed_home(tmp_path, monkeypatch):
         conn.close()
 
 
-def test_council_replays_seed_when_live_run_fails_in_demo(tmp_path, monkeypatch, demo_env):
+def test_council_failure_is_honest_when_live_run_fails_in_demo(tmp_path, monkeypatch, demo_env):
     _seed_home(tmp_path, monkeypatch)
     from content_machine.api import app as app_mod
 
@@ -144,11 +144,9 @@ def test_council_replays_seed_when_live_run_fails_in_demo(tmp_path, monkeypatch,
     monkeypatch.setattr(app_mod, "_make_router", lambda: object())
     with TestClient(app_mod.app) as client:
         r = client.post("/api/council/run", json={"draft": "my draft", "spike_id": "mine"})
-    assert r.status_code == 200
-    body = r.json()
-    assert body["replayed"] is True
-    assert body["score"] == 9.3
-    assert body["draft"] is None  # never overwrite the user's draft with a replay
+    assert r.status_code == 500
+    assert 'replayed' not in r.json()
+    assert 'RESOURCE_EXHAUSTED' not in r.text
 
 
 def test_council_failure_still_errors_outside_demo(tmp_path, monkeypatch):
@@ -166,7 +164,7 @@ def test_council_failure_still_errors_outside_demo(tmp_path, monkeypatch):
     assert r.status_code == 500
 
 
-def test_distribute_replays_seed_when_live_run_fails_in_demo(tmp_path, monkeypatch, demo_env):
+def test_distribute_failure_is_honest_when_live_run_fails_in_demo(tmp_path, monkeypatch, demo_env):
     _seed_home(tmp_path, monkeypatch)
     from content_machine.api import app as app_mod
     from content_machine.distribution import engine as engine_mod
@@ -178,7 +176,6 @@ def test_distribute_replays_seed_when_live_run_fails_in_demo(tmp_path, monkeypat
     monkeypatch.setattr(app_mod, "_make_router", lambda: object())
     with TestClient(app_mod.app) as client:
         r = client.post("/api/distribute/run", json={"anchor_post": "a long enough anchor post", "project_slug": "mine"})
-    assert r.status_code == 200
-    body = r.json()
-    assert body["replayed"] is True
-    assert body["linkedin"]
+    assert r.status_code == 502
+    assert 'replayed' not in r.json()
+    assert 'quota' not in r.text

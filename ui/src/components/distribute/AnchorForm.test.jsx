@@ -15,6 +15,13 @@ function props(overrides = {}) {
 }
 
 describe('AnchorForm accessible controls and approval labels', () => {
+  it('uses a professional icon while preserving authored emoji in the draft', () => {
+    render(<AnchorForm {...props({ anchorText: 'An author chose this emoji 🎯' })} />)
+    const humanize = screen.getByRole('button', { name: 'Humanize Polish OFF' })
+    expect(humanize).not.toHaveTextContent('🪄')
+    expect(humanize.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
+    expect(screen.getByLabelText('Anchor post')).toHaveValue('An author chose this emoji 🎯')
+  })
   it('exposes native platform toggle buttons with their selected state', () => {
     const formProps = props()
     render(<AnchorForm {...formProps} />)

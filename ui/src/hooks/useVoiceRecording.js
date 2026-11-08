@@ -1,237 +1,262 @@
 import { useEffect, useRef, useState } from 'react'
 import { transcribeAudio } from '../api/interview'
 
-// Sentinel target for call sites that start recording without an explicit
-// target; interview callers can select a specific answer destination.
 const DEFAULT_TARGET = '__voice_default__'
-
-// Hard cap for the optional recording-seconds timer.
 const MAX_SECONDS = 120
 
 /**
- * useVoiceRecording — voice input for perspective intake.
- * Wraps Web Speech API (live dictation) with a MediaRecorder +
- * backend transcribe fallback.
- *
- * options:
- *   onTranscript(text, target)  — called with final transcript text and the
- *                                 target passed to startRecording (undefined
- *                                 when the site has no per-target semantics).
- *   onSecondTick(seconds)       — optional; when provided the hook runs the
- *                                 seconds timer (reset to 0 on start, tick
- *                                 each second, auto-stop at MAX_SECONDS) and
- *                                 the MAX_SECONDS hard timeout safeguard.
- *
- * returns:
- *   { startRecording(target), stopRecording(), isRecording, recordingTarget,
- *     isTranscribing, error, setError }
+ * Optional isTargetCurrent(target) checks the original opaque field context.
+ * Supply onRecoveredTranscript(text, target) from a persistent owner when a
+ * completed transcript cannot safely be inserted, including after unmount.
+ * Without that callback, mounted callers receive recoverableTranscripts.
  */
-export function useVoiceRecording({ onTranscript, onSecondTick, enabled = true } = {}) {
-  const enabledRef = useRef(enabled)
-  enabledRef.current = enabled
+export function useVoiceRecording({
+  onTranscript, onRecoveredTranscript, isTargetCurrent, onSecondTick, enabled = true,
+} = {}) {
   const [recordingTarget, setRecordingTarget] = useState(null)
+  const [isRecording, setIsRecording] = useState(false)
+  const [isStarting, setIsStarting] = useState(false)
   const [isTranscribing, setIsTranscribing] = useState(false)
+  const [transcribingTarget, setTranscribingTarget] = useState(null)
+  const [recoverableTranscripts, setRecoverableTranscripts] = useState([])
   const [error, setError] = useState('')
+  const mounted = useRef(true)
+  const enabledRef = useRef(enabled)
+  const active = useRef(null)
+  const sequence = useRef(0)
+  const callbacks = useRef({})
+  enabledRef.current = enabled
+  callbacks.current = { onTranscript, isTargetCurrent, onSecondTick, onRecoveredTranscript }
 
-  const recognitionRef = useRef(null)
-  const mediaRecorderRef = useRef(null)
-  const audioChunksRef = useRef([])
-  const timerRef = useRef(null)
-  const timeoutRef = useRef(null)
-  const secondsRef = useRef(0)
-  const activeTargetRef = useRef(null)
-
-  // Always-call-latest callbacks so per-session closures never go stale.
-  const cbRef = useRef({ onTranscript, onSecondTick })
-  cbRef.current = { onTranscript, onSecondTick }
-
-  const clearTimer = () => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current)
-      timerRef.current = null
+  const clearTimers = session => {
+    if (session.timer) clearInterval(session.timer)
+    if (session.timeout) clearTimeout(session.timeout)
+    session.timer = null
+    session.timeout = null
+  }
+  const releaseStream = session => {
+    const stream = session.stream
+    session.stream = null
+    stream?.getTracks().forEach(track => track.stop())
+  }
+  const finish = session => {
+    clearTimers(session)
+    releaseStream(session)
+    if (active.current !== session) return
+    active.current = null
+    session.phase = 'ended'
+    if (mounted.current) {
+      setIsStarting(false)
+      setIsRecording(false)
+      setRecordingTarget(null)
+      setIsTranscribing(false)
+      setTranscribingTarget(null)
     }
   }
-
-  const stopRecording = () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current)
-      timeoutRef.current = null
+  const fail = (session, message) => {
+    if (session.failed || session.cancelled || session.phase === 'ended') return
+    session.failed = true
+    if (mounted.current && active.current === session && !session.cancelled) setError(message)
+    if (session.recognition) {
+      try { session.recognition.stop() } catch { /* The browser may have already stopped. */ }
     }
-    if (recognitionRef.current) {
-      const recognition = recognitionRef.current
-      recognitionRef.current = null
-      try {
-        recognition.stop()
-      } catch (e) {}
+    if (session.recorder && session.recorder.state !== 'inactive') {
+      try { session.recorder.stop() } catch { /* The stream is still released below. */ }
     }
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      try {
-        mediaRecorderRef.current.stop()
-      } catch (e) {}
+    finish(session)
+  }
+  const deliver = (session, value) => {
+    if (session.failed || session.cancelled || session.phase === 'ended') return
+    const text = typeof value === 'string' ? value.trim() : ''
+    if (!text) return
+    let current = mounted.current && enabledRef.current && !session.invalidated &&
+      session.id === sequence.current
+    if (current && callbacks.current.isTargetCurrent) {
+      try { current = Boolean(callbacks.current.isTargetCurrent(session.target)) } catch { current = false }
     }
-    clearTimer()
-    activeTargetRef.current = null
-    setRecordingTarget(null)
+    if (current && callbacks.current.onTranscript) {
+      callbacks.current.onTranscript(text, session.target)
+    } else if (session.onRecoveredTranscript) {
+      session.onRecoveredTranscript(text, session.target)
+    } else if (mounted.current) {
+      setRecoverableTranscripts(previous => [...previous, { text, target: session.target }])
+    }
   }
-
-  const markActive = (norm) => {
-    activeTargetRef.current = norm
-    setRecordingTarget(norm)
+  const startTimers = session => {
+    if (callbacks.current.onSecondTick) {
+      let seconds = 0
+      callbacks.current.onSecondTick(0)
+      session.timer = setInterval(() => {
+        seconds += 1
+        callbacks.current.onSecondTick?.(Math.min(seconds, MAX_SECONDS))
+      }, 1000)
+    }
+    session.timeout = setTimeout(() => stop(false), MAX_SECONDS * 1000)
   }
-
-  const startTimer = () => {
-    if (!cbRef.current.onSecondTick || timerRef.current) return
-    timerRef.current = setInterval(() => {
-      secondsRef.current += 1
-      cbRef.current.onSecondTick(Math.min(secondsRef.current, MAX_SECONDS))
-      if (secondsRef.current >= MAX_SECONDS) {
-        stopRecording()
-      }
-    }, 1000)
-  }
-
-  const startRecording = async (target) => {
-    if (!enabledRef.current) return
-    const norm = target === undefined ? DEFAULT_TARGET : target
-    setError('')
-    if (recordingTarget === norm) {
-      stopRecording()
+  const markRecording = session => {
+    if (active.current !== session || session.phase !== 'starting') return
+    if (!mounted.current || !enabledRef.current || session.cancelled) {
+      stop(true)
       return
     }
-    if (recordingTarget !== null) {
-      stopRecording()
-    }
-
-    if (cbRef.current.onSecondTick) {
-      secondsRef.current = 0
-      cbRef.current.onSecondTick(0)
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-        timeoutRef.current = null
+    session.phase = 'recording'
+    setIsStarting(false)
+    setIsRecording(true)
+    setRecordingTarget(session.normalizedTarget)
+    startTimers(session)
+  }
+  const stop = invalidated => {
+    const session = active.current
+    if (!session) return
+    if (invalidated) session.invalidated = true
+    clearTimers(session)
+    if (session.phase === 'starting') {
+      session.cancelled = true
+      if (mounted.current) setIsStarting(false)
+      if (session.recognition) {
+        try { session.recognition.stop() } catch { /* Browser may not have started yet. */ }
+        finish(session)
       }
-      // 120-second automatic recording stop timeout safeguard
-      timeoutRef.current = setTimeout(() => {
-        stopRecording()
-      }, MAX_SECONDS * 1000)
+      return
     }
+    if (session.phase !== 'recording') return
+    session.phase = 'stopping'
+    if (mounted.current) {
+      setIsRecording(false)
+      setRecordingTarget(null)
+      setIsTranscribing(true)
+      setTranscribingTarget(session.normalizedTarget)
+    }
+    if (session.recognition) {
+      try { session.recognition.stop() } catch { finish(session) }
+      return
+    }
+    try {
+      session.recorder.stop()
+      releaseStream(session)
+    } catch {
+      fail(session, 'Could not stop the microphone recording.')
+    }
+  }
 
-    const SpeechRecognition = typeof window !== 'undefined' ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null
-    if (SpeechRecognition) {
+  const startRecording = async target => {
+    if (!mounted.current || !enabledRef.current) return
+    const normalizedTarget = target === undefined ? DEFAULT_TARGET : target
+    if (active.current) {
+      if (active.current.phase === 'recording' && active.current.normalizedTarget === normalizedTarget) stop(false)
+      return
+    }
+    const session = {
+      id: ++sequence.current, target, normalizedTarget, phase: 'starting',
+      invalidated: false, cancelled: false, chunks: [], stream: null,
+      onRecoveredTranscript: callbacks.current.onRecoveredTranscript,
+    }
+    active.current = session
+    setError('')
+    setIsStarting(true)
+    const Recognition = typeof window !== 'undefined' &&
+      (window.SpeechRecognition || window.webkitSpeechRecognition)
+    if (Recognition) {
       try {
-        const recog = new SpeechRecognition()
-        recog.continuous = true
-        recog.interimResults = true
-        recog.lang = 'en-US'
-
-        recog.onstart = () => {
-          if (!enabledRef.current) { stopRecording(); return }
-          markActive(norm)
-          startTimer()
-        }
-
-        recog.onresult = (event) => {
-          if (!enabledRef.current) return
-          let sessionFinal = ''
-          for (let i = event.resultIndex; i < event.results.length; ++i) {
-            if (event.results[i].isFinal) {
-              sessionFinal += event.results[i][0].transcript + ' '
-            }
+        const recognition = new Recognition()
+        session.recognition = recognition
+        recognition.continuous = true
+        recognition.interimResults = true
+        recognition.lang = 'en-US'
+        recognition.onstart = () => markRecording(session)
+        recognition.onresult = event => {
+          let finalText = ''
+          for (let index = event.resultIndex; index < event.results.length; index += 1) {
+            if (event.results[index].isFinal) finalText += event.results[index][0].transcript + ' '
           }
-          if (sessionFinal.trim()) {
-            cbRef.current.onTranscript(sessionFinal.trim(), target)
-          }
+          deliver(session, finalText)
         }
-
-        recog.onerror = (event) => {
-          if (event.error !== 'no-speech') {
-            setError(`Voice input error: ${event.error}`)
-          }
-          stopRecording()
+        recognition.onerror = event => {
+          if (event.error !== 'no-speech') fail(session, `Voice input error: ${event.error}`)
+          else finish(session)
         }
-
-        recog.onend = () => {
-          if (activeTargetRef.current === norm) {
-            stopRecording()
-          }
-        }
-
-        recognitionRef.current = recog
-        recog.start()
+        recognition.onend = () => finish(session)
+        recognition.start()
         return
-      } catch (err) {
-        console.warn('SpeechRecognition failed, falling back to MediaRecorder:', err)
+      } catch {
+        session.recognition = null
       }
     }
-
-    // Fallback: MediaRecorder + backend /api/interview/transcribe
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      if (!enabledRef.current) { stream.getTracks().forEach(track => track.stop()); return }
-      const mediaRecorder = new MediaRecorder(stream)
-      mediaRecorderRef.current = mediaRecorder
-      audioChunksRef.current = []
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          audioChunksRef.current.push(e.data)
+      session.stream = stream
+      if (session.cancelled || !mounted.current || !enabledRef.current || active.current !== session) {
+        finish(session)
+        return
+      }
+      const recorder = new MediaRecorder(stream)
+      session.recorder = recorder
+      recorder.ondataavailable = event => {
+        if (event.data.size > 0) session.chunks.push(event.data)
+      }
+      recorder.onstart = () => markRecording(session)
+      recorder.onerror = () => fail(session, 'Audio recording failed.')
+      recorder.onstop = async () => {
+        releaseStream(session)
+        if (session.failed || session.cancelled || session.phase === 'ended') {
+          finish(session)
+          return
         }
-      }
-
-      mediaRecorder.onstart = () => {
-        markActive(norm)
-        startTimer()
-      }
-
-      mediaRecorder.onstop = async () => {
-        stream.getTracks().forEach((track) => track.stop())
-        clearTimer()
-        activeTargetRef.current = null
-        setRecordingTarget(null)
-
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
-        if (audioBlob.size === 0 || !enabledRef.current) return
-
-        setIsTranscribing(true)
+        const audio = new Blob(session.chunks, { type: 'audio/webm' })
+        if (!audio.size) {
+          finish(session)
+          return
+        }
+        session.phase = 'transcribing'
+        if (mounted.current) {
+          setIsRecording(false)
+          setRecordingTarget(null)
+          setIsTranscribing(true)
+          setTranscribingTarget(session.normalizedTarget)
+        }
         try {
-          const data = await transcribeAudio(audioBlob, 'recording.webm')
-          if (data.text) {
-            cbRef.current.onTranscript(data.text.trim(), target)
+          const result = await transcribeAudio(audio, 'recording.webm')
+          deliver(session, result.text)
+        } catch (failure) {
+          if (mounted.current && active.current === session) {
+            setError(failure.message || 'Failed to transcribe audio.')
           }
-        } catch (err) {
-          setError(err.message || 'Failed to transcribe audio.')
         } finally {
-          setIsTranscribing(false)
+          finish(session)
         }
       }
-
-      mediaRecorder.start()
-      markActive(norm)
-    } catch (err) {
-      setError('Microphone access denied or audio recording unavailable.')
-      stopRecording()
+      recorder.start()
+      if (session.phase === 'starting') markRecording(session)
+    } catch {
+      fail(session, 'Microphone access denied or audio recording unavailable.')
     }
   }
 
   useEffect(() => {
-    enabledRef.current = enabled
-    if (!enabled) stopRecording()
+    if (!enabled) stop(true)
   }, [enabled])
-
   useEffect(() => {
+    mounted.current = true
+    enabledRef.current = enabled
     return () => {
+      mounted.current = false
       enabledRef.current = false
-      stopRecording()
+      stop(true)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return {
-    startRecording,
-    stopRecording,
-    isRecording: recordingTarget !== null,
-    recordingTarget,
-    isTranscribing,
-    error,
-    setError,
+    startRecording, stopRecording: () => stop(false), isRecording, isStarting,
+    cancelRecording: () => {
+      const session = active.current
+      if (!session) return
+      session.cancelled = true
+      stop(true)
+      finish(session)
+    },
+    recordingTarget, isTranscribing, transcribingTarget, error, setError,
+    recoverableTranscripts,
+    removeRecoveredTranscript: index => setRecoverableTranscripts(previous =>
+      previous.filter((_, position) => position !== index)),
   }
 }

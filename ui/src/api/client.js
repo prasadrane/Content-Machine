@@ -1,3 +1,5 @@
+import { authenticatedHeaders } from './session'
+
 export class ApiError extends Error {
   constructor(message, status, body) {
     super(message)
@@ -11,7 +13,7 @@ export async function fetchJson(url, { method = 'GET', body, headers } = {}) {
   const hasBody = body !== undefined
   const res = await fetch(url, {
     method,
-    headers: hasBody ? { 'Content-Type': 'application/json', ...headers } : headers,
+    headers: await authenticatedHeaders(url, hasBody ? { 'Content-Type': 'application/json', ...headers } : headers),
     body: hasBody ? JSON.stringify(body) : undefined,
   })
   if (!res.ok) {

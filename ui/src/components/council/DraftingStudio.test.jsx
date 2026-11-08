@@ -106,8 +106,8 @@ describe('DraftingStudio', () => {
       />
     )
 
-    expect(screen.getByRole('button', { name: /^⚡ Single Pass/i })).toBeInTheDocument()
-    const fullLoopBtn = screen.getByRole('button', { name: /^🔄 Full Loop/i })
+    expect(screen.getByRole('button', { name: /^Single Pass/i })).toBeInTheDocument()
+    const fullLoopBtn = screen.getByRole('button', { name: /^Full Loop/i })
     fireEvent.click(fullLoopBtn)
     expect(onMaxIterationsChange).toHaveBeenCalledWith(3)
   })

@@ -38,7 +38,15 @@ def make_router(cfg: AppConfig) -> ModelRouter:
         base_url = os.environ.get(rc.base_url_env, "") if rc.base_url_env else rc.base_url or ""
         auth_token = os.environ.get(rc.auth_token_env, "") if rc.auth_token_env else rc.auth_token or ""
         api_key = os.environ.get(rc.api_key_env, "") if rc.api_key_env else rc.api_key or ""
-        if rc.protocol == "gemini":
+        if rc.protocol == "cloudflare_workers_ai":
+            account_id = os.environ.get(rc.account_id_env, "") if rc.account_id_env else ""
+            if not account_id or not api_key:
+                logger.warning("route %s: Cloudflare credentials unavailable; skipping", name)
+                continue
+            from content_machine.router.cloudflare_workers_ai import CloudflareWorkersAI
+
+            adapter = CloudflareWorkersAI(account_id, api_key, timeout_s=30.0)
+        elif rc.protocol == "gemini":
             key = api_key or auth_token
             if not key:
                 logger.warning("route %s: gemini protocol without key; skipping", name)

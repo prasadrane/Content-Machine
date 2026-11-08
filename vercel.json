@@ -3,7 +3,7 @@
   "buildCommand": "npm --prefix ui install && npm --prefix ui run build",
   "outputDirectory": "ui/dist",
   "functions": {
-    "api/index.py": { "maxDuration": 60 }
+    "api/index.py": { "maxDuration": 60, "includeFiles": "supabase/certs/**" }
   },
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/index.py" },

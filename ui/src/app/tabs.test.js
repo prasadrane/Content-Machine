@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { TABS } from './tabs'
 
 describe('tab registry', () => {
-  it('declares the six post-workflow tabs in nav order', () => {
-    expect(TABS.map((t) => t.id)).toEqual(['oracle', 'council', 'distribute', 'lessons', 'audio', 'profile'])
+  it('exposes workflow, lessons and settings in nav order', () => {
+    expect(TABS.map((t) => t.id)).toEqual(['workflow', 'lessons', 'settings'])
   })
   it('every entry has label + Component', () => {
     for (const t of TABS) {

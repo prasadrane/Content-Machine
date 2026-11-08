@@ -1,13 +1,6 @@
 export function formatTopicLabel(topic) {
   if (!topic || topic === 'All') return 'All'
-  if (topic.includes('⚡') || topic.includes('🤖') || topic.includes('📈') || topic.includes('☁️') || topic.includes('🔒') || topic.includes('🛠️') || topic.includes('💻')) {
-    return topic
-  }
-  if (topic.includes('Systems')) return `⚡ ${topic}`
-  if (topic.includes('AI') || topic.includes('Machine Learning')) return `🤖 ${topic}`
-  if (topic.includes('Leadership')) return `📈 ${topic}`
-  if (topic.includes('Cloud') || topic.includes('Infra')) return `☁️ ${topic}`
-  if (topic.includes('Security')) return `🔒 ${topic}`
-  if (topic.includes('Productivity') || topic.includes('Tools')) return `🛠️ ${topic}`
-  return topic
+  // Older saved topics can include decorative emoji. Keep the stored value for
+  // queries and comparisons, but use a plain label wherever it is displayed.
+  return topic.replace(/^(?:\p{Extended_Pictographic}[\uFE0F\u200D]*\s*)+/u, '') || 'Topic'
 }

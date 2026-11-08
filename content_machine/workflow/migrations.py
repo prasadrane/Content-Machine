@@ -16,6 +16,13 @@ from __future__ import annotations
 
 import sqlite3
 
+from content_machine.workflow.settings import SETTINGS_MIGRATION_STATEMENTS
+from content_machine.workflow.preferences import MIGRATION_STATEMENTS as PREFERENCE_MIGRATION_STATEMENTS
+from content_machine.workflow.operation_storage import OPERATION_MIGRATION_STATEMENTS
+from content_machine.workflow.guests import GUEST_MIGRATION_STATEMENTS
+from content_machine.workflow.guest_transfer_storage import TRANSFER_MIGRATION_STATEMENTS
+from content_machine.workflow.provider_budget import BUDGET_MIGRATION_STATEMENTS
+
 SAVEPOINT_NAME = "workflow_schema_migration"
 
 _CREATE_ITEMS = """
@@ -151,6 +158,20 @@ CREATE TABLE IF NOT EXISTS workflow_idempotency (
 )
 """
 
+_CREATE_DISCOVERY_CACHE = """
+CREATE TABLE IF NOT EXISTS workflow_discovery_cache (
+  owner_id TEXT NOT NULL,
+  source_id TEXT NOT NULL,
+  url TEXT NOT NULL,
+  source_revision INTEGER NOT NULL CHECK (source_revision >= 1),
+  etag TEXT CHECK (etag IS NULL OR length(etag) <= 512),
+  last_modified TEXT CHECK (last_modified IS NULL OR length(last_modified) <= 128),
+  PRIMARY KEY (owner_id, source_id),
+  FOREIGN KEY (source_id, owner_id)
+    REFERENCES workflow_sources (source_id, owner_id)
+)
+"""
+
 _INDEXES = (
     "CREATE INDEX IF NOT EXISTS idx_workflow_items_owner_updated"
     " ON workflow_items (owner_id, updated_at DESC)",
@@ -208,6 +229,13 @@ MIGRATION_STATEMENTS: tuple[str, ...] = (
     _CREATE_IDEMPOTENCY,
     *_INDEXES,
     *_IMMUTABLE_TRIGGERS,
+    *SETTINGS_MIGRATION_STATEMENTS,
+    _CREATE_DISCOVERY_CACHE,
+    *PREFERENCE_MIGRATION_STATEMENTS,
+    *OPERATION_MIGRATION_STATEMENTS,
+    *GUEST_MIGRATION_STATEMENTS,
+    *TRANSFER_MIGRATION_STATEMENTS,
+    *BUDGET_MIGRATION_STATEMENTS,
 )
 
 

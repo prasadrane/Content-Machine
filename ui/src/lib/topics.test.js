@@ -6,10 +6,14 @@ describe('formatTopicLabel', () => {
     expect(formatTopicLabel('All')).toBe('All')
     expect(formatTopicLabel('')).toBe('All')
   })
-  it('prefixes emoji for Systems topic', () => {
-    expect(formatTopicLabel('Systems Thinking')).toBe('⚡ Systems Thinking')
+  it('keeps plain topic labels without adding decoration', () => {
+    expect(formatTopicLabel('Systems Thinking')).toBe('Systems Thinking')
   })
-  it('does not double-prefix already-emoji label', () => {
-    expect(formatTopicLabel('🤖 AI')).toBe('🤖 AI')
+  it('cleans legacy decorative prefixes without changing the underlying value', () => {
+    expect(formatTopicLabel('🤖 AI')).toBe('AI')
+    expect(formatTopicLabel('☁️ Cloud & Infrastructure')).toBe('Cloud & Infrastructure')
+    expect(formatTopicLabel('🛠️ Developer Productivity')).toBe('Developer Productivity')
+    expect(formatTopicLabel('💻 General Engineering')).toBe('General Engineering')
+    expect(formatTopicLabel('Original 🎯 insight')).toBe('Original 🎯 insight')
   })
 })

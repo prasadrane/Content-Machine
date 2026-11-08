@@ -188,6 +188,15 @@ class FakeRouter:
 
 
 class TestHumanizeTransformer(unittest.TestCase):
+    def test_model_provenance_preserves_exact_original_without_authenticity_claim(self):
+        from content_machine.humanize.transformer import HumanizeTransformer
+        text = '  Author supplied wording.\n'
+        result = HumanizeTransformer(FakeRouter('We utilize queues.'), voice_guide='').transform(text)
+        self.assertEqual(result.original_text, text)
+        self.assertEqual(result.provenance, 'model_rewrite')
+        self.assertTrue(result.cleanup_applied)
+        self.assertFalse(result.authenticity_verified)
+
     def test_transform_enforces_explicit_max_sentences(self):
         from content_machine.humanize.transformer import HumanizeTransformer
 
@@ -223,18 +232,15 @@ class TestHumanizeTransformer(unittest.TestCase):
         last_call = router.calls[-1]
         self.assertIn("PRAGMATIC ARCHITECT", last_call["system"])
 
-    def test_transform_fallback_on_router_failure(self):
-        from content_machine.humanize.transformer import HumanizeTransformer
+    def test_transform_reports_router_failure(self):
+        from content_machine.humanize.transformer import HumanizeProviderError, HumanizeTransformer
 
         router = FakeRouter(response_text="RAISE")
         transformer = HumanizeTransformer(router=router)
 
         raw = "We must delve into this — it is a pivotal moment."
-        res = transformer.transform(raw, channel=HumanizeChannel.GENERAL)
-        # Should gracefully fall back to sanitizer output
-        self.assertNotIn("delve", res.humanized_text)
-        self.assertNotIn("—", res.humanized_text)
-        self.assertIn("delve", res.banned_words_purged)
+        with self.assertRaises(HumanizeProviderError):
+            transformer.transform(raw, channel=HumanizeChannel.GENERAL)
 
     def test_transform_empty_input(self):
         from content_machine.humanize.transformer import HumanizeTransformer

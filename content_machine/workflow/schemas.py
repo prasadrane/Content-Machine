@@ -175,6 +175,7 @@ class Proposal(WorkflowModel):
     segment: int = Field(ge=0)
     current: SegmentText
     proposed: SegmentText
+    provenance: Literal['model_rewrite', 'deterministic_cleanup', 'unknown'] = 'unknown'
 
 
 class Review(WorkflowModel):

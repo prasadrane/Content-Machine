@@ -23,10 +23,9 @@ from content_machine.editorial import (
 )
 from content_machine.profile.manager import ProfileManager
 from content_machine.schemas import (
-    InterviewQuestion,
     TopicBriefing,
 )
-from content_machine.storage.paths import home_root
+from content_machine.storage.paths import home_root, project_dir
 
 
 logger = logging.getLogger(__name__)
@@ -74,6 +73,10 @@ CORE INVARIANTS:
 """.strip()
 
 
+class InterviewProviderError(RuntimeError):
+    """The briefing or drafting provider failed or returned unusable output."""
+
+
 class InterviewEngine:
     """Orchestrates topic briefing and perspective intake prior to Writer's Council."""
 
@@ -108,43 +111,17 @@ class InterviewEngine:
             body=content_snippet[:3000],
         )
 
-        if self.router:
-            try:
-                briefing: TopicBriefing = self.router.complete(
-                    [self.scanner_model],
-                    prompt=prompt,
-                    system=_BRIEFING_SYSTEM,
-                    schema=TopicBriefing,
-                )
-                if isinstance(briefing, TopicBriefing):
-                    return briefing
-            except Exception as e:
-                logger.warning("Router failed to generate structured briefing, falling back to default: %s", e)
-
-        # Fallback default questions if router fails or is not provided
-        summary = (
-            f"Analysis of '{title}'. This topic addresses critical technical patterns and operational "
-            f"trade-offs in {topic_tag}. Examining the real-world implications reveals where conventional wisdom breaks down."
-        )
-        core_conflict = "Immediate implementation velocity vs long-term maintainability and operational debt."
-        questions = [
-            InterviewQuestion(
-                persona="Tim Ferriss",
-                focus="Tactical mechanics",
-                question=f"What specific tool, architecture choice, or technical sequence did you implement regarding '{title}'?",
-            ),
-            InterviewQuestion(
-                persona="Larry King",
-                focus="Bottom-line impact",
-                question="What was the single most concrete metric or quantifiable result you observed?",
-            ),
-            InterviewQuestion(
-                persona="Barbara Walters",
-                focus="Operational friction",
-                question="What went wrong, caused friction with your team, or surprised you along the way?",
-            ),
-        ]
-        return TopicBriefing(summary=summary, core_conflict=core_conflict, questions=questions)
+        try:
+            if self.router is None:
+                raise ValueError('provider unavailable')
+            briefing = self.router.complete(
+                [self.scanner_model], prompt=prompt, system=_BRIEFING_SYSTEM, schema=TopicBriefing,
+            )
+            if not isinstance(briefing, TopicBriefing):
+                raise ValueError('invalid briefing')
+            return TopicBriefing.model_validate(briefing.model_dump())
+        except Exception:
+            raise InterviewProviderError('Topic briefing is temporarily unavailable.') from None
 
     def synthesize_draft(
         self,
@@ -155,6 +132,10 @@ class InterviewEngine:
         spike_id: str = "cli-session",
     ) -> dict[str, Any]:
         """Synthesize operator interview responses and raw notes into a grounded draft."""
+        target_dir = project_dir(spike_id, create=False)
+        projects_root = (home_root() / 'projects').resolve()
+        if not target_dir.resolve().is_relative_to(projects_root):
+            raise ValueError('Unsafe interview project identifier')
         # Assemble interview responses
         qa_sections = []
         for r in responses:
@@ -188,32 +169,24 @@ Executive Summary: {topic_summary}
 Write the initial draft based strictly on the above evidence. Return only the draft content in markdown format.
 """
 
-        draft_content = ""
-        if self.router:
-            try:
-                out = self.router.complete([self.writer_model], prompt=prompt, system=_SYNTHESIZE_SYSTEM)
-                if isinstance(out, str):
-                    draft_content = out.strip()
-                    if draft_content.startswith("```"):
-                        lines = draft_content.splitlines()
-                        if lines and lines[-1].strip() == "```":
-                            draft_content = "\n".join(lines[1:-1]).strip()
-            except Exception as e:
-                logger.error("Router draft synthesis failed: %s", e)
+        try:
+            if self.router is None:
+                raise ValueError('provider unavailable')
+            out = self.router.complete([self.writer_model], prompt=prompt, system=_SYNTHESIZE_SYSTEM)
+            if not isinstance(out, str) or not out.strip():
+                raise ValueError('empty draft')
+            draft_content = out.strip()
+            if draft_content.startswith("```"):
+                lines = draft_content.splitlines()
+                if lines and lines[-1].strip() == "```":
+                    draft_content = "\n".join(lines[1:-1]).strip()
+            if not draft_content:
+                raise ValueError('empty draft')
+        except Exception:
+            raise InterviewProviderError('Draft synthesis is temporarily unavailable.') from None
 
-        if draft_content:
-            from content_machine.humanize.sanitizer import sanitize_text
-            draft_content, _ = sanitize_text(draft_content)
-
-        if not draft_content:
-            # Fallback draft template constructed directly from user input
-            draft_content = f"# {topic_title}\n\n"
-            if raw_notes:
-                draft_content += f"{raw_notes}\n\n"
-            if responses:
-                for r in responses:
-                    if r.get("answer"):
-                        draft_content += f"## {r.get('persona', 'Perspective')} Insight\n{r['answer']}\n\n"
+        from content_machine.humanize.sanitizer import sanitize_text
+        draft_content, _ = sanitize_text(draft_content)
 
         word_count = len(draft_content.split())
 
@@ -225,7 +198,7 @@ Write the initial draft based strictly on the above evidence. Return only the dr
             transcript_content += f"## Interview Responses\n{qa_text}\n\n"
             transcript_content += f"## Freeform Notes\n{notes_text}\n"
 
-            proj_dir = home_root() / "projects" / spike_id
+            proj_dir = target_dir
             proj_dir.mkdir(parents=True, exist_ok=True)
             transcript_path = proj_dir / "raw_transcript.md"
             transcript_path.write_text(transcript_content, encoding="utf-8")

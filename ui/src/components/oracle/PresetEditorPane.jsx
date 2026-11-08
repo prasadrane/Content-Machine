@@ -1,4 +1,5 @@
 import React from 'react'
+import { Check, Plus } from 'lucide-react'
 import { parseSources } from './sourceInputs'
 
 // Derive the selected-value Set from a newline-delimited textarea string.
@@ -38,7 +39,7 @@ export function PresetChipGroup({
               }  `}
               title={isSelected ? `Remove ${value}` : `Add ${value}`}
             >
-              <span>{isSelected ? '✓' : '+'}</span>
+              {isSelected ? <Check size={16} aria-hidden="true" /> : <Plus size={16} aria-hidden="true" />}
               <span>{preset.label}</span>
             </button>
           )

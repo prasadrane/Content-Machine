@@ -27,6 +27,7 @@ class RouteConfig(BaseModel):
     base_url_env: str | None = None
     api_key_env: str | None = None        # sent as x-api-key
     auth_token_env: str | None = None     # sent as Authorization: Bearer (relay bearer tokens)
+    account_id_env: str | None = None    # Cloudflare account identifier, resolved server-side
     base_url: str | None = None  # non-secret override; env wins when set
     api_key: str | None = None   # avoid in practice; env-var reference preferred
     auth_token: str | None = None

@@ -30,7 +30,7 @@ export default function RssPane({
         title="Populate top viral newsletters, Reddit communities, and Techmeme"
       >
         <Flame className="w-3.5 h-3.5 text-anthropic-ivory-light group-hover:scale-110 transition-transform" />
-        <span>🔥 Load Viral Tech Radar (8 Signals)</span>
+        <span>Load Viral Tech Radar (8 Signals)</span>
       </button>
 
       <div className="flex items-center justify-between">

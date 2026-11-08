@@ -124,6 +124,9 @@ class HumanizeResult(BaseModel):
     burstiness_score: float = Field(default=0.0, description="Standard deviation of sentence word counts")
     sentence_count: int = Field(default=0)
     was_modified: bool = Field(default=True)
+    provenance: Literal['model_rewrite', 'deterministic_cleanup', 'no_change', 'unknown'] = 'unknown'
+    cleanup_applied: bool = False
+    authenticity_verified: Literal[False] = False
 
 
 class DistributeRunRequest(BaseModel):

@@ -16,13 +16,11 @@ export default function HumanizedDraftCard({
         <div className="flex items-center gap-2.5 flex-wrap">
           <div className="cm-subpanel flex items-center gap-1.5 font-semibold">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Humanized ✨ (Burstiness: {typeof humanizedResult.burstiness_score === 'number' ? humanizedResult.burstiness_score.toFixed(1) : humanizedResult.burstiness_score})</span>
+            <span>{{ model_rewrite: 'Model wording suggestion', deterministic_cleanup: 'Local text cleanup',
+              no_change: 'Wording unchanged' }[humanizedResult.provenance] || 'Wording suggestion'}</span>
           </div>
           <span className="cm-badge">
             {humanizedResult.sentence_count || 0} sentences
-          </span>
-          <span className="cm-badge">
-            Tone: Pragmatic Architect
           </span>
         </div>
 
@@ -31,7 +29,7 @@ export default function HumanizedDraftCard({
             type="button"
             onClick={() => onUseInEditor(humanizedResult.humanized_text)}
             className="cm-button cm-button-primary flex items-center gap-1.5"
-            title="Replace editor content with this humanized version"
+            title="Use this wording suggestion in the editor"
           >
             <FileText className="w-3.5 h-3.5 text-[#d97757]" />
             <span>Use in Editor</span>
@@ -61,7 +59,7 @@ export default function HumanizedDraftCard({
       {humanizedResult.banned_words_purged && humanizedResult.banned_words_purged.length > 0 && (
         <div className="flex items-center gap-2 flex-wrap text-sm">
           <span className="cm-muted font-semibold">
-            Purged AI Clichés ({humanizedResult.banned_words_purged.length}):
+            Local wording changes ({humanizedResult.banned_words_purged.length}):
           </span>
           {humanizedResult.banned_words_purged.map((word, idx) => (
             <span

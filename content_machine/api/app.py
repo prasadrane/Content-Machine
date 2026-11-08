@@ -13,7 +13,7 @@ from fastapi import FastAPI, HTTPException, Query, File, Request, UploadFile
 from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 import logging
 from pydantic import BaseModel, Field
@@ -40,6 +40,9 @@ from content_machine.workflow.http import (
     workflow_validation_response,
 )
 from content_machine.workflow.routes import router as workflow_router
+from content_machine.workflow.legacy_boundary import LegacyBoundaryMiddleware
+from content_machine.interview.engine import InterviewProviderError
+from content_machine.humanize.transformer import HumanizeProviderError
 from content_machine.schemas import (
     TopicBriefRequest,
     TopicBriefing,
@@ -92,6 +95,16 @@ def demo_council_max_iterations(requested: int | None) -> int:
 
 app = FastAPI(title="Content Machine", version="0.1.0")
 app.include_router(workflow_router)
+app.add_middleware(LegacyBoundaryMiddleware)
+
+
+@app.exception_handler(InterviewProviderError)
+@app.exception_handler(HumanizeProviderError)
+async def editorial_provider_error_handler(request: Request, error: RuntimeError):
+    return JSONResponse(status_code=503, content={
+        'detail': 'Editorial assistance is temporarily unavailable. Your source content is preserved.',
+        'code': 'provider_unavailable',
+    })
 
 
 @app.exception_handler(WorkflowError)
@@ -596,35 +609,16 @@ def council_run(req: CouncilRunRequest):
             max_iterations=demo_council_max_iterations(req.max_iterations),
         )
     except CouncilError as e:
-        raise HTTPException(status_code=422, detail=str(e)) from e
+        raise HTTPException(status_code=422, detail='Quorum not met. Council review needs enough valid judges.') from e
     except HTTPException:
         raise
     except Exception as e:
-        # Public demo: free-tier quota can run out. Serve the seeded result,
-        # explicitly flagged as replayed, instead of an opaque error.
-        if _is_demo():
-            from content_machine.demo_seed import replay_council
-
-            logger.warning("Demo council run failed (%s); replaying seeded result", e)
-            replay = replay_council(db_conn)
-            if replay:
-                return CouncilRunResponse(
-                    verdict=replay["verdict"],
-                    score=replay["score"],
-                    iteration=replay["iteration"],
-                    actions=replay["actions"],
-                    peak_score=replay["score"],
-                    peak_iteration=replay["iteration"],
-                    is_all_time_peak=False,
-                    draft=None,
-                    replayed=True,
-                )
         if isinstance(e, AllRoutesFailed):
-            raise HTTPException(status_code=503, detail=f"Model routing failed: {e}") from e
+            raise HTTPException(status_code=503, detail='Model routing failed. Please try again.') from e
         if isinstance(e, (anthropic.APITimeoutError, anthropic.APIConnectionError)):
             raise HTTPException(status_code=504, detail="Upstream model relay timed out. Please try again.") from e
-        logger.exception("Council run failed: %s", e)
-        raise HTTPException(status_code=500, detail=f"Council evaluation failed: {e}") from e
+        logger.error('Council run failed (%s)', type(e).__name__)
+        raise HTTPException(status_code=500, detail='Council evaluation failed. Your draft is preserved.') from e
 
     score = result.composite_normalized if result.composite_normalized is not None else result.composite_raw
     score_val = round(float(score), 3)
@@ -860,15 +854,7 @@ def distribute_run(req: DistributeRunRequest):
             tone=req.tone,
         )
     except Exception as e:
-        if not _is_demo():
-            raise
-        from content_machine.demo_seed import replay_bundle
-
-        logger.warning("Demo distribute run failed (%s); replaying seeded bundle", e)
-        sample = replay_bundle()
-        if not sample:
-            raise
-        return DistributeRunResponse(**sample, replayed=True)
+        raise HTTPException(status_code=502, detail='Content adaptation failed. Your anchor post is preserved.') from e
     if req.project_slug:
         engine.save_bundle(req.project_slug, bundle, anchor_post=req.anchor_post)
     return DistributeRunResponse(**bundle)

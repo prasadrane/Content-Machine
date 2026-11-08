@@ -37,14 +37,14 @@ describe('SourceCockpit Presets selection state', () => {
       />
     )
 
-    // The selected preset should show selected indicator (e.g. checkmark)
+    // The selected preset uses a decorative icon and exposes its state.
     const selectedBtn = screen.getByRole('button', { name: /r\/ExperiencedDevs/i })
-    expect(selectedBtn.textContent).toContain('✓')
+    expect(selectedBtn.querySelector('svg.lucide-check')).toHaveAttribute('aria-hidden', 'true')
     expect(selectedBtn).toHaveAttribute('aria-pressed', 'true')
 
-    // An unselected preset should show plus
+    // An unselected preset uses the matching add icon.
     const unselectedBtn = screen.getByRole('button', { name: /r\/LocalLLaMA/i })
-    expect(unselectedBtn.textContent).toContain('+')
+    expect(unselectedBtn.querySelector('svg.lucide-plus')).toHaveAttribute('aria-hidden', 'true')
 
     // Clicking the selected preset should toggle it off
     fireEvent.click(selectedBtn)
@@ -88,7 +88,8 @@ describe('SourceCockpit Presets selection state', () => {
     )
 
     const ghBtn = screen.getByRole('button', { name: /facebook\/react/i })
-    expect(ghBtn.textContent).toContain('✓')
+    expect(ghBtn.querySelector('svg.lucide-check')).toHaveAttribute('aria-hidden', 'true')
+    expect(ghBtn).toHaveAttribute('aria-pressed', 'true')
 
     fireEvent.click(ghBtn)
     expect(setGithubRepos).toHaveBeenCalledWith('')

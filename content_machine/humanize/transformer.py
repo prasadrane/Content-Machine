@@ -23,6 +23,10 @@ from .sanitizer import (
 logger = logging.getLogger(__name__)
 
 
+class HumanizeProviderError(RuntimeError):
+    """Wording assistance failed or returned no usable text."""
+
+
 class HumanizeTransformer:
     def __init__(
         self,
@@ -57,6 +61,7 @@ class HumanizeTransformer:
                 tone=tone,
                 sentence_count=0,
                 was_modified=False,
+                provenance='no_change',
             )
 
         # 1. Assemble prompt
@@ -84,19 +89,17 @@ class HumanizeTransformer:
             f"DRAFT TO HUMANIZE:\n{original}"
         )
 
-        humanized_raw = ""
         try:
             res = self.router.complete(
                 [self.model],
                 prompt=prompt,
                 system=system,
             )
-            humanized_raw = str(res).strip() if res else ""
-            if not humanized_raw:
-                humanized_raw = original
-        except Exception as e:
-            logger.warning("HumanizeTransformer LLM call failed, falling back to sanitizer: %s", e)
-            humanized_raw = original
+            if not isinstance(res, str) or not res.strip():
+                raise ValueError('empty wording assistance')
+            humanized_raw = res.strip()
+        except Exception:
+            raise HumanizeProviderError('Wording assistance is temporarily unavailable.') from None
 
         # 2. Deterministic sanitize pass
         cleaned, purged = sanitize_text(humanized_raw)
@@ -117,14 +120,16 @@ class HumanizeTransformer:
         sent_count = len(split_sentences(cleaned))
 
         return HumanizeResult(
-            original_text=original,
+            original_text=text,
             humanized_text=cleaned,
             channel=channel,
             tone=tone,
             banned_words_purged=purged,
             burstiness_score=burstiness,
             sentence_count=sent_count,
-            was_modified=(cleaned != original),
+            was_modified=(cleaned != text),
+            provenance='model_rewrite',
+            cleanup_applied=(cleaned != humanized_raw),
         )
 
     def humanize_post(

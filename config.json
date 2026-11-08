@@ -5,12 +5,18 @@
       "base_url_env": "ANTHROPIC_BASE_URL",
       "auth_token_env": "ANTHROPIC_AUTH_TOKEN"
     },
+    "cloudflare_workers_ai": {
+      "protocol": "cloudflare_workers_ai",
+      "account_id_env": "CLOUDFLARE_ACCOUNT_ID",
+      "api_key_env": "CLOUDFLARE_API_TOKEN"
+    },
     "gemini": {
       "protocol": "gemini",
       "api_key_env": "GEMINI_API_KEY"
     }
   },
   "route_models": {
+    "@cf/qwen/qwen3.8-27b": ["cloudflare_workers_ai"],
     "*": ["token_plan_relay"]
   },
   "models": {
