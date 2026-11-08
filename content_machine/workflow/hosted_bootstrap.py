@@ -1,5 +1,6 @@
 """Explicit hosted wiring. Schema installation remains an operator migration."""
 import sys
+from urllib.parse import urlsplit
 
 from content_machine.workflow.errors import WorkflowError
 from content_machine.workflow.hosted_auth import SupabaseAuthenticator
@@ -42,8 +43,12 @@ def configure_hosted_workflow(app, values):
             # Operator diagnostic: a fixed category only, never driver text.
             text = str(exc).lower()
             category = next((name for key, name in _FAILURE_HINTS if key in text), 'other')
-            print(f'workflow_storage_unavailable class={type(exc).__name__} category={category}',
-                  file=sys.stderr, flush=True)
+            detail = ' '.join(str(exc).split())
+            for secret in {config.database_url, urlsplit(config.database_url).password or ''}:
+                if secret:
+                    detail = detail.replace(secret, '***')
+            print(f'workflow_storage_unavailable class={type(exc).__name__} category={category} '
+                  f'detail={detail[:200]}', file=sys.stderr, flush=True)
             raise WorkflowError(503, 'workflow_storage_unavailable',
                                 'Workspace storage is temporarily unavailable. Try again.') from None
 
