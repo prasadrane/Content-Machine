@@ -65,6 +65,15 @@ export function AuthGate({ service, error: configurationError, children }) {
     return () => window.clearTimeout(timer)
   }, [state.session])
 
+  // A deep link to one user's item must not outlive their session: the next
+  // user would land on a "not found" screen for an item they cannot own.
+  const signedOut = !!service && service.mode === 'hosted' && !state.loading && !state.session?.user?.id
+  useEffect(() => {
+    if (signedOut && window.location.hash.startsWith('#/workflow/items/')) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search + '#/workflow')
+    }
+  }, [signedOut])
+
   if (configurationError || !service) return <p role="alert">{configurationError || 'Workspace configuration is unavailable.'}</p>
   if (service.mode === 'local') return children
   if (state.loading) return <p role="status">Loading your workspace…</p>

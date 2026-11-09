@@ -60,6 +60,14 @@ describe('AuthGate', () => {
     expect(screen.queryByText('Private content')).not.toBeInTheDocument()
   })
 
+  it('drops a per-item deep link when the session ends', async () => {
+    window.location.hash = '#/workflow/items/abc/draft_review'
+    const service = fakeService({ user: { id: 'one' }, access_token: 'old', expires_at: 1 })
+    render(<AuthGate service={service}><p>Private content</p></AuthGate>)
+    await screen.findByRole('alert')
+    expect(window.location.hash).toBe('#/workflow')
+  })
+
   it('keeps the workspace hidden and offers a retry when sign-out fails', async () => {
     const service = fakeService({ user: { id: 'one' }, access_token: 'a' })
     service.signOut.mockRejectedValueOnce(new Error('Network error')).mockResolvedValueOnce()
