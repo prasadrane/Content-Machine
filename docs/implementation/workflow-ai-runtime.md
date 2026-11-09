@@ -37,11 +37,13 @@ All quota variables are optional. Missing values use the default; a present but 
 | `CONTENT_MACHINE_GUEST_AI_DAILY_MILLINEURONS` | 9000000 | Cloudflare daily pool (at most 10000000, at least the per-call value) |
 | `CONTENT_MACHINE_GUEST_AI_MAX_INFLIGHT` | 4 | Cloudflare concurrent calls (1 to 4) |
 | `CONTENT_MACHINE_GUEST_AI_GEMINI_DAILY_REQUESTS` | 100 | Gemini requests per UTC day (1 to 1000000) |
-| `CONTENT_MACHINE_GUEST_AI_GEMINI_MAX_INFLIGHT` | 2 | Gemini concurrent calls (1 to 8) |
+| `CONTENT_MACHINE_GUEST_AI_GEMINI_MAX_INFLIGHT` | 4 | Gemini concurrent calls (1 to 8) |
 
 Each call reserves units before dispatch: Cloudflare reserves the per-call bound, Gemini reserves one request. Per-subject daily cap is `max(units * inflight * 2, daily // 4)`; per-subject in-flight cap equals the pool in-flight cap. Output is capped at 2000 tokens.
 
-Changing a daily limit or in-flight value mid-day makes that pool answer `guest_budget_policy_conflict` until the next UTC day, because the first reservation of the day commits the policy. Change them at the UTC day boundary, or accept the pool being unavailable for the rest of the day.
+Changing a daily limit mid-day makes that pool answer `guest_budget_policy_conflict` until the next UTC day, because the first reservation of the day commits the spend policy. Change it at the UTC day boundary. A changed in-flight value is a concurrency limit, not a spend commitment: the next reservation updates the stored policy for the day and proceeds.
+
+In-flight slots are leased. The reservation key is `<operation_id>:<epoch_seconds>:<hex>`. A row in state reserved, dispatched or uncertain holds a pool and per-subject slot only while `now - epoch <= 120` seconds (`LEASE_S`), so timeouts or crashes free their slot after two minutes instead of blocking the pool until midnight. Rows whose key does not parse (written before this change) or that are older than the lease hold no slot. Spend accounting is unchanged: such rows still count their charged units toward the daily limit. A call that settles normally frees its slot immediately.
 
 ### Fallthrough, settlement and time budget
 

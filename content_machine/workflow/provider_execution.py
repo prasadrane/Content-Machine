@@ -25,8 +25,11 @@ _PREFIX = 'CONTENT_MACHINE_GUEST_AI_'
 # present-but-invalid values fail closed with guest_budget_unconfigured.
 _DEFAULTS = {'MAX_INPUT_BYTES': 12_000, 'PER_CALL_MILLINEURONS': 1_200_000,
              'DAILY_MILLINEURONS': 9_000_000, 'MAX_INFLIGHT': 4,
-             'GEMINI_DAILY_REQUESTS': 100, 'GEMINI_MAX_INFLIGHT': 2}
+             'GEMINI_DAILY_REQUESTS': 100, 'GEMINI_MAX_INFLIGHT': 4}
 MAX_OUTPUT_TOKENS = 2000
+# An in-flight slot (reserved/dispatched/uncertain) is held at most this long;
+# the epoch is embedded in the reservation key, so no schema change is needed.
+LEASE_S = 120
 # A request (including fallthrough between providers) must finish within this
 # many seconds of ProviderExecution creation, leaving room for the host limit.
 OVERALL_DEADLINE_S = 50.0
@@ -215,7 +218,7 @@ class ProviderExecution:
                     payload['reasoning_effort'] = kwargs['reasoning_effort']
                 if len(json.dumps(payload, ensure_ascii=False).encode('utf-8')) > self.max_input:
                     raise WorkflowError(413, 'guest_input_too_large', 'Guest AI input exceeds its free quota bound. Shorten the context or continue manually.')
-                key = self.operation_id + ':' + uuid.uuid4().hex
+                key = f'{self.operation_id}:{int(time.time())}:{uuid.uuid4().hex}'
                 record['reservation_key'] = key
                 conn = self.factory()
                 try:
@@ -224,7 +227,7 @@ class ProviderExecution:
                         units=units, daily_limit=daily_limit, max_inflight=max_inflight,
                         # One subject may fan out up to `max_inflight` calls (Council) and retry once.
                         subject_daily_limit=max(units * max_inflight * 2, daily_limit // 4),
-                        subject_max_inflight=max_inflight)
+                        subject_max_inflight=max_inflight, lease_s=LEASE_S)
                 except WorkflowError as error:
                     if error.code not in _BUDGET_CODES:
                         raise

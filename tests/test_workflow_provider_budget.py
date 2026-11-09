@@ -4,6 +4,7 @@ from contextlib import closing
 from pathlib import Path
 import sqlite3
 import tempfile
+import time
 import unittest
 
 from content_machine.workflow.errors import WorkflowError
@@ -121,6 +122,81 @@ class ProviderBudgetTest(unittest.TestCase):
         self.reserve(units=10, max_inflight=1)
         with self.assertRaises(WorkflowError) as error:
             self.reserve('two', subject_id='guest-b', units=10, max_inflight=1)
+        self.assertEqual(error.exception.code, 'guest_budget_busy')
+
+    def leased(self, age, hexpart='ab12'):
+        return f'op:{int(time.time()) - age}:{hexpart}'
+
+    def stuck(self, key, state, **kwargs):
+        self.reserve(key, **kwargs)
+        budget.dispatch(self.conn, 'cloudflare-guest', key)
+        if state == 'uncertain':
+            budget.settle(self.conn, 'cloudflare-guest', key)
+
+    def test_lease_expired_stuck_rows_no_longer_block_but_recent_ones_do(self):
+        lease = dict(units=10, daily_limit=1000, max_inflight=1, lease_s=120)
+        self.stuck(self.leased(500, 'a1'), 'uncertain', units=10, daily_limit=1000, max_inflight=5)
+        self.stuck(self.leased(900, 'a2'), 'dispatched', units=10, daily_limit=1000, max_inflight=5, subject_id='guest-b')
+        recent = self.leased(5, 'a3')
+        self.assertTrue(self.reserve(recent, subject_id='guest-c', **lease)[1])
+        with self.assertRaises(WorkflowError) as error:
+            self.reserve(self.leased(0, 'a4'), subject_id='guest-d', **lease)
+        self.assertEqual(error.exception.code, 'guest_budget_busy')
+        # Without a lease the old behavior is preserved (all stuck rows hold slots).
+        with self.assertRaises(WorkflowError) as error:
+            self.reserve('plain', subject_id='guest-e', units=10, daily_limit=1000, max_inflight=1)
+        self.assertEqual(error.exception.code, 'guest_budget_busy')
+
+    def test_legacy_keys_do_not_hold_slots_but_still_count_for_spend(self):
+        self.stuck('legacy-key', 'uncertain', units=60, daily_limit=100, max_inflight=5)
+        self.stuck('op:notanepoch:ff', 'uncertain', units=10, daily_limit=100, max_inflight=5, subject_id='guest-b')
+        lease = dict(units=10, daily_limit=100, max_inflight=1, lease_s=120)
+        self.assertTrue(self.reserve(self.leased(1), subject_id='guest-c', **lease)[1])
+        total = self.conn.execute('SELECT SUM(charged_units) FROM workflow_provider_reservations').fetchone()[0]
+        self.assertEqual(total, 80)
+        with self.assertRaises(WorkflowError) as error:  # spend: 80 + 30 > 100
+            self.reserve(self.leased(0, 'b2'), subject_id='guest-d', units=30, daily_limit=100, max_inflight=1, lease_s=120)
+        self.assertEqual(error.exception.code, 'guest_budget_exhausted')
+
+    def test_subject_inflight_uses_the_same_lease_filtering(self):
+        dflt = dict(subject_daily_limit=None, subject_max_inflight=1, units=10, daily_limit=1000, max_inflight=5, lease_s=120)
+        self.stuck(self.leased(600, 'c1'), 'uncertain', units=10, daily_limit=1000, max_inflight=5)
+        self.stuck('legacy-same-subject', 'dispatched', units=10, daily_limit=1000, max_inflight=5)
+        self.assertTrue(self.reserve(self.leased(2, 'c2'), **dflt)[1])
+        with self.assertRaises(WorkflowError) as error:
+            self.reserve(self.leased(1, 'c3'), **dflt)
+        self.assertEqual(error.exception.code, 'guest_budget_subject_busy')
+
+    def test_settled_call_frees_slot_under_lease(self):
+        lease = dict(units=10, daily_limit=1000, max_inflight=1, lease_s=120)
+        first = self.leased(1, 'd1')
+        self.reserve(first, **lease)
+        budget.dispatch(self.conn, 'cloudflare-guest', first)
+        budget.settle(self.conn, 'cloudflare-guest', first, actual_units=3)
+        self.assertTrue(self.reserve(self.leased(0, 'd2'), subject_id='guest-b', **lease)[1])
+
+    def test_changed_max_inflight_updates_policy_but_changed_daily_limit_conflicts(self):
+        self.reserve('one', units=10, daily_limit=100, max_inflight=2)
+        self.assertTrue(self.reserve('two', units=10, daily_limit=100, max_inflight=4)[1])
+        stored = self.conn.execute("SELECT daily_limit,max_inflight FROM workflow_provider_budget_days WHERE pool='cloudflare-guest'").fetchone()
+        self.assertEqual(tuple(stored), (100, 4))
+        with self.assertRaises(WorkflowError) as error:
+            self.reserve('three', units=10, daily_limit=200, max_inflight=4)
+        self.assertEqual(error.exception.code, 'guest_budget_policy_conflict')
+        stored = self.conn.execute("SELECT daily_limit,max_inflight FROM workflow_provider_budget_days WHERE pool='cloudflare-guest'").fetchone()
+        self.assertEqual(tuple(stored), (100, 4))
+
+    def test_four_parallel_reservations_fit_gemini_default_inflight(self):
+        from content_machine.workflow import provider_execution
+        limit = provider_execution._DEFAULTS['GEMINI_MAX_INFLIGHT']
+        self.assertEqual(limit, 4)
+        for index in range(4):
+            self.assertTrue(self.reserve(self.leased(0, f'e{index}'), subject_id='guest-g', pool='gemini-guest',
+                                         units=1, daily_limit=100, max_inflight=limit,
+                                         subject_max_inflight=limit, lease_s=120)[1])
+        with self.assertRaises(WorkflowError) as error:
+            self.reserve(self.leased(0, 'e9'), subject_id='guest-g', pool='gemini-guest', units=1,
+                         daily_limit=100, max_inflight=limit, subject_max_inflight=limit, lease_s=120)
         self.assertEqual(error.exception.code, 'guest_budget_busy')
 
     def test_subject_inflight_cap_blocks_same_subject_not_other_subject(self):

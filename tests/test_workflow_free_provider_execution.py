@@ -109,6 +109,7 @@ class FreeProviderExecutionTest(unittest.TestCase):
         self.assertEqual((call['provider'], call['charged_units']), ('gemini', 1))
         self.assertNotIn('charged_millineurons', call)
         self.assertTrue(0 < self.seen[0][1]['timeout_s'] <= 25.0)
+        self.assertRegex(call['reservation_key'], r'^.+:\d{9,11}:[0-9a-f]{32}$')
 
     def test_cloudflare_exhaustion_falls_through_to_gemini_without_poisoning_failure(self):
         with patch.dict('os.environ', {'CONTENT_MACHINE_GUEST_AI_DAILY_MILLINEURONS': '1000000'}):
@@ -180,7 +181,7 @@ class FreeProviderExecutionTest(unittest.TestCase):
             execution = self.execution()
             self.assertEqual((execution.max_input, execution.per_call, execution.daily, execution.concurrent),
                              (12000, 1200000, 9000000, 4))
-            self.assertEqual((execution.gemini_daily, execution.gemini_inflight), (100, 2))
+            self.assertEqual((execution.gemini_daily, execution.gemini_inflight), (100, 4))
         for name, value in [('GEMINI_DAILY_REQUESTS', '0'), ('GEMINI_DAILY_REQUESTS', 'many'),
                             ('GEMINI_MAX_INFLIGHT', '99'), ('GEMINI_MAX_INFLIGHT', ''),
                             ('MAX_INFLIGHT', 'x'), ('MAX_INPUT_BYTES', '0'), ('DAILY_MILLINEURONS', '')]:
