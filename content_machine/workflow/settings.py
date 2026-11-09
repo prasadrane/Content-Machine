@@ -14,7 +14,7 @@ from content_machine.workflow.errors import WorkflowError
 from content_machine.workflow.persistence import (
     WorkflowResult, atomic_write, find_idempotent, record_idempotent, request_digest,
 )
-from content_machine.workflow.schemas import Principal, WorkflowModel, utc_timestamp
+from content_machine.workflow.schemas import Principal, WorkflowModel, require_request_id, utc_timestamp
 
 SETTINGS_MIGRATION_STATEMENTS = (
     """CREATE TABLE IF NOT EXISTS workflow_profiles (
@@ -132,8 +132,7 @@ def _owned_source(conn: sqlite3.Connection, principal: Principal, source_id: str
 
 
 def _mutation(conn, principal, request_id, method, path, payload, operation):
-    if not isinstance(request_id, str) or not request_id.strip():
-        raise WorkflowError(422, "invalid_request", "Idempotency-Key is required")
+    require_request_id(request_id)
     digest = request_digest(method, path, payload)
     with atomic_write(conn):
         replay = find_idempotent(conn, principal.owner_id, request_id, method=method,
@@ -166,8 +165,16 @@ def save_profile(conn, principal, payload: ProfileSave, *, request_id: str) -> W
                      payload.model_dump(mode="json"), save)
 
 
+MAX_SOURCES_PER_OWNER = 20
+
+
 def create_source(conn, principal, payload: SourceCreate, *, request_id: str) -> WorkflowResult:
     def create():
+        count = conn.execute("SELECT COUNT(*) FROM workflow_sources WHERE owner_id = ?",
+                             (principal.owner_id,)).fetchone()[0]
+        if count >= MAX_SOURCES_PER_OWNER:
+            raise WorkflowError(422, "source_limit_reached",
+                                f"You can save at most {MAX_SOURCES_PER_OWNER} sources")
         source_id = f"src_{uuid.uuid4().hex}"
         now = utc_timestamp()
         conn.execute(

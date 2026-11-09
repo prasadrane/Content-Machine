@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { streamSSE } from './sse'
+import { setAccessTokenProvider, setSessionRefresher } from './session'
 import { getOracleHistory, runOracleScan } from './oracle'
 
 afterEach(() => vi.unstubAllGlobals())
@@ -66,5 +67,21 @@ describe('runOracleScan', () => {
     expect(fetch.mock.calls[0][0]).toBe('/api/oracle/scan-stream')
     expect(fetch.mock.calls[0][1].method).toBe('POST')
     expect(events).toEqual([['complete', { passed: 2 }]])
+  })
+})
+
+describe('streamSSE 401 re-auth', () => {
+  afterEach(() => { setAccessTokenProvider(null); setSessionRefresher(null) })
+  it('retries once before the stream starts, with a fresh token', async () => {
+    let token = 'old'
+    setAccessTokenProvider(async () => token)
+    setSessionRefresher(async () => { token = 'new'; return {} })
+    const body = { getReader: () => ({ read: async () => ({ done: true }), cancel: async () => {} }) }
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({}) })
+      .mockResolvedValueOnce({ ok: true, status: 200, body })
+    vi.stubGlobal('fetch', fetchMock)
+    await streamSSE('/api/workflow/stream', {}, () => {})
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock.mock.calls[1][1].headers.Authorization).toBe('Bearer new')
   })
 })

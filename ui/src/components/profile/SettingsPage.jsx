@@ -12,6 +12,7 @@ export default function SettingsPage({ onOpenLessons }) {
   const [dirtySources, setDirtySources] = useState({})
   const [sourceSaves, setSourceSaves] = useState({})
   const [generation, setGeneration] = useState(0)
+  const [confirmDiscard, setConfirmDiscard] = useState(false)
   const [loading, setLoading] = useState(true)
   const [profileSaving, setProfileSaving] = useState(false)
   const [sourceSaving, setSourceSaving] = useState(false)
@@ -65,6 +66,18 @@ export default function SettingsPage({ onOpenLessons }) {
     window.addEventListener('beforeunload', warn)
     return () => window.removeEventListener('beforeunload', warn)
   }, [hasChanges])
+
+  useEffect(() => { if (!hasChanges) setConfirmDiscard(false) }, [hasChanges])
+  const discardAndReload = () => {
+    setConfirmDiscard(false)
+    newSourceRef.current = { name: '', url: '' }
+    setNewSource(newSourceRef.current)
+    setProfileError('')
+    setSourceError('')
+    setProfileNotice('')
+    setSourceNotice('')
+    load()
+  }
 
   const keyFor = (operation, body) => {
     const signature = JSON.stringify([operation, body])
@@ -137,7 +150,14 @@ export default function SettingsPage({ onOpenLessons }) {
         <p className="cm-page-description">Add optional author context and choose sources for discovery.</p></div>
       <button className="cm-button cm-button-secondary" disabled={loading || hasChanges || profileSaving || sourceSaving || sourceSavePending}
         onClick={load}>Refresh settings</button>
+      {hasChanges && <button className="cm-button cm-button-secondary" disabled={loading || profileSaving || sourceSaving || sourceSavePending}
+        onClick={() => setConfirmDiscard(true)}>Discard changes and reload</button>}
     </header>
+    {confirmDiscard && <div role="alertdialog" aria-labelledby="cm-discard-title" onKeyDown={event => { if (event.key === 'Escape') setConfirmDiscard(false) }} className="cm-status cm-status-warning space-y-2">
+      <p id="cm-discard-title">Discard your unsaved changes and reload the latest saved settings?</p>
+      <button autoFocus className="cm-button cm-button-secondary" onClick={() => setConfirmDiscard(false)}>Keep editing</button>
+      <button className="cm-button cm-button-primary" onClick={discardAndReload}>Discard and reload</button>
+    </div>}
     {loading && <p role="status" className="cm-muted">Loading settings…</p>}
     {loadError && <div role="alert" className="cm-status cm-status-error space-y-2">
       <p>{loadError}</p>{!saved && <button className="cm-button cm-button-secondary" onClick={load}>Try again</button>}

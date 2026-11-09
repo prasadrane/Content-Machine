@@ -1,12 +1,11 @@
 import { createClient as sdkCreateClient } from '@supabase/supabase-js'
 
-export function resolveWorkspaceMode(env = import.meta.env) {
-  return env.VITE_WORKSPACE_MODE === 'hosted' ? 'hosted' : 'local'
-}
+export { resolveWorkspaceMode } from './workspaceMode'
+import { resolveWorkspaceMode } from './workspaceMode'
 
 export function createAuthService({ mode = resolveWorkspaceMode(), url = import.meta.env.VITE_SUPABASE_URL,
   anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY, createClient = sdkCreateClient } = {}) {
-  if (mode === 'local') return { mode, getAccessToken: async () => null }
+  if (mode === 'local') return { mode, getAccessToken: async () => null, refreshSession: async () => null }
   if (mode !== 'hosted' || !url || !anonKey) throw new Error('Hosted workspace configuration is missing.')
   const { auth } = createClient(url, anonKey, { auth: { flowType: 'pkce', persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } })
   const checked = async promise => {
@@ -23,6 +22,7 @@ export function createAuthService({ mode = resolveWorkspaceMode(), url = import.
     },
     async signInAsGuest() { return checked(auth.signInAnonymously()) },
     async signOut() { await checked(auth.signOut()) },
+    async refreshSession() { return (await checked(auth.refreshSession())).session },
     onAuthStateChange(callback) {
       const { data } = auth.onAuthStateChange(callback)
       return () => data.subscription.unsubscribe()

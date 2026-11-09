@@ -18,7 +18,7 @@ from content_machine.workflow.persistence import (
     atomic_write, canonical_json, find_idempotent, record_idempotent, request_digest,
 )
 from content_machine.workflow.schema_types import VersionPurpose
-from content_machine.workflow.schemas import Principal, utc_timestamp
+from content_machine.workflow.schemas import Principal, require_request_id, utc_timestamp
 from content_machine.workflow.versions import freeze_version
 
 
@@ -30,8 +30,7 @@ def begin_operation(conn: sqlite3.Connection, principal: Principal, item_id: str
                             'An operation must begin outside an existing transaction.')
     if kind not in ('generate', 'review') or type(expected_revision) is not int or expected_revision < 1:
         raise WorkflowError(422, 'invalid_request', 'A valid operation kind and revision are required')
-    if not isinstance(request_id, str) or not request_id.strip():
-        raise WorkflowError(422, 'invalid_request', 'Idempotency-Key is required')
+    require_request_id(request_id)
     path = f'/api/workflow/items/{item_id}/{kind}'
     digest = request_digest('POST', path, {'expected_revision': expected_revision})
     with atomic_write(conn):

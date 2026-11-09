@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { transcribeAudio } from '../api/interview'
+import { isHostedWorkspace } from '../api/workspaceMode'
 
 const DEFAULT_TARGET = '__voice_default__'
 const MAX_SECONDS = 120
@@ -181,6 +182,11 @@ export function useVoiceRecording({
       } catch {
         session.recognition = null
       }
+    }
+    if (isHostedWorkspace()) {
+      // Hosted mode has no audio-upload transcription route (410); browser speech recognition only.
+      fail(session, "Dictation isn't supported in this browser. You can type instead.")
+      return
     }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })

@@ -28,6 +28,7 @@ from content_machine.workflow.persistence import (
 )
 from content_machine.workflow.schema_types import Stage, VersionPurpose
 from content_machine.workflow.schemas import (
+    require_request_id,
     ContentItem,
     Principal,
     RestoreRequest,
@@ -43,8 +44,7 @@ RESTORE_PATH = "/api/workflow/items/{item_id}/restore"
 
 
 def _require_request_id(request_id: str) -> None:
-    if not isinstance(request_id, str) or not request_id.strip():
-        raise WorkflowError(422, "invalid_request", "Idempotency-Key is required")
+    require_request_id(request_id)
 
 
 def _acknowledged(item: ContentItem) -> dict[str, object]:

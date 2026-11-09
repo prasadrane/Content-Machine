@@ -36,6 +36,7 @@ from content_machine.workflow.schemas import (
     ApproveRequest,
     ContentItem,
     Principal,
+    require_request_id,
     utc_timestamp,
 )
 from content_machine.workflow.versions import artifact_digest, freeze_version
@@ -78,8 +79,7 @@ def _conflict(item: ContentItem, code: str, detail: str) -> WorkflowError:
 
 
 def _require_request_id(request_id: str) -> None:
-    if not isinstance(request_id, str) or not request_id.strip():
-        raise WorkflowError(422, "invalid_request", "Idempotency-Key is required")
+    require_request_id(request_id)
 
 
 def _validate_artifact(item: ContentItem) -> None:
@@ -114,7 +114,7 @@ def approve_item(
     _require_request_id(request_id)
     method = "POST"
     path = APPROVE_PATH.format(item_id=item_id)
-    digest = request_digest(method, path, payload.model_dump(mode="json"))
+    digest = request_digest(method, path, payload.model_dump(mode="json", exclude_none=True))
     with atomic_write(conn):
         replay = find_idempotent(
             conn,
@@ -133,6 +133,12 @@ def approve_item(
                 item,
                 "revision_conflict",
                 "The item revision changed before this approval",
+            )
+        if payload.expected_updated_at is not None and payload.expected_updated_at != item.updated_at:
+            raise _conflict(
+                item,
+                "revision_conflict",
+                "The item changed in another session before this approval",
             )
         if not payload.consent:
             raise _conflict(
@@ -202,7 +208,8 @@ def approve_item(
         cursor = conn.execute(
             "UPDATE workflow_items SET active_approval_id = ?, stage = ?,"
             " updated_at = ? WHERE item_id = ? AND owner_id = ?"
-            " AND working_revision = ?",
+            " AND working_revision = ?"
+            + (" AND updated_at = ?" if payload.expected_updated_at is not None else ""),
             (
                 approval.approval_id,
                 Stage.EXPORT.value,
@@ -210,7 +217,8 @@ def approve_item(
                 item.item_id,
                 item.owner_id,
                 item.working_revision,
-            ),
+            )
+            + ((payload.expected_updated_at,) if payload.expected_updated_at is not None else ()),
         )
         if cursor.rowcount != 1:
             raise _conflict(

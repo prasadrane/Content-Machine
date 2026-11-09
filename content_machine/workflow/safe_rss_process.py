@@ -33,6 +33,10 @@ def _environment():
     # The child needs only OS loader and temporary-directory paths. It receives
     # no credentials, proxy variables, user profile, or Python configuration.
     allow = ('SYSTEMROOT', 'WINDIR', 'TEMP', 'TMP')
+    if os.name != 'nt':
+        # POSIX hosts need the CA bundle location, locale and executable search
+        # path for TLS verification and interpreter startup; still no secrets.
+        allow += ('SSL_CERT_FILE', 'SSL_CERT_DIR', 'LANG', 'PATH')
     return {name: os.environ[name] for name in allow if name in os.environ}
 
 

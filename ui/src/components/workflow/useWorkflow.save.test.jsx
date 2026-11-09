@@ -102,6 +102,7 @@ describe('useWorkflow saving', () => {
     expect(retry[2]).toBe(first[2])
     expect(retry[1]).toEqual({
       expected_revision: 1,
+      expected_updated_at: '2026-11-05T09:12:00.000Z',
       context: expect.objectContaining({ notes }),
       artifact: { segments: [] },
     })
@@ -133,6 +134,19 @@ describe('useWorkflow saving', () => {
     expect(result.current.item.working_revision).toBe(2)
     expect(result.current.dirty).toBe(true)
     expect(result.current.notice).toBe('')
+  })
+
+  it('sends the last known updated_at and advances it from each save response', async () => {
+    const { result } = renderHook(() => useWorkflow())
+    await openDraft(result)
+    api.saveItem.mockResolvedValueOnce({ item: makeItem({ working_revision: 2, updated_at: '2026-11-05T09:30:00.000Z' }) })
+    await editNotes(result, 'one')
+    await act(async () => { await result.current.save() })
+    expect(api.saveItem.mock.calls[0][1].expected_updated_at).toBe('2026-11-05T09:12:00.000Z')
+    api.saveItem.mockResolvedValueOnce({ item: makeItem({ working_revision: 3, updated_at: '2026-11-05T09:40:00.000Z' }) })
+    await editNotes(result, 'two')
+    await act(async () => { await result.current.save() })
+    expect(api.saveItem.mock.calls[1][1].expected_updated_at).toBe('2026-11-05T09:30:00.000Z')
   })
 
   it('surfaces a revision conflict without clearing the draft', async () => {

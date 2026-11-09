@@ -59,12 +59,18 @@ def _read(conn, pool, request_id):
 
 
 def reserve(conn, *, pool, day, request_id, subject_id, provider, model,
-            units, daily_limit, max_inflight):
+            units, daily_limit, max_inflight,
+            subject_daily_limit=None, subject_max_inflight=1):
     """Return (durably stored reservation, newly_created); replay cannot dispatch.
 
     Use a stable key unique to each actual external attempt, not an operation
     containing several Council calls. Bound must include retries and reasoning
     only if those are part of that single attempt; otherwise reserve each call.
+
+    The inflight count is scoped to `day`. Known limitation: with no timestamp
+    column there is no lease expiry, so a same-day crash-left row keeps its slot.
+    Each subject is also capped: daily units default to max(units, daily_limit//4)
+    and inflight attempts default to 1, so one identity cannot drain the pool.
     """
     _idle(conn)
     try:
@@ -72,7 +78,8 @@ def reserve(conn, *, pool, day, request_id, subject_id, provider, model,
     except ValueError:
         valid_day = False
     if (not valid_day or not all(map(_text, (pool, request_id, subject_id, provider, model)))
-            or not all(map(_positive, (units, daily_limit, max_inflight)))):
+            or not all(map(_positive, (units, daily_limit, max_inflight, subject_max_inflight)))
+            or not (subject_daily_limit is None or _positive(subject_daily_limit))):
         _error('guest_budget_invalid', 'A valid bounded provider quota policy is required.', 422)
     with atomic_write(conn):
         existing = conn.execute('SELECT * FROM workflow_provider_reservations WHERE pool=? AND request_id=?',
@@ -94,10 +101,19 @@ def reserve(conn, *, pool, day, request_id, subject_id, provider, model,
                             (pool, day)).fetchone()[0]
         if used + units > daily_limit:
             _error('guest_budget_exhausted', 'Guest AI quota is used for this UTC day. Your draft is preserved.', 429)
-        active = conn.execute("SELECT COUNT(*) FROM workflow_provider_reservations WHERE pool=? AND state IN ('reserved','dispatched','uncertain')",
-                              (pool,)).fetchone()[0]
+        active = conn.execute("SELECT COUNT(*) FROM workflow_provider_reservations WHERE pool=? AND day=? AND state IN ('reserved','dispatched','uncertain')",
+                              (pool, day)).fetchone()[0]
         if active >= max_inflight:
             _error('guest_budget_busy', 'Guest AI capacity is busy. Your draft is preserved; try again later.', 429)
+        subject_cap = subject_daily_limit or max(units, daily_limit // 4)
+        subject_used = conn.execute('SELECT COALESCE(SUM(charged_units),0) FROM workflow_provider_reservations WHERE pool=? AND day=? AND subject_id=?',
+                                    (pool, day, subject_id)).fetchone()[0]
+        if subject_used + units > subject_cap:
+            _error('guest_budget_subject_exhausted', 'Your guest AI allowance is used for this UTC day. Your draft is preserved.', 429)
+        subject_active = conn.execute("SELECT COUNT(*) FROM workflow_provider_reservations WHERE pool=? AND day=? AND subject_id=? AND state IN ('reserved','dispatched','uncertain')",
+                                      (pool, day, subject_id)).fetchone()[0]
+        if subject_active >= subject_max_inflight:
+            _error('guest_budget_subject_busy', 'You already have a guest AI call in progress. Your draft is preserved; try again shortly.', 429)
         conn.execute('''INSERT INTO workflow_provider_reservations(pool,request_id,day,subject_id,provider,model,
             reserved_units,charged_units,state) VALUES(?,?,?,?,?,?,?,?,'reserved')''',
                      (pool, request_id, day, subject_id, provider, model, units, units))

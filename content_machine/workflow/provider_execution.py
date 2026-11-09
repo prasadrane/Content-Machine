@@ -128,7 +128,10 @@ class ProviderExecution:
                 conn = self.factory()
                 _, created = budget.reserve(conn, pool='cloudflare-guest', day=datetime.now(timezone.utc).date().isoformat(),
                     request_id=key, subject_id=self.subject_id, provider=route.protocol, model=model,
-                    units=self.per_call, daily_limit=self.daily, max_inflight=self.concurrent)
+                    units=self.per_call, daily_limit=self.daily, max_inflight=self.concurrent,
+                    # One guest may fan out up to `concurrent` calls (Council) and retry once.
+                    subject_daily_limit=max(self.per_call * self.concurrent * 2, self.daily // 4),
+                    subject_max_inflight=self.concurrent)
                 if not created or not budget.dispatch(conn, 'cloudflare-guest', key):
                     raise WorkflowError(409, 'guest_budget_conflict', 'This provider attempt already has a dispatch claim.')
             record.update(state='running', dispatched=True)

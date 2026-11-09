@@ -16,7 +16,7 @@ from content_machine.workflow.errors import WorkflowError
 from content_machine.workflow.items import _acknowledged, _conflict, _invalid_item, _patch_value, _reject_explicit_nulls
 from content_machine.workflow.persistence import WorkflowResult, canonical_json, request_digest
 from content_machine.workflow.schema_types import Stage, VersionPurpose
-from content_machine.workflow.schemas import ContentItem, ContentVersion, Principal, utc_timestamp
+from content_machine.workflow.schemas import ContentItem, ContentVersion, Principal, require_request_id, utc_timestamp
 from content_machine.workflow.versions import artifact_digest
 
 _ITEMS = (
@@ -83,8 +83,7 @@ class PostgresWorkflowRepository:
             raise WorkflowError(409, 'operation_transaction_open', 'A dedicated idle connection is required')
 
     def _lock_request(self, principal, key):
-        if not isinstance(key, str) or not key.strip():
-            raise WorkflowError(422, 'invalid_request', 'Idempotency-Key is required')
+        require_request_id(key)
         self.conn.execute(
             "SELECT pg_advisory_xact_lock(hashtextextended(%s::text || ':' || %s::text, 0))",
             (principal.owner_id, key),
@@ -136,8 +135,7 @@ class PostgresWorkflowRepository:
 
     def create_item(self, principal, payload, *, request_id):
         self._check(principal)
-        if not isinstance(request_id, str) or not request_id.strip():
-            raise WorkflowError(422, 'invalid_request', 'Idempotency-Key is required')
+        require_request_id(request_id)
         path = '/api/workflow/items'
         digest = request_digest('POST', path, payload.model_dump(mode='json'))
         with self.conn.transaction():
@@ -164,8 +162,7 @@ class PostgresWorkflowRepository:
 
     def save_item(self, principal, item_id, patch, *, request_id):
         self._check(principal)
-        if not isinstance(request_id, str) or not request_id.strip():
-            raise WorkflowError(422, 'invalid_request', 'Idempotency-Key is required')
+        require_request_id(request_id)
         path = f'/api/workflow/items/{item_id}'
         digest = request_digest('PATCH', path, patch.model_dump(mode='json', exclude_unset=True))
         with self.conn.transaction():

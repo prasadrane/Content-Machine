@@ -1,4 +1,4 @@
-import { ApiError, fetchJson } from './client'
+import { ApiError, fetchJson, fetchWithReauth } from './client'
 import { authenticatedHeaders } from './session'
 
 const base = '/api/workflow'
@@ -68,11 +68,11 @@ export const getExport = (id, versionId) => fetchJson(`${exportPath(id, versionI
  */
 export async function getDownload(itemId, versionId) {
   const url = exportPath(itemId, versionId)
-  const res = await fetch(url, {
+  const res = await fetchWithReauth(url, async () => ({
     method: 'GET',
     credentials: 'same-origin',
     headers: await authenticatedHeaders(url, { Accept: 'text/plain' }),
-  })
+  }))
   if (!res.ok) {
     let detail = null
     try { detail = await res.json() } catch { /* binary or empty error body */ }

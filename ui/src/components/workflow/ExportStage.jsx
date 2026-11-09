@@ -53,7 +53,8 @@ export default function ExportStage({ flow }) {
       if (mounted.current) setError(`Could not start the download. ${failure.message}`)
     } finally {
       anchor?.remove()
-      if (url) URL.revokeObjectURL(url)
+      // Revoking immediately truncates downloads in Safari/Firefox.
+      if (url) setTimeout(() => URL.revokeObjectURL(url), 1000)
       if (mounted.current) setBusy(false)
     }
   }

@@ -12,6 +12,7 @@ from collections.abc import Callable
 from email.utils import format_datetime, parsedate_to_datetime
 import re
 import sqlite3
+import time
 from urllib.parse import urlsplit
 
 from pydantic import ValidationError
@@ -24,8 +25,18 @@ from content_machine.workflow.settings import list_sources
 Fetcher = Callable[[dict], ConnectorResult]
 
 
-def refresh(conn: sqlite3.Connection, principal: Principal, fetch: Fetcher | None) -> dict:
-    """Fetch enabled, owned sources without inventing results or mutating items."""
+REFRESH_DEADLINE_SECONDS = 45.0
+
+
+def refresh(conn: sqlite3.Connection, principal: Principal, fetch: Fetcher | None, *,
+            deadline_seconds: float = REFRESH_DEADLINE_SECONDS,
+            clock: Callable[[], float] = time.monotonic) -> dict:
+    """Fetch enabled, owned sources without inventing results or mutating items.
+
+    Once ``deadline_seconds`` have elapsed no further source is fetched; the
+    partial results are returned with ``incomplete`` set and one error per
+    skipped source.
+    """
     sources = list_sources(conn, principal, enabled_only=True)
     result = {
         "status": "no_sources", "items": [], "errors": [],
@@ -38,7 +49,13 @@ def refresh(conn: sqlite3.Connection, principal: Principal, fetch: Fetcher | Non
         return result
 
     seen = set()
-    for source in sources:
+    started = clock()
+    for index, source in enumerate(sources):
+        if clock() - started >= deadline_seconds:
+            result["incomplete"] = True
+            for skipped in sources[index:]:
+                result["errors"].append(_error(skipped, "Skipped: the refresh time limit was reached."))
+            break
         if source.get("kind") != "rss":
             result["errors"].append(_error(source, "This source type is unavailable."))
             continue

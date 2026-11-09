@@ -1,10 +1,15 @@
 import { useEffect, useId, useRef } from 'react'
 import { Mic, Square } from 'lucide-react'
+import { isHostedWorkspace } from '../../api/workspaceMode'
 import { useVoiceRecording } from '../../hooks/useVoiceRecording'
 import { useVoiceRecovery } from './VoiceRecovery'
 
 export default function WorkflowTextField({ label, value, onChange, enabled = true, rows = 7 }) {
   const id = useId()
+  // Hosted mode has no audio-upload route, so dictation needs browser speech recognition.
+  const hosted = isHostedWorkspace()
+  const dictationAvailable = !hosted || (typeof window !== 'undefined' &&
+    Boolean(window.SpeechRecognition || window.webkitSpeechRecognition))
   const recovery = useVoiceRecovery()
   const mounted = useRef(true)
   const enabledRef = useRef(enabled)
@@ -40,7 +45,7 @@ export default function WorkflowTextField({ label, value, onChange, enabled = tr
   return <div className="space-y-2">
     <div className="flex flex-wrap items-center justify-between gap-2">
       <label htmlFor={id} className="cm-label mb-0">{label}</label>
-      <button type="button" className="cm-button cm-button-quiet" disabled={!enabled || voice.isTranscribing || voice.isStarting}
+      {dictationAvailable && <button type="button" className="cm-button cm-button-quiet" disabled={!enabled || voice.isTranscribing || voice.isStarting}
         onClick={() => {
           if (voice.isRecording) { voice.stopRecording(); return }
           const number = ++session.current
@@ -52,7 +57,7 @@ export default function WorkflowTextField({ label, value, onChange, enabled = tr
         aria-label={voice.isRecording ? `Stop dictating ${label}` : `Dictate ${label}`}>
         {voice.isRecording ? <Square size={16} aria-hidden="true" /> : <Mic size={16} aria-hidden="true" />}
         {voice.isRecording ? 'Stop recording' : 'Dictate'}
-      </button>
+      </button>}
     </div>
     <textarea id={id} rows={rows} className="cm-textarea" value={value}
       onChange={event => onChange(event.target.value)} />
@@ -64,7 +69,7 @@ export default function WorkflowTextField({ label, value, onChange, enabled = tr
     {voice.error && <p role="alert" className="cm-status cm-status-error">{voice.error}</p>}
     <details className="cm-muted">
       <summary className="cursor-pointer">How dictation works</summary>
-      <p>Your browser's speech recognition may use its provider's service. Otherwise, recorded audio is sent to this app's transcription service. You can always type instead. Review the text before saving.</p>
+      {hosted ? <p>Dictation uses your browser's built-in speech recognition, which may send audio to your browser's provider. Nothing is uploaded to this app. If your browser doesn't support it, the Dictate button is hidden. You can always type instead. Review the text before saving.</p> : <p>Your browser's speech recognition may use its provider's service. Otherwise, recorded audio is sent to this app's transcription service. You can always type instead. Review the text before saving.</p>}
     </details>
   </div>
 }

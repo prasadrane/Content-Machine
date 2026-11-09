@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ArrowRight, Plus, RefreshCw } from 'lucide-react'
 import PlatformIcon from '../ui/PlatformIcon'
 import { formatLabel } from './workflowUtils'
+import FlowStrip from './FlowStrip'
 
 export const STAGES = [
   ['idea', 'Idea'], ['draft_review', 'Draft & review'], ['approve', 'Approve'], ['export', 'Export'],
@@ -27,6 +28,7 @@ export default function ContentList({ flow }) {
       <button className="cm-button cm-button-primary" disabled={flow.busy}
         onClick={() => flow.setScreen('new')}><Plus size={18} aria-hidden="true" />New content</button>
     </header>
+    <FlowStrip compact label="Content workflow steps" />
     <section aria-label="Saved work" className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="cm-panel-title">Ideas and drafts</h2>
@@ -42,15 +44,19 @@ export default function ContentList({ flow }) {
         {query && <button className="cm-button cm-button-quiet" onClick={() => setQuery('')}>Clear search</button>}
       </div>}
       {flow.items?.length === 0 && !flow.loading && !flow.error &&
-        <div className="cm-empty">No saved content yet. Start with an idea or an existing draft.</div>}
+        <div className="cm-empty space-y-3">
+          <p>No saved content yet. Start with an idea or an existing draft.</p>
+          <button className="cm-button cm-button-primary" disabled={flow.busy}
+            onClick={() => flow.setScreen('new')}><Plus size={18} aria-hidden="true" />Start your first idea</button>
+        </div>}
       {saved.length > 0 && matching.length === 0 && <p className="cm-muted">No saved content matches this search.</p>}
       {matching.map((item, index) => {
         const duplicate = saved.filter(other => other.title === item.title).length > 1
-        return <article key={item.item_id} className="cm-panel flex flex-wrap items-center justify-between gap-4">
+        const demo = item.guest_example_label === 'Demo example'
+        return <article key={item.item_id} className={`cm-panel ${demo ? 'cm-demo-card' : 'cm-own-card'} flex flex-wrap items-center justify-between gap-4`}>
         <div className="min-w-0 space-y-2">
           <h3 className="cm-panel-title break-words">{item.title}</h3>
-          {item.guest_example_label === 'Demo example' &&
-            <span className="cm-badge">Demo example</span>}
+          {demo && <span className="cm-badge">Demo example</span>}
           {duplicate && <p className="cm-muted break-all">Reference {reference(item)}</p>}
           <p className="cm-muted flex flex-wrap items-center gap-2">
             <PlatformIcon platform={item.destination} size={18} />{formatLabel(item)}

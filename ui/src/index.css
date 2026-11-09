@@ -176,3 +176,23 @@ pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* Landing: welcome screen and flow strip. Uses existing tokens only. */
+@layer components {
+  .cm-flow { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); margin: 0; padding: 0; list-style: none; }
+  .cm-flow-step { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; padding: 0.75rem 1rem; background: var(--cm-canvas); border: 1px solid var(--cm-border); border-radius: 0.75rem; }
+  .cm-flow-compact { grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr)); }
+  .cm-flow-compact .cm-flow-step { flex-direction: row; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; }
+  .cm-flow-num { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 1.75rem; height: 1.75rem; font-size: 0.875rem; font-weight: 600; color: var(--cm-canvas); background: var(--cm-ink); border-radius: 9999px; }
+  .cm-flow-name { font-weight: 600; color: var(--cm-ink); overflow-wrap: anywhere; }
+  .cm-welcome { max-width: 48rem; margin-inline: auto; }
+  .cm-welcome-hero { display: grid; gap: 1rem; padding-block: clamp(0.5rem, 3vw, 2rem); }
+  .cm-welcome-kicker { margin: 0; font-size: 0.875rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--cm-accent); }
+  .cm-welcome-title { font-size: clamp(1.75rem, 6vw, 2.75rem); line-height: 1.15; overflow-wrap: anywhere; }
+  .cm-welcome-lead { margin: 0; max-width: 40rem; font-size: 1.125rem; }
+  .cm-welcome-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+  .cm-welcome-primary { padding-inline: 1.5rem; }
+  .cm-welcome-flow { display: grid; gap: 0.75rem; padding: clamp(1rem, 2vw, 1.5rem); background: var(--cm-surface); border: 1px solid var(--cm-border); border-radius: var(--cm-radius); }
+  .cm-demo-card { border-style: dashed; border-color: var(--cm-field-border); }
+  .cm-own-card { border-left: 4px solid var(--cm-accent); }
+}

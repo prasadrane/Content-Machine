@@ -82,4 +82,12 @@ describe('idea discovery', () => {
     expect(await screen.findByText(/Other feed returned no new items/)).toBeInTheDocument()
     expect(screen.getByText('Exact source excerpt.')).toBeInTheDocument()
   })
+
+  it('tells people when the time limit skipped some sources', async () => {
+    refreshDiscovery.mockResolvedValue({ status: 'partial', items, errors: [], incomplete: true })
+    render(<DiscoveryPane attachedSources={[]} onUse={vi.fn()} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Find ideas' }))
+    expect(await screen.findByText('Time limit reached; some sources were skipped. Refresh again to continue.')).toBeInTheDocument()
+    expect(screen.getByText(/Time limit reached/)).toHaveAttribute('role', 'status')
+  })
 })

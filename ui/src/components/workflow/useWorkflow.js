@@ -5,6 +5,9 @@ import { approvalMatchesItem, draftOf, isClean, requestId, reviewMatches, snapsh
 import { useWorkflowLibrary } from './workflowLibrary'
 import { useWorkflowAI } from './useWorkflowAI'
 
+// Optimistic-concurrency token: omitted when the item has no updated_at.
+const stamp = item => item?.updated_at ? { expected_updated_at: item.updated_at } : {}
+
 export function useWorkflow() {
   const [item, setItem] = useState(null)
   const [draft, setDraft] = useState(null)
@@ -122,7 +125,7 @@ export function useWorkflow() {
   const persist = async (targetStage, valid) => {
     const source = itemRef.current
     const sent = draftRef.current
-    const body = { expected_revision: source.working_revision, ...sent }
+    const body = { expected_revision: source.working_revision, ...stamp(source), ...sent }
     if (targetStage) body.stage = targetStage
     const request = keyFor('save', source.item_id, body)
     const result = await api.saveItem(source.item_id, body, request.key)
@@ -150,7 +153,7 @@ export function useWorkflow() {
       ? itemRef.current : await persist(null, valid)
     if (!valid()) return
     if (!isClean(current, draftRef.current)) throw new Error('Save your latest changes before continuing.')
-    const body = { expected_revision: current.working_revision }
+    const body = { expected_revision: current.working_revision, ...stamp(current) }
     const request = keyFor('skip-review', current.item_id, body)
     const result = await api.skipReview(current.item_id, body, request.key)
     pendingKeys.current.delete(request.signature)
@@ -167,7 +170,7 @@ export function useWorkflow() {
     const digest = await artifactDigest(current)
     if (!valid()) return
     if (!isClean(current, draftRef.current)) throw new Error('Save your changes before approving.')
-    const body = { expected_revision: current.working_revision, artifact_digest: digest, consent: true }
+    const body = { expected_revision: current.working_revision, ...stamp(current), artifact_digest: digest, consent: true }
     const request = keyFor('approve', current.item_id, body)
     const result = await api.approveItem(current.item_id, body, request.key)
     if (!valid()) return

@@ -4,7 +4,18 @@ import { createAuthService, resolveWorkspaceMode } from './auth'
 describe('workspace auth service', () => {
   it('requires explicit hosted mode and rejects missing hosted configuration', () => {
     expect(resolveWorkspaceMode({})).toBe('local')
+    expect(resolveWorkspaceMode({ VITE_WORKSPACE_MODE: 'hosted' })).toBe('hosted')
+    expect(resolveWorkspaceMode({ VITE_WORKSPACE_MODE: ' Hosted ' })).toBe('hosted')
+    expect(resolveWorkspaceMode({ VITE_WORKSPACE_MODE: 'LOCAL' })).toBe('local')
     expect(() => createAuthService({ mode: 'hosted', url: '', anonKey: '' })).toThrow(/configuration/i)
+  })
+
+  it('fails closed to hosted for unrecognized modes and reports once', () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    expect(resolveWorkspaceMode({ VITE_WORKSPACE_MODE: 'prod-ish' })).toBe('hosted')
+    expect(resolveWorkspaceMode({ VITE_WORKSPACE_MODE: 'prod-ish' })).toBe('hosted')
+    expect(error).toHaveBeenCalledTimes(1)
+    error.mockRestore()
   })
 
   it('uses the SDK for PKCE sign in, guest sessions, tokens and sign out', async () => {
@@ -13,6 +24,7 @@ describe('workspace auth service', () => {
       signInAnonymously: vi.fn().mockResolvedValue({ data: {}, error: null }),
       getSession: vi.fn().mockResolvedValue({ data: { session: { access_token: 'token' } }, error: null }),
       signOut: vi.fn().mockResolvedValue({ error: null }),
+      refreshSession: vi.fn().mockResolvedValue({ data: { session: { access_token: 'fresh' } }, error: null }),
     }
     const createClient = vi.fn(() => ({ auth }))
     const service = createAuthService({ mode: 'hosted', url: 'https://example.supabase.co', anonKey: 'public-key', createClient })
@@ -22,6 +34,7 @@ describe('workspace auth service', () => {
     await service.signInAsGuest()
     expect(auth.signInAnonymously).toHaveBeenCalled()
     expect(await service.getAccessToken()).toBe('token')
+    expect((await service.refreshSession()).access_token).toBe('fresh')
     await service.signOut()
     expect(auth.signOut).toHaveBeenCalled()
   })

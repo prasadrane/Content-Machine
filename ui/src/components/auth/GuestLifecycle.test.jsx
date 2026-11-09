@@ -68,5 +68,6 @@ it('clears retained proof when sign-out is requested', async () => {
   fireEvent.click(screen.getByRole('button', { name: /copy guest work.*google/i }))
   await waitFor(() => expect(sessionStorage.length).toBe(1))
   fireEvent.click(screen.getByRole('button', { name: /^sign out$/i }))
+  fireEvent.click(await screen.findByRole('button', { name: /sign out anyway/i }))
   expect(sessionStorage.length).toBe(0)
 })

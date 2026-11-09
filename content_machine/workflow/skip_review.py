@@ -17,6 +17,7 @@ from content_machine.workflow.schemas import (
     Principal,
     Review,
     SkipReviewRequest,
+    require_request_id,
     utc_timestamp,
 )
 from content_machine.workflow.versions import freeze_version
@@ -31,10 +32,9 @@ def skip_review(
     request_id: str,
 ) -> WorkflowResult:
     """Freeze the current revision and record a skipped review atomically."""
-    if not isinstance(request_id, str) or not request_id.strip():
-        raise WorkflowError(422, "invalid_request", "Idempotency-Key is required")
+    require_request_id(request_id)
     path = f"/api/workflow/items/{item_id}/skip-review"
-    digest = request_digest("POST", path, payload.model_dump(mode="json"))
+    digest = request_digest("POST", path, payload.model_dump(mode="json", exclude_none=True))
     with atomic_write(conn):
         replay = find_idempotent(
             conn,
@@ -47,7 +47,10 @@ def skip_review(
         if replay is not None:
             return replay
         item = get_item(conn, principal, item_id)
-        if item.working_revision != payload.expected_revision:
+        if item.working_revision != payload.expected_revision or (
+            payload.expected_updated_at is not None
+            and payload.expected_updated_at != item.updated_at
+        ):
             raise WorkflowError(
                 409,
                 "revision_conflict",
@@ -92,14 +95,16 @@ def skip_review(
         )
         cursor = conn.execute(
             "UPDATE workflow_items SET stage = ?, updated_at = ?"
-            " WHERE item_id = ? AND owner_id = ? AND working_revision = ?",
+            " WHERE item_id = ? AND owner_id = ? AND working_revision = ?"
+            + (" AND updated_at = ?" if payload.expected_updated_at is not None else ""),
             (
                 Stage.APPROVE.value,
                 now,
                 item_id,
                 principal.owner_id,
                 payload.expected_revision,
-            ),
+            )
+            + ((payload.expected_updated_at,) if payload.expected_updated_at is not None else ()),
         )
         if cursor.rowcount != 1:
             raise WorkflowError(

@@ -17,9 +17,9 @@ Enums, constrained primitives, artifact values and time helpers live in
 from __future__ import annotations
 
 import copy
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field, StrictBool, StrictInt, model_validator
 
 from content_machine.workflow.schema_types import (
     ARTIFACT_DIGEST_PATTERN, MAX_ID_CHARS, MAX_MODEL_CONFIG_CHARS,
@@ -33,6 +33,17 @@ from content_machine.workflow.schema_types import (
     VersionPurpose, WorkflowModel, ensure_approvable,
     utc_timestamp, validate_pair,
 )
+
+
+def require_request_id(request_id: object) -> None:
+    """Reject a missing or oversized Idempotency-Key before any write or provider call."""
+    from content_machine.workflow.errors import WorkflowError
+    if not isinstance(request_id, str) or not request_id.strip():
+        raise WorkflowError(422, "invalid_request", "Idempotency-Key is required")
+    if len(request_id) > MAX_ID_CHARS:
+        raise WorkflowError(
+            422, "idempotency_key_too_long",
+            f"Idempotency-Key must be at most {MAX_ID_CHARS} characters")
 
 
 class Principal(WorkflowModel):
@@ -258,6 +269,8 @@ class ItemPatch(WorkflowModel):
     stage: Stage | None = None
     context: Context | None = None
     artifact: Artifact | None = None
+    # Optional stale-tab guard: the updated_at the client last acknowledged.
+    expected_updated_at: Timestamp | None = None
 
     @model_validator(mode="after")
     def _check_pair(self) -> "ItemPatch":
@@ -276,12 +289,14 @@ class ReviewRequest(WorkflowModel):
 
 class SkipReviewRequest(WorkflowModel):
     expected_revision: Revision
+    expected_updated_at: Timestamp | None = None
 
 
 class ApproveRequest(WorkflowModel):
-    expected_revision: Revision
+    expected_revision: Annotated[StrictInt, Field(ge=1)]
     artifact_digest: ArtifactDigest
-    consent: bool
+    consent: StrictBool
+    expected_updated_at: Timestamp | None = None
 
 
 class RestoreRequest(WorkflowModel):

@@ -73,6 +73,9 @@ def _bounded_call(operation, deadline: float, slots: threading.BoundedSemaphore)
     return value
 
 
+_ALLOWED_PORTS = frozenset({80, 443})
+
+
 def _parse_url(value: str):
     if not isinstance(value, str) or value != value.strip() or '\\' in value:
         raise FetchError('Invalid feed URL')
@@ -84,7 +87,7 @@ def _parse_url(value: str):
         configured_port = parsed.port
         port = configured_port if configured_port is not None else (443 if parsed.scheme == 'https' else 80)
         if (parsed.scheme not in {'http', 'https'} or not host or parsed.username is not None
-                or parsed.password is not None or parsed.fragment or not 1 <= port <= 65535
+                or parsed.password is not None or parsed.fragment or port not in _ALLOWED_PORTS
                 or '%' in host or any(char.isspace() for char in host)):
             raise ValueError('invalid URL')
         host = host.encode('idna').decode('ascii')

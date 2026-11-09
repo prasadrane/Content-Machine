@@ -27,7 +27,8 @@ class ProviderBudgetTest(unittest.TestCase):
     def reserve(self, key='one', conn=None, **kwargs):
         options = dict(pool='cloudflare-guest', day='2026-11-08', request_id=key,
                        subject_id='guest-a', provider='cloudflare_workers_ai', model='@cf/fixture',
-                       units=60, daily_limit=100, max_inflight=2)
+                       units=60, daily_limit=100, max_inflight=2,
+                       subject_daily_limit=100, subject_max_inflight=4)  # legacy tests: per-subject caps off
         options.update(kwargs)
         return budget.reserve(conn or self.conn, **options)
 
@@ -109,14 +110,49 @@ class ProviderBudgetTest(unittest.TestCase):
         with ThreadPoolExecutor(max_workers=5) as executor:
             self.assertEqual(sum(executor.map(claim, range(5))), 1)
 
-    def test_global_inflight_limit_does_not_reset_at_midnight_or_between_owners(self):
+    def test_yesterdays_stuck_rows_do_not_block_today(self):
+        self.reserve(units=10, max_inflight=1)
+        budget.dispatch(self.conn, 'cloudflare-guest', 'one')
+        budget.settle(self.conn, 'cloudflare-guest', 'one')  # uncertain, left stuck
+        self.assertTrue(self.reserve('two', day='2026-11-09', subject_id='guest-b', units=10, max_inflight=1)[1])
+
+    def test_same_day_crash_left_row_still_blocks_known_limitation(self):
+        # No timestamp column, so no lease expiry: a stuck same-day row holds its slot.
         self.reserve(units=10, max_inflight=1)
         with self.assertRaises(WorkflowError) as error:
-            self.reserve('two', day='2026-11-09', subject_id='guest-b', units=10, max_inflight=1)
+            self.reserve('two', subject_id='guest-b', units=10, max_inflight=1)
         self.assertEqual(error.exception.code, 'guest_budget_busy')
+
+    def test_subject_inflight_cap_blocks_same_subject_not_other_subject(self):
+        dflt = dict(subject_daily_limit=None, subject_max_inflight=1)
+        self.reserve(units=10, daily_limit=1000, max_inflight=3, **dflt)
+        with self.assertRaises(WorkflowError) as error:
+            self.reserve('two', units=10, daily_limit=1000, max_inflight=3, **dflt)
+        self.assertEqual(error.exception.code, 'guest_budget_subject_busy')
+        self.assertTrue(self.reserve('three', subject_id='guest-b', units=10, daily_limit=1000, max_inflight=3, **dflt)[1])
+        budget.release(self.conn, 'cloudflare-guest', 'one')
+        self.assertTrue(self.reserve('four', units=10, daily_limit=1000, max_inflight=3, **dflt)[1])
+
+    def test_subject_daily_cap_defaults_to_quarter_of_pool_and_spares_others(self):
+        opts = dict(units=10, daily_limit=100, max_inflight=4, subject_daily_limit=None, subject_max_inflight=1)
+        for key in ('one', 'two'):
+            self.reserve(key, **opts)
+            budget.dispatch(self.conn, 'cloudflare-guest', key)
+            budget.settle(self.conn, 'cloudflare-guest', key, actual_units=10)
+        with self.assertRaises(WorkflowError) as error:
+            self.reserve('three', **opts)  # 20 used + 10 > cap 25
+        self.assertEqual((error.exception.code, error.exception.status_code), ('guest_budget_subject_exhausted', 429))
+        self.assertTrue(self.reserve('four', subject_id='guest-b', **opts)[1])
+
+    def test_daily_spend_still_counts_settled_and_uncertain_rows(self):
+        opts = dict(units=40, daily_limit=100, max_inflight=4, subject_daily_limit=100, subject_max_inflight=4)
+        self.reserve('one', **opts)
         budget.dispatch(self.conn, 'cloudflare-guest', 'one')
-        budget.settle(self.conn, 'cloudflare-guest', 'one', actual_units=10)
-        self.assertTrue(self.reserve('two', day='2026-11-09', units=10, max_inflight=1)[1])
+        budget.settle(self.conn, 'cloudflare-guest', 'one')  # uncertain, charged in full
+        self.reserve('two', **opts)
+        with self.assertRaises(WorkflowError) as error:
+            self.reserve('three', **opts)
+        self.assertEqual(error.exception.code, 'guest_budget_exhausted')
 
     def test_outer_transaction_rejected_and_invalid_bounds_do_not_change_state(self):
         self.conn.execute('BEGIN')

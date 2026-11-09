@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
 import { createConfiguredAuth } from './api/auth'
-import { setAccessTokenProvider } from './api/session'
+import { setAccessTokenProvider, setSessionRefresher } from './api/session'
 import { AuthGate } from './components/auth/AuthGate'
 
 let authService
@@ -11,6 +11,7 @@ let authError = ''
 try {
   authService = createConfiguredAuth()
   setAccessTokenProvider(authService.getAccessToken)
+  setSessionRefresher(authService.refreshSession)
 } catch {
   authError = 'Workspace configuration is unavailable. Please contact the workspace administrator.'
 }

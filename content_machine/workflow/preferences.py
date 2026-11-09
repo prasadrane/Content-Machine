@@ -9,7 +9,7 @@ from content_machine.workflow.errors import WorkflowError
 from content_machine.workflow.persistence import (
     WorkflowResult, atomic_write, find_idempotent, record_idempotent, request_digest,
 )
-from content_machine.workflow.schemas import Principal, utc_timestamp
+from content_machine.workflow.schemas import Principal, require_request_id, utc_timestamp
 
 # Integrators add these statements to the existing atomic workflow migration.
 # Legacy rows stay in ``lessons`` until explicitly mapped in trusted-local mode.
@@ -152,8 +152,7 @@ def _insert(conn: sqlite3.Connection, principal: Principal, text: str, status: s
 def mutate_preference(conn: sqlite3.Connection, principal: Principal, action: str,
                       preference_id: str | None, payload: dict, request_id: str) -> WorkflowResult:
     """Perform an idempotent, revision-checked manual change in one transaction."""
-    if not isinstance(request_id, str) or not request_id.strip():
-        raise WorkflowError(422, 'invalid_request', 'Idempotency-Key is required')
+    require_request_id(request_id)
     suffix = '' if action == 'create' else f'/{preference_id}' + (f'/{action}' if action != 'edit' else '')
     path = f'/api/workflow/preferences{suffix}'
     method = 'PATCH' if action == 'edit' else 'POST'

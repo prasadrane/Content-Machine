@@ -2,6 +2,7 @@ import React from 'react'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { AuthGate } from './AuthGate'
+import { notifyUnauthorized } from '../../api/session'
 
 vi.mock('../../api/guests', () => ({ bootstrapGuest: vi.fn().mockResolvedValue({ examples: [] }),
   previewGuestTransfer: vi.fn(), transferGuest: vi.fn() }))
@@ -46,6 +47,7 @@ describe('AuthGate', () => {
     expect(screen.getByLabelText('draft')).toHaveValue('secret')
     act(() => service.emit('SIGNED_IN', { user: { id: 'two' }, access_token: 'c' }))
     expect(screen.getByLabelText('draft')).toHaveValue('original')
+    // Identity 'two' is not a guest and nothing signals unsaved work: no confirmation.
     fireEvent.click(screen.getByRole('button', { name: /sign out/i }))
     await waitFor(() => expect(screen.queryByLabelText('draft')).not.toBeInTheDocument())
     expect(service.signOut).toHaveBeenCalled()
@@ -71,6 +73,58 @@ describe('AuthGate', () => {
     fireEvent.click(screen.getByRole('button', { name: /retry sign out/i }))
     await waitFor(() => expect(service.signOut).toHaveBeenCalledTimes(2))
     expect(await screen.findByRole('button', { name: /continue as guest/i })).toBeInTheDocument()
+    expect(screen.queryByText('Private content')).not.toBeInTheDocument()
+  })
+
+  it('confirms guest sign-out with an accessible dialog and offers Copy with Google first', async () => {
+    const service = fakeService({ user: { id: 'g', is_anonymous: true }, access_token: 'a' })
+    render(<AuthGate service={service}><p>Private content</p></AuthGate>)
+    await screen.findByText('Private content')
+    const trigger = screen.getByRole('button', { name: /^sign out$/i })
+    fireEvent.click(trigger)
+    const dialog = await screen.findByRole('alertdialog', { name: /sign out/i })
+    expect(dialog).toHaveTextContent(/unreachable/i)
+    expect(service.signOut).not.toHaveBeenCalled()
+    expect(screen.getByText('Private content')).toBeInTheDocument()
+    expect(dialog.querySelector('button')).toHaveTextContent(/copy guest work with google/i)
+    expect(dialog).toContainElement(document.activeElement)
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+    expect(trigger).toHaveFocus()
+    expect(service.signOut).not.toHaveBeenCalled()
+    fireEvent.click(trigger)
+    fireEvent.click(await screen.findByRole('button', { name: /^cancel$/i }))
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+    fireEvent.click(trigger)
+    fireEvent.click(await screen.findByRole('button', { name: /sign out anyway/i }))
+    await waitFor(() => expect(service.signOut).toHaveBeenCalledTimes(1))
+  })
+
+  it('confirms sign-out for a signed-in user only when unsaved work is signalled', async () => {
+    const service = fakeService({ user: { id: 'u' }, access_token: 'a' })
+    function Dirty() {
+      React.useEffect(() => {
+        const warn = event => event.preventDefault()
+        window.addEventListener('beforeunload', warn)
+        return () => window.removeEventListener('beforeunload', warn)
+      }, [])
+      return <p>Dirty workspace</p>
+    }
+    render(<AuthGate service={service}><Dirty /></AuthGate>)
+    await screen.findByText('Dirty workspace')
+    fireEvent.click(screen.getByRole('button', { name: /^sign out$/i }))
+    expect(await screen.findByRole('alertdialog')).toHaveTextContent(/unsaved/i)
+    expect(service.signOut).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: /sign out anyway/i }))
+    await waitFor(() => expect(service.signOut).toHaveBeenCalled())
+  })
+
+  it('returns to sign-in when the API reports an unrecoverable 401', async () => {
+    const service = fakeService({ user: { id: 'u' }, access_token: 'a' })
+    render(<AuthGate service={service}><p>Private content</p></AuthGate>)
+    await screen.findByText('Private content')
+    act(() => notifyUnauthorized())
+    expect(await screen.findByRole('alert')).toHaveTextContent(/sign in again/i)
     expect(screen.queryByText('Private content')).not.toBeInTheDocument()
   })
 })

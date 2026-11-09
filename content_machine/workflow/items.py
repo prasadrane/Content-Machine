@@ -22,7 +22,9 @@ from content_machine.workflow.persistence import (
     record_idempotent, request_digest,
 )
 from content_machine.workflow.schema_types import Stage
-from content_machine.workflow.schemas import ContentItem, ItemCreate, ItemPatch, Principal, utc_timestamp
+from content_machine.workflow.schemas import (
+    ContentItem, ItemCreate, ItemPatch, Principal, require_request_id, utc_timestamp,
+)
 
 ITEMS_PATH = "/api/workflow/items"
 _PATCH_FIELDS = ("title", "destination", "format", "stage", "context", "artifact")
@@ -39,8 +41,7 @@ _ITEM_SELECT = (
 
 
 def _require_request_id(request_id: str) -> None:
-    if not isinstance(request_id, str) or not request_id.strip():
-        raise WorkflowError(422, "invalid_request", "Idempotency-Key is required")
+    require_request_id(request_id)
 
 
 def _invalid_item(exc: ValueError) -> WorkflowError:
@@ -219,6 +220,8 @@ def save_item(
         item = _get_owned(conn, principal.owner_id, item_id)
         if item.working_revision != patch.expected_revision:
             raise _conflict(item)
+        if patch.expected_updated_at is not None and patch.expected_updated_at != item.updated_at:
+            raise _conflict(item)
 
         title = _patch_value(patch, "title", item.title)
         destination = _patch_value(patch, "destination", item.destination)
@@ -256,13 +259,15 @@ def save_item(
             "UPDATE workflow_items SET title = ?, destination = ?, format = ?,"
             " stage = ?, working_revision = ?, context_json = ?,"
             " artifact_json = ?, active_approval_id = ?, updated_at = ?"
-            " WHERE item_id = ? AND owner_id = ? AND working_revision = ?",
+            " WHERE item_id = ? AND owner_id = ? AND working_revision = ?"
+            + (" AND updated_at = ?" if patch.expected_updated_at is not None else ""),
             (merged.title, merged.destination, merged.format, merged.stage.value,
              merged.working_revision,
              canonical_json(merged.context.model_dump(mode="json")),
              canonical_json(merged.artifact.model_dump(mode="json")),
              merged.active_approval_id, merged.updated_at, item.item_id,
-             item.owner_id, patch.expected_revision),
+             item.owner_id, patch.expected_revision)
+            + ((patch.expected_updated_at,) if patch.expected_updated_at is not None else ()),
         )
         if cursor.rowcount != 1:
             raise _conflict(_get_owned(conn, principal.owner_id, item_id))

@@ -1,9 +1,13 @@
+import { fetchWithReauth } from './client'
+import { authenticatedHeaders } from './session'
+
 export async function streamSSE(url, payload, dispatch) {
-  const res = await fetch(url, {
+  // Re-auth retry happens only here, before any of the stream is read.
+  const res = await fetchWithReauth(url, async () => ({
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await authenticatedHeaders(url, { 'Content-Type': 'application/json' }),
     body: JSON.stringify(payload),
-  })
+  }))
 
   if (!res.ok) {
     const errData = await res.json().catch(() => ({}))

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from './client'
 import * as workflow from './workflow'
-import { setAccessTokenProvider } from './session'
+import { onUnauthorized, setAccessTokenProvider, setSessionRefresher } from './session'
 
 const digest = `sha256:${'a'.repeat(64)}`
 const exactText = '  Exact café\r\nsecond line  \n'
@@ -238,5 +238,33 @@ describe('workflow binary download', () => {
     expect(providerError.message).toBe('GET /api/workflow/items/itm/exports/ver failed (502)')
     expect(providerError.status).toBe(502)
     expect(providerError.body).toBeNull()
+  })
+})
+
+describe('workflow 401 re-auth', () => {
+  afterEach(() => { setAccessTokenProvider(null); setSessionRefresher(null) })
+  it('refreshes once and retries getDownload with the fresh token', async () => {
+    let token = 'old'
+    setAccessTokenProvider(async () => token)
+    const refresh = vi.fn(async () => { token = 'new'; return {} })
+    setSessionRefresher(refresh)
+    const ok = downloadResponse()
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse({ detail: 'expired' }, 401)).mockResolvedValueOnce(ok)
+    vi.stubGlobal('fetch', fetchMock)
+    await workflow.getDownload('one', 'v2')
+    expect(refresh).toHaveBeenCalledTimes(1)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock.mock.calls[1][1].headers.Authorization).toBe('Bearer new')
+  })
+  it('signals sign-in after a second 401 without looping', async () => {
+    setAccessTokenProvider(async () => 't')
+    setSessionRefresher(async () => ({}))
+    const listener = vi.fn()
+    const off = onUnauthorized(listener)
+    const fetchMock = stub(jsonResponse({ detail: 'no' }, 401))
+    await expect(workflow.getDownload('one', 'v2')).rejects.toMatchObject({ status: 401 })
+    off()
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(listener).toHaveBeenCalledTimes(1)
   })
 })

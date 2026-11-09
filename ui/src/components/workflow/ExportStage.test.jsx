@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ExportStage from './ExportStage'
 import { getDownload } from '../../api/workflow'
@@ -42,7 +42,9 @@ describe('approved export', () => {
     expect(getDownload).toHaveBeenCalledWith('one', 'v2')
     expect(URL.createObjectURL).toHaveBeenCalledWith(blob)
     expect(click).toHaveBeenCalledOnce()
-    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:export')
+    // Revocation is delayed so Safari/Firefox can finish reading the blob.
+    expect(URL.revokeObjectURL).not.toHaveBeenCalled()
+    await waitFor(() => expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:export'), { timeout: 2500 })
   })
   it('refuses a different snapshot digest and reports download initiation failure', async () => {
     getDownload.mockResolvedValue({ blob: new Blob(['wrong']), filename: 'wrong.txt', artifactDigest: 'wrong' })
@@ -54,7 +56,7 @@ describe('approved export', () => {
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => { throw new Error('Denied') })
     await userEvent.click(screen.getByRole('button', { name: /download/i }))
     expect(await screen.findByRole('alert')).toHaveTextContent(/could not start/i)
-    expect(URL.revokeObjectURL).toHaveBeenCalled()
+    await waitFor(() => expect(URL.revokeObjectURL).toHaveBeenCalled(), { timeout: 2500 })
   })
   it('does not expose copy or download for an unapproved or dirty version', () => {
     const state = flow()

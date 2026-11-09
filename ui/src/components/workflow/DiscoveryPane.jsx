@@ -69,6 +69,7 @@ export default function DiscoveryPane({ attachedSources = [], onUse, onManageSou
     </div>
     {loading && <p role="status" className="cm-muted">Checking your sources…</p>}
     {error && <p role="alert" className="cm-status cm-status-error">{error}</p>}
+    {result?.incomplete && <p role="status" className="cm-status cm-status-warning">Time limit reached; some sources were skipped. Refresh again to continue.</p>}
     {result?.stale && <p className="cm-muted">Showing earlier results from this session.</p>}
     {result && messages[result.status] && <p className="cm-status cm-status-info">{messages[result.status]}</p>}
     {result?.errors?.map((failure, index) => <p key={`${failure.source_id}-${index}`} className="cm-status cm-status-warning">
