@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-import os
 from typing import Any
 
 import httpx
 
-from .base import ModelError, ProviderError
+from .base import ModelError, ProviderError, ProviderRejected
 
 API_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-_RETRYABLE = {429, 500, 502, 503, 504}
+_REJECTED = {401, 403, 429}  # plus any 5xx
 
 _GEMINI_TYPES = {float: "NUMBER", int: "INTEGER", bool: "BOOLEAN", str: "STRING"}
 
@@ -49,11 +48,12 @@ class GeminiAdapter:
 
     protocol = "gemini"
 
-    def __init__(self, api_key: str, timeout_s: float = 60.0):
+    def __init__(self, api_key: str, timeout_s: float = 60.0, transport: Any = None):
         if not api_key:
             raise ValueError("GeminiAdapter requires an api_key (GEMINI_API_KEY)")
         self.api_key = api_key
         self.timeout_s = timeout_s
+        self._transport = transport  # test seam only
 
     def complete(
         self,
@@ -65,14 +65,24 @@ class GeminiAdapter:
         **kw: Any,
     ) -> Any:
         """Return str, or a `schema` instance when structured output requested."""
+        timeout_s = self.timeout_s
+        requested = kw.pop("timeout_s", None)
+        if requested is not None:
+            if (isinstance(requested, bool) or not isinstance(requested, (int, float))
+                    or requested <= 0):
+                raise ValueError("timeout_s must be a positive number")
+            timeout_s = min(timeout_s, float(requested))
         body: dict[str, Any] = {
             "contents": [{"role": "user", "parts": [{"text": prompt}]}],
         }
         if system:
             body["systemInstruction"] = {"parts": [{"text": system}]}
         gen: dict[str, Any] = {}
-        if os.environ.get("DEMO_MODE") == "1" and model.startswith("gemini-2.5-flash"):
+        if model.startswith("gemini-2.5-flash"):  # flash and flash-lite
             gen["thinkingConfig"] = {"thinkingBudget": 0}
+        max_tokens = kw.get("max_tokens")
+        if isinstance(max_tokens, int) and not isinstance(max_tokens, bool) and max_tokens > 0:
+            gen["maxOutputTokens"] = max_tokens
         if kw.get("temperature") is not None:
             gen["temperature"] = kw["temperature"]
         if schema is not None:
@@ -81,19 +91,24 @@ class GeminiAdapter:
         if gen:
             body["generationConfig"] = gen
         try:
-            resp = httpx.post(
-                API_URL.format(model=model),
-                json=body,
-                headers={"x-goog-api-key": self.api_key},
-                timeout=self.timeout_s,
-            )
-        except httpx.HTTPError as exc:
-            raise ProviderError(f"gemini network error: {exc}") from exc
-        if resp.status_code in _RETRYABLE:
-            raise ProviderError(f"gemini retryable {resp.status_code}")
-        if resp.status_code != 200:
-            raise ModelError(f"gemini {resp.status_code}: {resp.text[:200]}")
-        data = resp.json()
+            with httpx.Client(transport=self._transport, trust_env=False,
+                              follow_redirects=False, timeout=timeout_s) as client:
+                resp = client.post(
+                    API_URL.format(model=model),
+                    json=body,
+                    headers={"x-goog-api-key": self.api_key},
+                )
+        except httpx.HTTPError:
+            raise ProviderError("gemini network error") from None
+        status = resp.status_code
+        if status in _REJECTED or status >= 500:
+            raise ProviderRejected(f"gemini request unavailable (HTTP {status})")
+        if status != 200:
+            raise ModelError(f"gemini rejected the request (HTTP {status})")
+        try:
+            data = resp.json()
+        except ValueError:
+            raise ModelError("gemini returned an unreadable response") from None
         parts = (data.get("candidates") or [{}])[0].get("content", {}).get("parts", [])
         text = "".join(p.get("text", "") for p in parts)
         if not text:
@@ -101,6 +116,6 @@ class GeminiAdapter:
         if schema is not None:
             try:
                 return schema.model_validate_json(text)
-            except ValueError as exc:
-                raise ModelError(f"gemini schema-invalid json: {exc}") from exc
+            except ValueError:
+                raise ModelError("gemini returned schema-invalid json") from None
         return text

@@ -15,7 +15,7 @@ import time
 import httpx
 from pydantic import BaseModel, ValidationError
 
-from content_machine.router.base import ModelError, ProviderError
+from content_machine.router.base import ModelError, ProviderError, ProviderRejected
 
 MAX_RESPONSE_BYTES = 1_000_000
 MAX_INPUT_BYTES = 1_000_000
@@ -45,7 +45,14 @@ class CloudflareWorkersAI:
     def complete(self, model: str, prompt: str, *, system: str | None = None,
                  schema: type[BaseModel] | None = None, **kwargs):
         """Return text or a validated model, or a redacted provider/model error."""
-        deadline = time.monotonic() + self._timeout_s
+        timeout_s = self._timeout_s
+        requested = kwargs.pop('timeout_s', None)
+        if requested is not None:
+            if (isinstance(requested, bool) or not isinstance(requested, (int, float))
+                    or not math.isfinite(requested) or requested <= 0):
+                raise ValueError('timeout_s must be a positive number')
+            timeout_s = min(timeout_s, float(requested))
+        deadline = time.monotonic() + timeout_s
         if not isinstance(model, str) or not _MODEL.fullmatch(model):
             raise ValueError('A provider-native Cloudflare model ID is required')
         if not isinstance(prompt, str) or not prompt.strip() or (system is not None and not isinstance(system, str)):
@@ -126,7 +133,7 @@ class CloudflareWorkersAI:
                               timeout=httpx.Timeout(remaining)) as client:
                 with client.stream('POST', self._url, json=payload, headers=headers) as response:
                     if response.status_code in (401, 403, 408, 429) or response.status_code >= 500:
-                        raise ProviderError(f'Cloudflare request unavailable (HTTP {response.status_code})')
+                        raise ProviderRejected(f'Cloudflare request unavailable (HTTP {response.status_code})')
                     if response.status_code != 200:
                         raise ModelError(f'Cloudflare rejected the request (HTTP {response.status_code})')
                     body = bytearray()

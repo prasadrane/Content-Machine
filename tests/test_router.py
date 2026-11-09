@@ -248,3 +248,45 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+def test_provider_rejected_is_provider_error_and_falls_to_next_route() -> None:
+    from content_machine.router.base import ProviderRejected
+    assert issubclass(ProviderRejected, ProviderError)
+    r = make_router({
+        "r1": FakeAdapter({"m1": ProviderRejected("429")}),
+        "r2": FakeAdapter({"m1": "ok-r2"}),
+    })
+    assert r.complete(["m1"], "p") == "ok-r2"
+
+
+def test_model_error_breaks_to_next_model_by_default() -> None:
+    a2 = FakeAdapter({"m1": "ok-r2"})
+    r = make_router({"r1": FakeAdapter({"m1": ModelError("bad")}), "r2": a2})
+    try:
+        r.complete(["m1"], "p")
+    except AllRoutesFailed:
+        assert a2.calls == []
+    else:
+        raise AssertionError("expected AllRoutesFailed")
+
+
+def test_fallthrough_model_errors_tries_next_route() -> None:
+    r = make_router(
+        {"r1": FakeAdapter({"m1": ModelError("bad")}), "r2": FakeAdapter({"m1": "ok-r2"})},
+        fallthrough_model_errors=True,
+    )
+    assert r.complete(["m1"], "p") == "ok-r2"
+
+
+def test_fallthrough_records_attempts_and_exhausts() -> None:
+    r = make_router(
+        {"r1": FakeAdapter({"m1": ModelError("a")}), "r2": FakeAdapter({"m1": ModelError("b")})},
+        fallthrough_model_errors=True,
+    )
+    try:
+        r.complete(["m1"], "p")
+    except AllRoutesFailed as e:
+        assert len(e.errors) == 2
+    else:
+        raise AssertionError("expected AllRoutesFailed")

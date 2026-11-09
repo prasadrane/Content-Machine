@@ -7,6 +7,7 @@ from unittest.mock import patch
 import test_workflow_api_items as fixtures
 from content_machine.api.app import app
 from content_machine.workflow.guests import VerifiedGuestSession
+from content_machine.workflow.provider_execution import ProviderExecution
 
 
 class CreatorSelectorsTest(unittest.TestCase):
@@ -52,6 +53,8 @@ class CreatorSelectorsTest(unittest.TestCase):
                                      'CONTENT_MACHINE_HOME': decoy,
                                      'CONTENT_MACHINE_LOCAL_OWNER_ID': self.fixture.a.owner_id}), \
              patch.object(app.state, 'workflow_generator', generator, create=True), \
+             patch.object(ProviderExecution, 'for_request', classmethod(  # signed-in AI is metered; this test injects a fake provider
+                 lambda cls, request, principal, op: cls(metered=False, subject_id=principal.owner_id, operation_id=op))), \
              patch('content_machine.api.app.ProfileManager') as legacy_profile, \
              patch('content_machine.storage.paths.home_root', side_effect=AssertionError('legacy path selection')):
             forged = {'X-Owner-ID': self.fixture.a.owner_id, 'Authorization': 'Bearer forged'}

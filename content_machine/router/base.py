@@ -19,6 +19,10 @@ class ProviderError(Exception):
     """Route-level failure: try another route for the same model."""
 
 
+class ProviderRejected(ProviderError):
+    """An HTTP response was received but nothing was produced (401/403/429/5xx)."""
+
+
 class ModelError(Exception):
     """Model-level failure: advance to the next model in the layer."""
 
@@ -72,10 +76,12 @@ class ModelRouter:
         route_models: dict[str, list[str]] | None = None,
         health_window_s: float = 300.0,
         preferred_max_latency_s: float | None = None,
+        fallthrough_model_errors: bool = False,
     ):
         self.routes = routes
         self.route_models = route_models or {"*": list(routes)}
         self.preferred_max_latency_s = preferred_max_latency_s
+        self.fallthrough_model_errors = fallthrough_model_errors
         self._health: dict[tuple[str, str], EndpointHealth] = {}
         self._window_s = health_window_s
 
@@ -134,6 +140,8 @@ class ModelRouter:
                     )
                 except ModelError as e:
                     attempts.append((model, route_name, f"model-level: {e}"))
+                    if self.fallthrough_model_errors:
+                        continue  # next route
                     break  # next model
                 except ProviderError as e:
                     health.record(time.time() - t0, ok=False)

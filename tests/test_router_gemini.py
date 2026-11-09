@@ -4,7 +4,7 @@ import json
 import httpx
 import pytest
 
-from content_machine.router.base import ModelError, ProviderError
+from content_machine.router.base import ModelError, ProviderError, ProviderRejected
 from content_machine.router.gemini import GeminiAdapter
 
 
@@ -28,42 +28,36 @@ def _handler(request: httpx.Request) -> httpx.Response:
 
 
 @pytest.fixture()
-def adapter(monkeypatch):
-    transport = httpx.MockTransport(_handler)
-    monkeypatch.setattr(httpx, "post", lambda url, **kw: httpx.Client(transport=transport).post(url, **kw))
-    return GeminiAdapter(api_key="test-key")
+def adapter():
+    return GeminiAdapter(api_key="test-key", transport=httpx.MockTransport(_handler))
+
+
+def _spy_adapter(captured, text="ok", status=200, timeout_s=60.0):
+    def handler(request):
+        captured["json"] = json.loads(request.content)
+        captured["headers"] = dict(request.headers)
+        captured["timeout"] = request.extensions.get("timeout")
+        if status != 200:
+            return httpx.Response(status, text="LEAK-BODY secret-k")
+        return httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": text}]}}]})
+
+    return GeminiAdapter(api_key="secret-k", timeout_s=timeout_s, transport=httpx.MockTransport(handler))
 
 
 def test_joins_part_texts(adapter):
     assert adapter.complete("gemini-2.5-flash", "hi") == "hello world"
 
 
-def test_system_becomes_system_instruction(adapter):
-    adapter.complete("gemini-2.5-flash", "hi", system="be terse")
-    # request shape asserted via echo in handler-backed response is indirect;
-    # direct assertion:
+def test_system_becomes_system_instruction():
     captured = {}
-
-    def spy(url, **kw):
-        captured.update(kw)
-        return httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": "ok"}]}}]})
-
-    import content_machine.router.gemini as g
-    orig = g.httpx.post
-    g.httpx = httpx  # keep attr patchable
-    try:
-        import unittest.mock as mock
-        with mock.patch.object(httpx, "post", side_effect=spy):
-            GeminiAdapter(api_key="test-key").complete("m", "p", system="be terse")
-    finally:
-        g.httpx.post = orig
+    _spy_adapter(captured).complete("m", "p", system="be terse")
     assert captured["json"]["systemInstruction"] == {"parts": [{"text": "be terse"}]}
-    assert captured["headers"]["x-goog-api-key"] == "test-key"
+    assert captured["headers"]["x-goog-api-key"] == "secret-k"
     assert captured["json"]["contents"] == [{"role": "user", "parts": [{"text": "p"}]}]
 
 
-def test_429_maps_to_provider_error(adapter):
-    with pytest.raises(ProviderError):
+def test_429_maps_to_provider_rejected(adapter):
+    with pytest.raises(ProviderRejected):
         adapter.complete("m", "boom429")
 
 
@@ -101,26 +95,14 @@ def test_make_router_builds_gemini_route_and_skips_without_key(monkeypatch, tmp_
 
 
 def test_schema_returns_validated_model_and_sends_response_schema():
-    import json as _json
-    from unittest import mock
-
-    import httpx as _httpx
-
-    from content_machine.router.gemini import GeminiAdapter
     from content_machine.schemas import CouncilScores
 
     captured = {}
-    payload = _json.dumps({
+    payload = json.dumps({
         "narrative": 9.0, "velocity": 8.5, "depth": 9.2, "slop_purity": 9.4,
         "threshold_met": True, "verdict": "pass", "required_actions": ["none"],
     })
-
-    def spy(url, **kw):
-        captured.update(kw)
-        return _httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": payload}]}}]})
-
-    with mock.patch.object(_httpx, "post", side_effect=spy):
-        out = GeminiAdapter(api_key="k").complete("m", "p", schema=CouncilScores)
+    out = _spy_adapter(captured, text=payload).complete("m", "p", schema=CouncilScores)
     assert isinstance(out, CouncilScores)
     assert out.verdict == "pass"
     gen = captured["json"]["generationConfig"]
@@ -131,20 +113,10 @@ def test_schema_returns_validated_model_and_sends_response_schema():
 
 
 def test_schema_invalid_json_maps_to_model_error():
-    from unittest import mock
-
-    import httpx as _httpx
-
-    from content_machine.router.base import ModelError
-    from content_machine.router.gemini import GeminiAdapter
     from content_machine.schemas import CouncilScores
 
-    def spy(url, **kw):
-        return _httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": "{\"narrative\": "}]}}]})
-
-    with mock.patch.object(_httpx, "post", side_effect=spy):
-        with pytest.raises(ModelError):
-            GeminiAdapter(api_key="k").complete("m", "p", schema=CouncilScores)
+    with pytest.raises(ModelError):
+        _spy_adapter({}, text='{"narrative": ').complete("m", "p", schema=CouncilScores)
 
 
 def test_topic_briefing_schema_preserves_nested_question_objects():
@@ -165,14 +137,69 @@ def test_topic_briefing_schema_preserves_nested_question_objects():
     }
 
 
-def test_flash_request_disables_dynamic_thinking_for_demo_latency(monkeypatch):
-    monkeypatch.setenv("DEMO_MODE", "1")
+@pytest.mark.parametrize("model", ["gemini-2.5-flash", "gemini-2.5-flash-lite"])
+def test_flash_models_always_disable_thinking(monkeypatch, model):
+    monkeypatch.delenv("DEMO_MODE", raising=False)
     captured = {}
-
-    def spy(url, **kw):
-        captured.update(kw)
-        return httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": "ok"}]}}]})
-
-    monkeypatch.setattr(httpx, "post", spy)
-    GeminiAdapter(api_key="k").complete("gemini-2.5-flash", "hello")
+    _spy_adapter(captured).complete(model, "hello")
     assert captured["json"]["generationConfig"]["thinkingConfig"] == {"thinkingBudget": 0}
+
+
+def test_non_flash_model_keeps_default_thinking():
+    captured = {}
+    _spy_adapter(captured).complete("gemini-2.5-pro", "hello")
+    assert "generationConfig" not in captured["json"]
+
+
+def test_max_tokens_becomes_max_output_tokens():
+    captured = {}
+    _spy_adapter(captured).complete("m", "hello", max_tokens=321)
+    assert captured["json"]["generationConfig"]["maxOutputTokens"] == 321
+
+
+def test_timeout_kwarg_clamped_to_constructor_timeout():
+    captured = {}
+    adapter = _spy_adapter(captured, timeout_s=10.0)
+    adapter.complete("m", "p", timeout_s=3)
+    assert captured["timeout"]["read"] == 3.0
+    adapter.complete("m", "p", timeout_s=500)
+    assert captured["timeout"]["read"] == 10.0
+    adapter.complete("m", "p")
+    assert captured["timeout"]["read"] == 10.0
+    with pytest.raises(ValueError):
+        adapter.complete("m", "p", timeout_s=0)
+
+
+def test_client_ignores_env_and_redirects(monkeypatch):
+    seen = {}
+    real = httpx.Client
+
+    def spy_client(*a, **kw):
+        seen.update(kw)
+        return real(*a, **kw)
+
+    monkeypatch.setattr(httpx, "Client", spy_client)
+    _spy_adapter({}).complete("m", "p")
+    assert seen["trust_env"] is False and seen["follow_redirects"] is False
+
+
+@pytest.mark.parametrize("status,exc", [
+    (401, ProviderRejected), (403, ProviderRejected), (429, ProviderRejected),
+    (500, ProviderRejected), (503, ProviderRejected), (400, ModelError), (404, ModelError),
+])
+def test_status_mapping_and_no_leaks(status, exc):
+    with pytest.raises(exc) as raised:
+        _spy_adapter({}, status=status).complete("m", "p")
+    text = str(raised.value)
+    assert "LEAK-BODY" not in text and "secret-k" not in text
+    assert str(status) in text
+
+
+def test_network_error_does_not_leak_key():
+    def boom(request):
+        raise httpx.ConnectError("key secret-k in " + str(request.url), request=request)
+
+    adapter = GeminiAdapter(api_key="secret-k", transport=httpx.MockTransport(boom))
+    with pytest.raises(ProviderError) as raised:
+        adapter.complete("m", "p")
+    assert "secret-k" not in str(raised.value)

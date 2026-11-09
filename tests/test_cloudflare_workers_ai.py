@@ -7,7 +7,7 @@ import unittest
 import httpx
 from pydantic import BaseModel, ConfigDict
 
-from content_machine.router.base import AllRoutesFailed, ModelError, ModelRouter, ProviderError, Route
+from content_machine.router.base import AllRoutesFailed, ModelError, ModelRouter, ProviderError, ProviderRejected, Route
 from content_machine.router.cloudflare_workers_ai import CloudflareWorkersAI
 from content_machine.router import cloudflare_workers_ai
 
@@ -99,6 +99,40 @@ class CloudflareWorkersAITest(unittest.TestCase):
         with self.assertRaises(ProviderError) as raised:
             self.adapter(broken).complete(MODEL, 'Write')
         self.assertNotIn(TOKEN, str(raised.exception))
+
+    def test_rejection_statuses_map_to_provider_rejected(self):
+        for status in (401, 403, 429, 500, 503):
+            with self.subTest(status=status):
+                with self.assertRaises(ProviderRejected) as raised:
+                    self.adapter(lambda request: httpx.Response(status, text=TOKEN)).complete(MODEL, 'Write')
+                self.assertNotIn(TOKEN, str(raised.exception))
+        with self.assertRaises(ModelError):
+            self.adapter(lambda request: httpx.Response(400, text=TOKEN)).complete(MODEL, 'Write')
+
+    def test_per_call_timeout_is_clamped_to_constructor_timeout(self):
+        gate = threading.Event()
+        def blocked(request):
+            gate.wait(3)
+            return httpx.Response(200, json=success())
+        try:
+            started = time.monotonic()
+            with self.assertRaises(ProviderError):
+                self.adapter(blocked, timeout=2).complete(MODEL, 'Write', timeout_s=0.1)
+            self.assertLess(time.monotonic() - started, 0.8)
+            started = time.monotonic()
+            with self.assertRaises(ProviderError):
+                self.adapter(blocked, timeout=0.1).complete(MODEL, 'Write', timeout_s=60)
+            self.assertLess(time.monotonic() - started, 0.8)
+        finally:
+            gate.set()
+        seen = []
+        def ok(request):
+            seen.append(json.loads(request.content))
+            return httpx.Response(200, json=success())
+        self.adapter(ok).complete(MODEL, 'Write', timeout_s=5)
+        self.assertNotIn('timeout_s', seen[0])
+        with self.assertRaises(ValueError):
+            self.adapter(ok).complete(MODEL, 'Write', timeout_s=0)
 
     def test_timeout_is_bounded_and_late_calls_hold_a_concurrency_slot(self):
         gate = threading.Event()
