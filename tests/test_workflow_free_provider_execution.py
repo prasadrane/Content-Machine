@@ -152,6 +152,26 @@ class FreeProviderExecutionTest(unittest.TestCase):
         self.assertEqual(self.rows(), [('cloudflare-guest', 'settled', 0), ('cloudflare-guest', 'uncertain', 1000000)])
         self.assertEqual(timed_out.calls[0]['usage_basis'], 'uncertain_reservation')
 
+    def test_each_attempt_logs_one_fixed_field_line_without_secret_or_provider_text(self):
+        import io
+        from contextlib import redirect_stderr
+        secret = 'sk-LEAKED-key-and-response-body'
+        buffer = io.StringIO()
+        with redirect_stderr(buffer):
+            self.router(self.execution(), cloudflare=ProviderRejected(secret)).complete([ALIAS], 'Fixture')
+            with self.assertRaises(AllRoutesFailed):
+                self.router(self.execution('guest-b'), cloudflare=TimeoutError(secret), gemini=TimeoutError(secret)).complete([ALIAS], 'Fixture')
+        lines = [line for line in buffer.getvalue().splitlines() if line.startswith('ai_attempt ')]
+        # rejected + ok, then an unexpected error that ends the model layer.
+        self.assertEqual(len(lines), 3)
+        self.assertIn('provider=cloudflare_workers_ai', lines[0])
+        self.assertIn('outcome=rejected', lines[0])
+        self.assertIn('provider=gemini', lines[1])
+        self.assertIn('outcome=ok', lines[1])
+        self.assertIn('outcome=error:TimeoutError', lines[2])
+        self.assertTrue(all(' ms=' in line for line in lines))
+        self.assertNotIn(secret, buffer.getvalue())
+
     def test_missing_policy_variables_use_defaults_and_invalid_values_fail_closed(self):
         with patch.dict('os.environ', {}):
             for name in list(os.environ):

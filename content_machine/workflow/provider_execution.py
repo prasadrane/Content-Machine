@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 import json
 import math
 import os
+import sys
 import threading
 import time
 import uuid
@@ -159,9 +160,27 @@ class ProviderExecution:
         if pool == 'cloudflare-guest':
             record['charged_millineurons'] = units
 
+    @staticmethod
+    def _log_attempt(record, started, error=None):
+        """One operator line per attempt: fixed fields only, never prompt, response or key text."""
+        if error is None:
+            outcome = 'ok'
+        elif isinstance(error, ProviderRejected):
+            outcome = 'rejected'
+        elif isinstance(error, WorkflowError):
+            outcome = 'workflow:' + str(error.code)
+        elif isinstance(error, ProviderError):
+            outcome = 'provider:' + (record.get('code') or type(error).__name__)
+        else:
+            outcome = 'error:' + type(error).__name__
+        print(f"ai_attempt provider={record.get('provider')} model={record.get('model')} outcome={outcome} "
+              f"dispatched={record.get('dispatched')} ms={int((time.monotonic() - started) * 1000)}",
+              file=sys.stderr, flush=True)
+
     def _complete(self, name, route, model, prompt, kwargs):
         record = {'route': name, 'provider': route.protocol, 'model': model,
                   'model_identity': 'requested', 'state': 'blocked', 'dispatched': False}
+        started = time.monotonic()
         with self._lock:
             self.calls.append(record)
         conn = None
@@ -221,8 +240,10 @@ class ProviderExecution:
                 budget.settle(conn, pool, record['reservation_key'], actual_units=units)
                 self._charged(record, pool, units, 'conservative_reservation')
             record['state'] = 'completed'
+            self._log_attempt(record, started)
             return result
         except Exception as error:
+            self._log_attempt(record, started, error)
             if record['dispatched']:
                 record['state'] = 'failed'
                 if conn is not None:
