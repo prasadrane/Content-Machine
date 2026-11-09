@@ -23,7 +23,10 @@ _FAILURE_HINTS = (
 def configure_hosted_workflow(app, values):
     try:
         config = parse_hosted_configuration(values)
-    except HostedConfigurationError:
+    except HostedConfigurationError as exc:
+        # Typed, value-redacted: names the failing variable, never its value.
+        print(f'hosted_configuration_invalid code={exc.code} variable={exc.variable}',
+              file=sys.stderr, flush=True)
         # Keep readiness/static routes available while workspace access fails
         # closed through the existing missing-auth/storage guards.
         return
